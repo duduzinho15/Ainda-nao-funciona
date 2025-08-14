@@ -1,0 +1,430 @@
+"""
+Cliente para API de Afiliados da Shopee
+Implementação correta com tratamento do erro "Invalid Signature"
+"""
+
+import hashlib
+import hmac
+import json
+import time
+import requests
+from typing import Dict, Any, Optional
+
+
+class ShopeeAffiliateAPI:
+    """
+    Cliente para integração com a API de Afiliados da Shopee.
+    Corrige o problema de "Invalid Signature" seguindo exatamente o formato esperado.
+    """
+    
+    def __init__(self, app_id: str, app_secret: str):
+        """
+        Inicializa o cliente da API.
+        
+        Args:
+            app_id: Seu AppID da Shopee (ex: "18330800803")
+            app_secret: Seu Secret da Shopee (ex: "ZWOPZOLVZZISXF5J6RIXTHGISP4RZMG6")
+        """
+        self.app_id = app_id
+        self.app_secret = app_secret
+        self.base_url = "https://open-api.affiliate.shopee.com.br/graphql"
+        
+    def _generate_signature(self, timestamp: int, payload: str) -> str:
+        """
+        Gera a assinatura SHA256 no formato EXATO esperado pela Shopee.
+        
+        IMPORTANTE: A string base deve seguir o formato:
+        app_id+timestamp+payload+app_secret
+        
+        Onde:
+        - app_id: Sem aspas, sem espaços
+        - timestamp: Como string, sem aspas
+        - payload: JSON compacto SEM espaços após ':' e ','
+        - app_secret: Sem aspas, sem espaços
+        
+        Args:
+            timestamp: Unix timestamp atual
+            payload: JSON string do payload
+            
+        Returns:
+            Assinatura SHA256 em hexadecimal lowercase
+        """
+        # CRÍTICO: A string base deve ser EXATAMENTE neste formato
+        # Não adicione espaços, aspas ou qualquer outro caractere
+        base_string = f"{self.app_id}{timestamp}{payload}{self.app_secret}"
+        
+        # Gera o hash SHA256
+        signature = hashlib.sha256(base_string.encode('utf-8')).hexdigest()
+        
+        # Debug - descomente para ver o que está sendo gerado
+        print(f"[DEBUG] Base String: {base_string[:50]}...{base_string[-50:]}")
+        print(f"[DEBUG] Signature: {signature}")
+        
+        return signature
+    
+    def _format_query(self, query: str) -> str:
+        """
+        Formata a query GraphQL removendo espaços extras e quebras de linha.
+        
+        Args:
+            query: Query GraphQL com formatação
+            
+        Returns:
+            Query compacta sem espaços desnecessários
+        """
+        # Remove quebras de linha e espaços extras
+        import re
+        query = ' '.join(query.split())
+        # Remove espaços ao redor de { } ( ) : ,
+        query = re.sub(r'\s*([{}(),:.])\s*', r'\1', query)
+        return query
+    
+    def execute_query(self, query: str, variables: Optional[Dict] = None) -> Dict[str, Any]:
+        """
+        Executa uma query GraphQL na API da Shopee.
+        
+        Args:
+            query: Query GraphQL a ser executada
+            variables: Variáveis opcionais para a query
+            
+        Returns:
+            Resposta da API em formato dict
+            
+        Raises:
+            requests.RequestException: Erro na requisição HTTP
+            ValueError: Erro ao processar resposta JSON
+        """
+        # Timestamp atual (em segundos)
+        timestamp = int(time.time())
+        
+        # Formata a query removendo espaços desnecessários
+        formatted_query = self._format_query(query)
+        
+        # Prepara o payload
+        payload_dict = {"query": formatted_query}
+        if variables:
+            payload_dict["variables"] = variables
+        
+        # CRÍTICO: JSON deve ser compacto, sem espaços após ':' e ','
+        payload = json.dumps(payload_dict, separators=(',', ':'), ensure_ascii=False)
+        
+        # Gera a assinatura
+        signature = self._generate_signature(timestamp, payload)
+        
+        # Headers da requisição
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"SHA256 Credential={self.app_id}, Signature={signature}, Timestamp={timestamp}"
+        }
+        
+        # Debug - descomente para ver os headers
+        print(f"[DEBUG] Headers: {headers}")
+        print(f"[DEBUG] Payload: {payload}")
+        
+        try:
+            # Faz a requisição
+            response = requests.post(
+                self.base_url,
+                data=payload,
+                headers=headers,
+                timeout=30
+            )
+            
+            # Verifica o status HTTP
+            response.raise_for_status()
+            
+            # Retorna o JSON da resposta
+            return response.json()
+            
+        except requests.RequestException as e:
+            print(f"[ERRO] Erro na requisição: {e}")
+            if hasattr(e.response, 'text'):
+                print(f"[ERRO] Resposta do servidor: {e.response.text}")
+            raise
+        except json.JSONDecodeError as e:
+            print(f"[ERRO] Erro ao decodificar JSON: {e}")
+            print(f"[ERRO] Resposta raw: {response.text}")
+            raise ValueError(f"Resposta inválida da API: {response.text}")
+    
+    def get_product_offers(self, 
+                          limit: int = 50,
+                          sort_by: str = "SALES_DESC") -> Dict[str, Any]:
+        """
+        Obtém ofertas de produtos disponíveis.
+        
+        Args:
+            limit: Número máximo de produtos (padrão: 50)
+            sort_by: Ordenação (SALES_DESC, COMMISSION_DESC, etc.)
+            
+        Returns:
+            Dict com as ofertas de produtos
+        """
+        query = """
+        query ProductOfferQuery($limit: Int, $sortBySalesDesc: ProductOfferSorter) {
+            productOfferV2(limit: $limit, sortBy: $sortBySalesDesc) {
+                nodes {
+                    productName
+                    itemId
+                    commissionRate
+                    commission
+                    price
+                    sales
+                    imageUrl
+                    shopName
+                    shopId
+                    ratingStar
+                    productLink
+                    priceMin
+                    priceMax
+                    categoryName
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                    totalCount
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "limit": limit,
+            "sortBySalesDesc": sort_by
+        }
+        
+        return self.execute_query(query, variables)
+    
+    def search_products(self, keyword: str, limit: int = 50) -> Dict[str, Any]:
+        """
+        Busca produtos por palavra-chave.
+        
+        Args:
+            keyword: Palavra-chave para busca
+            limit: Número máximo de resultados
+            
+        Returns:
+            Dict com os produtos encontrados
+        """
+        query = """
+        query SearchProducts($keyword: String!, $limit: Int) {
+            productOfferV2(keyword: $keyword, limit: $limit) {
+                nodes {
+                    productName
+                    itemId
+                    commissionRate
+                    price
+                    imageUrl
+                    shopName
+                    productLink
+                }
+                pageInfo {
+                    hasNextPage
+                    totalCount
+                }
+            }
+        }
+        """
+        
+        variables = {
+            "keyword": keyword,
+            "limit": limit
+        }
+        
+        return self.execute_query(query, variables)
+    
+    def test_connection(self) -> bool:
+        """
+        Testa a conexão com a API usando uma query simples.
+        
+        Returns:
+            True se a conexão foi bem-sucedida, False caso contrário
+        """
+        # Query mais simples possível para testar
+        query = "{ __schema { types { name } } }"
+        
+        try:
+            result = self.execute_query(query)
+            
+            if "errors" in result:
+                print(f"[ERRO] Erro na API: {result['errors']}")
+                return False
+            
+            print("[SUCESSO] Conexão com a API estabelecida!")
+            return True
+            
+        except Exception as e:
+            print(f"[ERRO] Falha ao conectar: {e}")
+            return False
+
+
+# ============================================================
+# EXEMPLO DE USO
+# ============================================================
+
+def main():
+    """
+    Exemplo de uso do cliente da API Shopee.
+    """
+    
+    # Suas credenciais
+    APP_ID = "18330800803"
+    APP_SECRET = "ZWOPZOLVZZISXF5J6RIXTHGISP4RZMG6"
+    
+    # Inicializa o cliente
+    api = ShopeeAffiliateAPI(APP_ID, APP_SECRET)
+    
+    print("=" * 60)
+    print("TESTE DE CONEXÃO COM A API SHOPEE")
+    print("=" * 60)
+    
+    # 1. Testa a conexão
+    print("\n1. Testando conexão básica...")
+    if not api.test_connection():
+        print("❌ Falha na conexão. Verifique suas credenciais.")
+        return
+    
+    # 2. Busca ofertas de produtos
+    print("\n2. Buscando ofertas de produtos...")
+    try:
+        result = api.get_product_offers(limit=10)
+        
+        if "errors" in result:
+            print(f"❌ Erro: {result['errors']}")
+        elif "data" in result and result["data"]:
+            products = result["data"]["productOfferV2"]["nodes"]
+            print(f"✅ Encontrados {len(products)} produtos!")
+            
+            # Mostra alguns produtos
+            for i, product in enumerate(products[:3], 1):
+                print(f"\n   Produto {i}:")
+                print(f"   - Nome: {product['productName']}")
+                print(f"   - Preço: R$ {product['price']}")
+                print(f"   - Comissão: {product['commissionRate']}%")
+                
+    except Exception as e:
+        print(f"❌ Erro ao buscar produtos: {e}")
+    
+    # 3. Busca por palavra-chave
+    print("\n3. Buscando produtos por palavra-chave...")
+    try:
+        result = api.search_products("notebook", limit=5)
+        
+        if "errors" in result:
+            print(f"❌ Erro: {result['errors']}")
+        elif "data" in result and result["data"]:
+            products = result["data"]["productOfferV2"]["nodes"]
+            print(f"✅ Encontrados {len(products)} produtos com 'notebook'!")
+            
+    except Exception as e:
+        print(f"❌ Erro na busca: {e}")
+    
+    print("\n" + "=" * 60)
+    print("TESTE CONCLUÍDO")
+    print("=" * 60)
+
+
+# ============================================================
+# SCRIPT DE DIAGNÓSTICO DETALHADO
+# ============================================================
+
+def diagnose_api_issue():
+    """
+    Script de diagnóstico para identificar problemas com a API.
+    """
+    
+    APP_ID = "18330800803"
+    APP_SECRET = "ZWOPZOLVZZISXF5J6RIXTHGISP4RZMG6"
+    
+    print("=" * 60)
+    print("DIAGNÓSTICO DETALHADO DA API SHOPEE")
+    print("=" * 60)
+    
+    # Teste 1: Validação das credenciais
+    print("\n[TESTE 1] Validando formato das credenciais...")
+    print(f"  AppID: {APP_ID} (Comprimento: {len(APP_ID)})")
+    print(f"  Secret: {'*' * (len(APP_SECRET) - 4)}{APP_SECRET[-4:]} (Comprimento: {len(APP_SECRET)})")
+    
+    # Teste 2: Geração de assinatura com exemplo da documentação
+    print("\n[TESTE 2] Testando geração de assinatura...")
+    
+    test_timestamp = int(time.time())
+    test_payload = '{"query":"{__schema{types{name}}}"}'
+    
+    # String base para assinatura
+    base_string = f"{APP_ID}{test_timestamp}{test_payload}{APP_SECRET}"
+    signature = hashlib.sha256(base_string.encode('utf-8')).hexdigest()
+    
+    print(f"  Timestamp: {test_timestamp}")
+    print(f"  Payload: {test_payload}")
+    print(f"  Base String (primeiros 50 chars): {base_string[:50]}...")
+    print(f"  Assinatura gerada: {signature}")
+    
+    # Teste 3: Requisição real
+    print("\n[TESTE 3] Fazendo requisição real à API...")
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"SHA256 Credential={APP_ID}, Signature={signature}, Timestamp={test_timestamp}"
+    }
+    
+    print(f"  URL: https://open-api.affiliate.shopee.com.br/graphql")
+    print(f"  Headers Authorization: SHA256 Credential={APP_ID}, Signature=...{signature[-8:]}, Timestamp={test_timestamp}")
+    
+    try:
+        response = requests.post(
+            "https://open-api.affiliate.shopee.com.br/graphql",
+            data=test_payload,
+            headers=headers,
+            timeout=10
+        )
+        
+        print(f"  Status HTTP: {response.status_code}")
+        
+        result = response.json()
+        
+        if "errors" in result:
+            error = result["errors"][0]
+            print(f"  ❌ Erro retornado: {error.get('message', 'Erro desconhecido')}")
+            
+            # Análise do erro
+            error_code = error.get("extensions", {}).get("code", "")
+            
+            if error_code == 10020:
+                print("\n  📋 ANÁLISE DO ERRO 10020 (Invalid Signature):")
+                print("     Possíveis causas:")
+                print("     1. Credenciais inválidas ou expiradas")
+                print("     2. Conta não está ativa ou aprovada")
+                print("     3. Falta de permissões na API")
+                print("     4. Mudança no algoritmo de assinatura")
+                
+            elif error_code == 10035:
+                print("\n  📋 ANÁLISE DO ERRO 10035 (Sem Acesso):")
+                print("     - Sua conta não tem acesso à API")
+                print("     - Precisa solicitar aprovação no painel")
+                
+        else:
+            print("  ✅ Requisição bem-sucedida!")
+            
+    except Exception as e:
+        print(f"  ❌ Erro na requisição: {e}")
+    
+    print("\n" + "=" * 60)
+    print("DIAGNÓSTICO CONCLUÍDO")
+    print("=" * 60)
+    
+    print("\n🔍 PRÓXIMOS PASSOS RECOMENDADOS:")
+    print("1. Verifique no painel da Shopee se sua API está 'Válida' e não apenas 'Resolvida'")
+    print("2. Confirme que a conta tem permissão para usar a API de afiliados")
+    print("3. Tente gerar novas credenciais se o problema persistir")
+    print("4. Entre em contato com o suporte técnico da Shopee com este diagnóstico")
+
+
+if __name__ == "__main__":
+    # Descomente a linha que deseja executar:
+    
+    # Para teste normal:
+    main()
+    
+    # Para diagnóstico detalhado:
+    # diagnose_api_issue()
