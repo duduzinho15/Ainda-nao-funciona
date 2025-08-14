@@ -1,0 +1,518 @@
+2025-08-09 18:44:49 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:44:50 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 18:44:50 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 18:44:50 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 18:44:50 - garimpeiro_bot - CRITICAL - Erro fatal ao iniciar o bot: 'NoneType' object has no attribute 'run_repeating'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 101, in agendar_tarefas
+    application.job_queue.run_repeating(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'run_repeating'
+2025-08-09 18:44:50 - garimpeiro_bot - CRITICAL - Erro fatal: This Application is not running!
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 101, in agendar_tarefas
+    application.job_queue.run_repeating(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'run_repeating'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 302, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 292, in main_async
+    await application.stop()
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 663, in stop
+    raise RuntimeError("This Application is not running!")
+RuntimeError: This Application is not running!
+2025-08-09 18:45:47 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:45:49 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 18:45:49 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 18:45:49 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 18:45:49 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: 'NoneType' object has no attribute 'run_repeating'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 101, in agendar_tarefas
+    application.job_queue.run_repeating(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'run_repeating'
+2025-08-09 18:45:49 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:45:49 - garimpeiro_bot - CRITICAL - Erro fatal: 'NoneType' object has no attribute 'run_repeating'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 310, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 101, in agendar_tarefas
+    application.job_queue.run_repeating(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'run_repeating'
+2025-08-09 18:46:41 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:46:42 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 18:46:42 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 18:46:42 - garimpeiro_bot - WARNING - Job queue não disponível. Criando um novo...
+2025-08-09 18:46:42 - garimpeiro_bot - ERROR - Erro ao configurar tarefas agendadas: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:46:42 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 284, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:46:42 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:46:42 - garimpeiro_bot - CRITICAL - Erro fatal: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 316, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 284, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:47:59 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:48:00 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 18:48:00 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 18:48:00 - garimpeiro_bot - WARNING - Job queue não disponível. Criando um novo...
+2025-08-09 18:48:00 - garimpeiro_bot - ERROR - Erro ao configurar tarefas agendadas: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:48:00 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 284, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:48:00 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:48:00 - garimpeiro_bot - CRITICAL - Erro fatal: 'Updater' object has no attribute 'job_queue'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 316, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 284, in main_async
+    await agendar_tarefas(application)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 93, in agendar_tarefas
+    application.job_queue = application.job_queue or application.updater.job_queue
+                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute 'job_queue'
+2025-08-09 18:49:33 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:49:34 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: 'ExtBot' object has no attribute 'get_updater'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    application.updater = application.bot.get_updater()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ExtBot' object has no attribute 'get_updater'. Did you mean: 'get_updates'?
+2025-08-09 18:49:34 - garimpeiro_bot - INFO - Parando o updater...
+2025-08-09 18:49:34 - garimpeiro_bot - ERROR - Erro durante o encerramento: This Updater is not running!
+2025-08-09 18:49:34 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:49:34 - garimpeiro_bot - CRITICAL - Erro fatal: 'ExtBot' object has no attribute 'get_updater'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 347, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    application.updater = application.bot.get_updater()
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ExtBot' object has no attribute 'get_updater'. Did you mean: 'get_updates'?
+2025-08-09 18:50:21 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:50:21 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: name 'JobQueue' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    .job_queue(JobQueue())
+               ^^^^^^^^
+NameError: name 'JobQueue' is not defined
+2025-08-09 18:50:21 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:50:21 - garimpeiro_bot - CRITICAL - Erro fatal: name 'JobQueue' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 360, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    .job_queue(JobQueue())
+               ^^^^^^^^
+NameError: name 'JobQueue' is not defined
+2025-08-09 18:50:45 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:50:45 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: name 'JobQueue' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    .job_queue(JobQueue())
+               ^^^^^^^^
+NameError: name 'JobQueue' is not defined
+2025-08-09 18:50:45 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:51:11 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:51:11 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: To use `JobQueue`, PTB must be installed via `pip install "python-telegram-bot[job-queue]"`.
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    .job_queue(JobQueue())
+               ~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_jobqueue.py", line 105, in __init__
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: To use `JobQueue`, PTB must be installed via `pip install "python-telegram-bot[job-queue]"`.
+2025-08-09 18:51:11 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 18:51:11 - garimpeiro_bot - CRITICAL - Erro fatal: To use `JobQueue`, PTB must be installed via `pip install "python-telegram-bot[job-queue]"`.
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 360, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 278, in main_async
+    .job_queue(JobQueue())
+               ~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_jobqueue.py", line 105, in __init__
+    raise RuntimeError(
+    ...<2 lines>...
+    )
+RuntimeError: To use `JobQueue`, PTB must be installed via `pip install "python-telegram-bot[job-queue]"`.
+2025-08-09 18:51:54 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Inicializando o bot...
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Job queue iniciada com sucesso.
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 18:51:56 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 18:52:06 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 18:52:06 - garimpeiro_bot - ERROR - Erro durante a busca automática de ofertas: name 'buscar_ofertas_amazon' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 127, in buscar_e_publicar_ofertas
+    ofertas = await buscar_ofertas_amazon(PALAVRAS_CHAVE_AMAZON)
+                    ^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'buscar_ofertas_amazon' is not defined
+2025-08-09 19:07:05 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Inicializando o bot...
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Job queue iniciada com sucesso.
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:07:07 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:07:17 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:07:17 - garimpeiro_bot - ERROR - Erro durante a busca automática de ofertas: name 'buscar_ofertas_amazon' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 127, in buscar_e_publicar_ofertas
+    ofertas = await buscar_ofertas_amazon(PALAVRAS_CHAVE_AMAZON)
+                    ^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'buscar_ofertas_amazon' is not defined
+2025-08-09 19:07:50 - garimpeiro_bot - INFO - Bot encerrado pelo usuário
+2025-08-09 19:08:27 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Inicializando o bot...
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Job queue iniciada com sucesso.
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:08:29 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:08:39 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:08:39 - garimpeiro_bot - ERROR - Erro durante a busca automática de ofertas: name 'buscar_ofertas_amazon' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 127, in buscar_e_publicar_ofertas
+    ofertas = await buscar_ofertas_amazon(PALAVRAS_CHAVE_AMAZON)
+                    ^^^^^^^^^^^^^^^^^^^^^
+NameError: name 'buscar_ofertas_amazon' is not defined
+2025-08-09 19:16:16 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Inicializando o bot...
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Job queue iniciada com sucesso.
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:16:18 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:16:28 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:16:28 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.
+2025-08-09 19:26:46 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Inicializando o bot...
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Job queue iniciada com sucesso.
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:26:47 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:26:57 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:26:57 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.
+2025-08-09 19:28:50 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:28:52 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:28:52 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:28:52 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:28:52 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:28:52 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:31:16 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:31:18 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:31:28 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:31:28 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.
+2025-08-09 19:36:01 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:36:02 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:36:03 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:36:13 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:36:13 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.
+2025-08-09 19:38:39 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:38:40 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:38:41 - garimpeiro_bot - INFO - Bot inicializado com sucesso! Pressione Ctrl+C para encerrar.
+2025-08-09 19:38:51 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:38:51 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.
+2025-08-09 19:39:57 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:39:57 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:39:58 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:39:59 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:39:59 - garimpeiro_bot - INFO - Encerrando o bot...
+2025-08-09 19:39:59 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:39:59 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 19:39:59 - garimpeiro_bot - ERROR - Erro inesperado: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 423, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:39:59 - garimpeiro_bot - INFO - Aplicação encerrada.
+2025-08-09 19:41:09 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-09 19:41:09 - garimpeiro_bot - INFO - Loop de eventos configurado
+2025-08-09 19:41:09 - garimpeiro_bot - INFO - Chamando main_async()...
+2025-08-09 19:41:09 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:41:10 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:41:11 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Encerrando o bot...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 19:41:11 - garimpeiro_bot - CRITICAL - Erro fatal no loop principal: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 423, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Iniciando encerramento da aplicação...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Aplicação encerrada com sucesso
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Fechando o loop de eventos...
+2025-08-09 19:41:11 - garimpeiro_bot - INFO - Loop de eventos fechado
+2025-08-09 19:42:42 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-09 19:42:42 - garimpeiro_bot - INFO - Loop de eventos configurado
+2025-08-09 19:42:42 - garimpeiro_bot - INFO - Criando tarefa para main_async()...
+2025-08-09 19:42:42 - garimpeiro_bot - INFO - Iniciando o loop de eventos...
+2025-08-09 19:42:42 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:42:43 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:42:44 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Encerrando o bot...
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:42:44 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Loop de eventos configurado
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Iniciando aplicação assíncrona...
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Entrando no loop principal...
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:44:29 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:44:30 - garimpeiro_bot - INFO - Iniciando o polling de atualizações...
+2025-08-09 19:44:31 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.updater.start_polling(
+          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        drop_pending_updates=True,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        read_latency=2.0
+        ^^^^^^^^^^^^^^^^
+    )
+    ^
+TypeError: Updater.start_polling() got an unexpected keyword argument 'read_latency'
+2025-08-09 19:44:31 - garimpeiro_bot - INFO - Encerrando o bot...
+2025-08-09 19:44:31 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:44:31 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 19:45:53 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-09 19:45:53 - garimpeiro_bot - INFO - Loop de eventos configurado
+2025-08-09 19:45:53 - garimpeiro_bot - INFO - Iniciando aplicação assíncrona...
+2025-08-09 19:45:53 - garimpeiro_bot - INFO - Entrando no loop principal...
+2025-08-09 19:45:53 - garimpeiro_bot - INFO - Iniciando o bot Garimpeiro Geek...
+2025-08-09 19:45:54 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Iniciando o bot...
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Job queue iniciada com sucesso
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Configurando modo polling...
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Iniciando o bot em modo polling...
+2025-08-09 19:45:55 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: This Application is already running!
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 368, in main_async
+    await application.start()
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 612, in start
+    raise RuntimeError("This Application is already running!")
+RuntimeError: This Application is already running!
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Encerrando o bot...
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Encerrando a aplicação...
+2025-08-09 19:45:55 - garimpeiro_bot - INFO - Bot encerrado.
+2025-08-09 19:47:22 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-09 19:47:22 - garimpeiro_bot - INFO - Loop de eventos configurado
+2025-08-09 19:47:22 - garimpeiro_bot - INFO - Iniciando aplicação assíncrona...
+2025-08-09 19:47:22 - garimpeiro_bot - INFO - Entrando no loop principal...
+2025-08-09 19:47:22 - garimpeiro_bot - INFO - Criando a aplicação do bot...
+2025-08-09 19:47:23 - garimpeiro_bot - INFO - Manipuladores de comandos registrados com sucesso
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Comandos do bot configurados com sucesso
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Iniciando job queue...
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Configurando tarefas agendadas...
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Tarefas agendadas configuradas com sucesso
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Iniciando o bot em modo polling...
+2025-08-09 19:47:24 - garimpeiro_bot - INFO - Iniciando polling...
+2025-08-09 19:47:24 - garimpeiro_bot - CRITICAL - Erro fatal ao executar o bot: This Application is still running!
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 339, in main_async
+    await application.start()
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 612, in start
+    raise RuntimeError("This Application is already running!")
+RuntimeError: This Application is already running!
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 338, in main_async
+    async with application:
+               ^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 385, in __aexit__
+    await self.shutdown()
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 537, in shutdown
+    raise RuntimeError("This Application is still running!")
+RuntimeError: This Application is still running!
+2025-08-09 19:47:34 - garimpeiro_bot - INFO - Iniciando busca automática de ofertas...
+2025-08-09 19:47:34 - garimpeiro_bot - INFO - Nenhuma oferta encontrada na Amazon.

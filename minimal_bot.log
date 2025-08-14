@@ -1,0 +1,120 @@
+2025-08-10 21:11:26,793 - __main__ - INFO - Criando aplicação do bot...
+2025-08-10 21:11:27,644 - __main__ - INFO - Iniciando o bot...
+2025-08-10 21:11:28,294 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 21:11:28,295 - apscheduler.scheduler - INFO - Scheduler started
+2025-08-10 21:11:28,295 - telegram.ext.Application - INFO - Application started
+2025-08-10 21:11:28,621 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/setMyCommands "HTTP/1.1 200 OK"
+2025-08-10 21:11:28,835 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 21:11:28,835 - __main__ - INFO - Bot iniciado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 21:11:28,836 - __main__ - INFO - Pressione Ctrl+C para encerrar o bot.
+2025-08-10 21:11:28,895 - __main__ - ERROR - Erro ao executar o bot: Cannot close a running event loop
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1049, in __run
+    loop.run_until_complete(self._bootstrap_initialize(max_retries=bootstrap_retries))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 701, in run_until_complete
+    self._check_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 637, in _check_running
+    raise RuntimeError('This event loop is already running')
+RuntimeError: This event loop is already running
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1070, in __run
+    loop.run_until_complete(self.stop())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 701, in run_until_complete
+    self._check_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 637, in _check_running
+    raise RuntimeError('This event loop is already running')
+RuntimeError: This event loop is already running
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_minimal_bot.py", line 67, in main
+    await application.run_polling()
+          ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 839, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+        close_loop=close_loop,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1079, in __run
+    loop.close()
+    ~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\proactor_events.py", line 684, in close
+    raise RuntimeError("Cannot close a running event loop")
+RuntimeError: Cannot close a running event loop
+2025-08-10 21:11:28,904 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-08-10 21:11:28,904 - apscheduler.scheduler - INFO - Scheduler has been shut down
+2025-08-10 21:11:28,915 - telegram.ext.Application - INFO - Application.stop() complete
+2025-08-10 21:11:28,916 - __main__ - INFO - Bot encerrado.
+2025-08-10 21:16:47,592 - __main__ - INFO - Criando aplicação do bot...
+2025-08-10 21:16:48,458 - __main__ - INFO - Iniciando o bot...
+2025-08-10 21:16:49,118 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 21:16:49,122 - apscheduler.scheduler - INFO - Scheduler started
+2025-08-10 21:16:49,123 - telegram.ext.Application - INFO - Application started
+2025-08-10 21:16:49,452 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/setMyCommands "HTTP/1.1 200 OK"
+2025-08-10 21:16:49,666 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 21:16:49,667 - __main__ - INFO - Bot iniciado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 21:16:49,667 - __main__ - INFO - Pressione Ctrl+C para encerrar o bot.
+2025-08-10 21:16:49,780 - __main__ - ERROR - Erro ao executar o bot: Cannot close a running event loop
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1049, in __run
+    loop.run_until_complete(self._bootstrap_initialize(max_retries=bootstrap_retries))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 701, in run_until_complete
+    self._check_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 637, in _check_running
+    raise RuntimeError('This event loop is already running')
+RuntimeError: This event loop is already running
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1070, in __run
+    loop.run_until_complete(self.stop())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 701, in run_until_complete
+    self._check_running()
+    ~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 637, in _check_running
+    raise RuntimeError('This event loop is already running')
+RuntimeError: This event loop is already running
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_minimal_bot.py", line 67, in main
+    await application.run_polling()
+          ~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 839, in run_polling
+    return self.__run(
+           ~~~~~~~~~~^
+        updater_coroutine=self.updater.start_polling(
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+        close_loop=close_loop,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\ext\_application.py", line 1079, in __run
+    loop.close()
+    ~~~~~~~~~~^^
+  File "C:\Python313\Lib\asyncio\proactor_events.py", line 684, in close
+    raise RuntimeError("Cannot close a running event loop")
+RuntimeError: Cannot close a running event loop
+2025-08-10 21:16:49,790 - telegram.ext.Application - INFO - Application is stopping. This might take a moment.
+2025-08-10 21:16:49,791 - apscheduler.scheduler - INFO - Scheduler has been shut down
+2025-08-10 21:16:49,813 - telegram.ext.Application - INFO - Application.stop() complete
+2025-08-10 21:16:49,814 - __main__ - INFO - Bot encerrado.

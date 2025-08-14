@@ -1,0 +1,5 @@
+2025-08-09 17:07:50,081 - test_amazon - ERROR - Credenciais da Amazon não configuradas corretamente no config.py
+2025-08-09 17:07:50,081 - test_amazon - INFO - Por favor, configure as seguintes variáveis de ambiente ou edite o config.py:
+2025-08-09 17:07:50,082 - test_amazon - INFO - - AMAZON_ACCESS_KEY
+2025-08-09 17:07:50,082 - test_amazon - INFO - - AMAZON_SECRET_KEY
+2025-08-09 17:07:50,082 - test_amazon - INFO - - AMAZON_ASSOCIATE_TAG

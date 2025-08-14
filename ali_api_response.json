@@ -1,0 +1,21 @@
+{
+  "aliexpress_affiliate_link_generate_response": {
+    "resp_result": {
+      "result": {
+        "total_result_count": 1,
+        "promotion_links": {
+          "promotion_link": [
+            {
+              "promotion_link": "https://s.click.aliexpress.com/e/_oDeRlg7",
+              "source_value": "https://pt.aliexpress.com/item/1005009463783046.html"
+            }
+          ]
+        },
+        "tracking_id": "telegram"
+      },
+      "resp_code": 200,
+      "resp_msg": "Call succeeds"
+    },
+    "request_id": "2101248517548603194924344"
+  }
+}

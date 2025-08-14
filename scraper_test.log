@@ -1,0 +1,39 @@
+2025-08-10 15:27:40 - scraper_test - INFO - 
+================================================================================
+2025-08-10 15:27:40 - scraper_test - INFO - URL: https://www.amazon.com.br/PHILIPS-TAT1109BK-00-Bluetooth-Microfone/dp/B0DVMQVVDY
+2025-08-10 15:27:40 - scraper_test - INFO - ================================================================================
+2025-08-10 15:27:40 - scraper_test - DEBUG - Iniciando extração para Amazon
+2025-08-10 15:27:44 - scraper_test - DEBUG - Extração concluída com sucesso para Amazon
+2025-08-10 15:27:44 - scraper_test - DEBUG - Título: PHILIPS, Fone de Ouvido Sem Fio TWS, TAT1109BK/00, Bluetooth, Com Microfone, Até 24 horas de bateria, Preto
+2025-08-10 15:27:44 - scraper_test - DEBUG - Preço: R$ 123,,94
+2025-08-10 15:27:44 - scraper_test - DEBUG - Disponível: False
+2025-08-10 15:27:47 - scraper_test - INFO - 
+================================================================================
+2025-08-10 15:27:47 - scraper_test - INFO - URL: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 15:27:47 - scraper_test - INFO - ================================================================================
+2025-08-10 15:27:47 - scraper_test - DEBUG - Iniciando extração para AliExpress
+2025-08-10 15:27:49 - scraper_test - DEBUG - Extração concluída com sucesso para AliExpress
+2025-08-10 15:27:49 - scraper_test - DEBUG - Título: Aliexpress
+2025-08-10 15:27:49 - scraper_test - DEBUG - Preço: $1
+2025-08-10 15:27:49 - scraper_test - DEBUG - Disponível: True
+2025-08-10 15:27:52 - scraper_test - INFO - 
+================================================================================
+2025-08-10 15:27:52 - scraper_test - INFO - URL: https://www.mercadolivre.com.br/smart-tv-samsung-u8100f-crystal-uhd-4k-2025-43-preto/p/MLB49740322
+2025-08-10 15:27:52 - scraper_test - INFO - ================================================================================
+2025-08-10 15:27:52 - scraper_test - DEBUG - Iniciando extração para Mercado Livre
+2025-08-10 15:27:55 - scraper_test - DEBUG - Extração concluída com sucesso para Mercado Livre
+2025-08-10 15:27:55 - scraper_test - DEBUG - Título: Smart Tv Samsung U8100f Crystal Uhd 4k 2025 43 Preto
+2025-08-10 15:27:55 - scraper_test - DEBUG - Preço: R$ 1,887,65
+2025-08-10 15:27:55 - scraper_test - DEBUG - Disponível: True
+2025-08-10 15:27:58 - scraper_test - INFO - 
+================================================================================
+2025-08-10 15:27:58 - scraper_test - INFO - URL: https://shopee.com.br/Meias-Divertidas-de-Personagens-em-Algod%C3%A3o-Unissex-i.441370953.22797653349
+2025-08-10 15:27:58 - scraper_test - INFO - ================================================================================
+2025-08-10 15:27:58 - scraper_test - DEBUG - Iniciando extração para Shopee
+2025-08-10 15:28:00 - scraper_test - WARNING - Falha ao extrair informações para Shopee
+2025-08-10 15:28:03 - scraper_test - INFO - 
+================================================================================
+2025-08-10 15:28:03 - scraper_test - INFO - URL: https://www.magazinevoce.com.br/magazinegarimpeirogeek/apple-iphone-14-128gb-estelar-61-12mp-ios-5g/p/237184100/te/ip14/
+2025-08-10 15:28:03 - scraper_test - INFO - ================================================================================
+2025-08-10 15:28:03 - scraper_test - DEBUG - Iniciando extração para Magazine Luiza
+2025-08-10 15:28:03 - scraper_test - WARNING - Falha ao extrair informações para Magazine Luiza

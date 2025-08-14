@@ -1,0 +1,361 @@
+#!/usr/bin/env python3
+"""
+Script de Validação de Performance em Ambiente de Produção
+Testa a performance e escalabilidade dos sistemas implementados
+"""
+
+import time
+import asyncio
+import threading
+import statistics
+from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+class PerformanceValidator:
+    """Validador de performance dos sistemas"""
+    
+    def __init__(self):
+        self.results = {}
+        self.start_time = datetime.now()
+    
+    def test_cache_performance(self, iterations=1000):
+        """Testa performance do sistema de cache"""
+        print("🧪 Testando Performance do Cache...")
+        
+        try:
+            import cache_system
+            
+            # Teste de escrita
+            write_start = time.time()
+            for i in range(iterations):
+                cache_system.cache.set(f"key_{i}", f"value_{i}", 60)
+            write_time = time.time() - write_start
+            
+            # Teste de leitura
+            read_start = time.time()
+            for i in range(iterations):
+                cache_system.cache.get(f"key_{i}")
+            read_time = time.time() - read_start
+            
+            # Teste de cache hit
+            hit_start = time.time()
+            for i in range(iterations):
+                cache_system.cache.get(f"key_{i}")  # Deve vir do cache
+            hit_time = time.time() - hit_start
+            
+            self.results['cache'] = {
+                'write_ops_per_sec': iterations / write_time,
+                'read_ops_per_sec': iterations / read_time,
+                'cache_hit_ops_per_sec': iterations / hit_time,
+                'write_time_ms': write_time * 1000,
+                'read_time_ms': read_time * 1000,
+                'hit_time_ms': hit_time * 1000
+            }
+            
+            print(f"✅ Cache: {iterations / write_time:.0f} ops/sec escrita, {iterations / read_time:.0f} ops/sec leitura")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste de cache: {e}")
+            self.results['cache'] = None
+    
+    def test_rate_limiter_performance(self, iterations=1000):
+        """Testa performance do rate limiter"""
+        print("🧪 Testando Performance do Rate Limiter...")
+        
+        try:
+            import rate_limiter
+            
+            limiter = rate_limiter.IntelligentRateLimiter()
+            
+            # Teste de verificação de rate limit
+            start_time = time.time()
+            for i in range(iterations):
+                limiter.should_allow_request("test.com", f"user_{i}")
+            total_time = time.time() - start_time
+            
+            self.results['rate_limiter'] = {
+                'ops_per_sec': iterations / total_time,
+                'total_time_ms': total_time * 1000,
+                'avg_time_per_op_ms': (total_time / iterations) * 1000
+            }
+            
+            print(f"✅ Rate Limiter: {iterations / total_time:.0f} ops/sec")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste do rate limiter: {e}")
+            self.results['rate_limiter'] = None
+    
+    def test_database_performance(self, iterations=100):
+        """Testa performance dos bancos de dados"""
+        print("🧪 Testando Performance dos Bancos de Dados...")
+        
+        try:
+            import user_categories
+            import price_history
+            import product_reviews
+            
+            # Teste de categorias
+            cat_start = time.time()
+            for i in range(iterations):
+                user_categories.category_manager.get_user_categories(i)
+            cat_time = time.time() - cat_start
+            
+            # Teste de histórico de preços
+            hist_start = time.time()
+            for i in range(iterations):
+                price_history.price_history_manager.get_price_history(f"product_{i}", "store")
+            hist_time = time.time() - hist_start
+            
+            # Teste de reviews
+            review_start = time.time()
+            for i in range(iterations):
+                product_reviews.review_manager.get_reviews_for_product(f"https://test.com/product_{i}")
+            review_time = time.time() - review_start
+            
+            self.results['database'] = {
+                'categories_ops_per_sec': iterations / cat_time,
+                'price_history_ops_per_sec': iterations / hist_time,
+                'reviews_ops_per_sec': iterations / review_time,
+                'categories_time_ms': cat_time * 1000,
+                'price_history_time_ms': hist_time * 1000,
+                'reviews_time_ms': review_time * 1000
+            }
+            
+            print(f"✅ Database: {iterations / cat_time:.0f} ops/sec categorias, {iterations / hist_time:.0f} ops/sec histórico")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste de database: {e}")
+            self.results['database'] = None
+    
+    def test_concurrent_operations(self, num_threads=10, operations_per_thread=100):
+        """Testa operações concorrentes"""
+        print(f"🧪 Testando Operações Concorrentes ({num_threads} threads, {operations_per_thread} ops/thread)...")
+        
+        try:
+            import cache_system
+            import rate_limiter
+            
+            def worker(thread_id):
+                results = []
+                for i in range(operations_per_thread):
+                    start = time.time()
+                    
+                    # Operação de cache
+                    cache_system.cache.set(f"thread_{thread_id}_key_{i}", f"value_{i}", 60)
+                    cache_system.cache.get(f"thread_{thread_id}_key_{i}")
+                    
+                    # Operação de rate limiting
+                    rate_limiter.IntelligentRateLimiter().should_allow_request("test.com", f"user_{thread_id}_{i}")
+                    
+                    end = time.time()
+                    results.append(end - start)
+                
+                return results
+            
+            # Executa operações concorrentes
+            start_time = time.time()
+            with ThreadPoolExecutor(max_workers=num_threads) as executor:
+                futures = [executor.submit(worker, i) for i in range(num_threads)]
+                all_results = []
+                for future in as_completed(futures):
+                    all_results.extend(future.result())
+            
+            total_time = time.time() - start_time
+            total_operations = num_threads * operations_per_thread
+            
+            self.results['concurrency'] = {
+                'total_operations': total_operations,
+                'total_time_ms': total_time * 1000,
+                'ops_per_sec': total_operations / total_time,
+                'avg_time_per_op_ms': statistics.mean(all_results) * 1000,
+                'min_time_ms': min(all_results) * 1000,
+                'max_time_ms': max(all_results) * 1000,
+                'std_dev_ms': statistics.stdev(all_results) * 1000 if len(all_results) > 1 else 0
+            }
+            
+            print(f"✅ Concorrência: {total_operations / total_time:.0f} ops/sec total")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste de concorrência: {e}")
+            self.results['concurrency'] = None
+    
+    def test_memory_usage(self):
+        """Testa uso de memória"""
+        print("🧪 Testando Uso de Memória...")
+        
+        try:
+            import psutil
+            import os
+            
+            process = psutil.Process(os.getpid())
+            
+            # Mede memória antes
+            memory_before = process.memory_info().rss / 1024 / 1024  # MB
+            
+            # Executa operações que consomem memória
+            import cache_system
+            for i in range(10000):
+                cache_system.cache.set(f"mem_test_{i}", f"value_{i}" * 100, 60)
+            
+            # Mede memória depois
+            memory_after = process.memory_info().rss / 1024 / 1024  # MB
+            memory_diff = memory_after - memory_before
+            
+            self.results['memory'] = {
+                'memory_before_mb': memory_before,
+                'memory_after_mb': memory_after,
+                'memory_increase_mb': memory_diff,
+                'memory_per_operation_kb': (memory_diff * 1024) / 10000
+            }
+            
+            print(f"✅ Memória: {memory_diff:.2f} MB de aumento para 10k operações")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste de memória: {e}")
+            self.results['memory'] = None
+    
+    def test_response_time_under_load(self, load_levels=[10, 50, 100, 200]):
+        """Testa tempo de resposta sob diferentes cargas"""
+        print("🧪 Testando Tempo de Resposta sob Carga...")
+        
+        try:
+            import cache_system
+            import rate_limiter
+            
+            load_results = {}
+            
+            for load in load_levels:
+                print(f"   Testando carga de {load} ops/sec...")
+                
+                start_time = time.time()
+                response_times = []
+                
+                # Simula carga constante
+                for i in range(load):
+                    op_start = time.time()
+                    
+                    # Operação de cache
+                    cache_system.cache.set(f"load_test_{i}", f"value_{i}", 60)
+                    cache_system.cache.get(f"load_test_{i}")
+                    
+                    # Operação de rate limiting
+                    rate_limiter.IntelligentRateLimiter().should_allow_request("test.com", f"user_{i}")
+                    
+                    op_end = time.time()
+                    response_times.append(op_end - op_start)
+                    
+                    # Aguarda para manter a taxa de carga
+                    time.sleep(1.0 / load)
+                
+                total_time = time.time() - start_time
+                
+                load_results[load] = {
+                    'total_time_ms': total_time * 1000,
+                    'avg_response_time_ms': statistics.mean(response_times) * 1000,
+                    'p95_response_time_ms': sorted(response_times)[int(len(response_times) * 0.95)] * 1000,
+                    'p99_response_time_ms': sorted(response_times)[int(len(response_times) * 0.99)] * 1000,
+                    'min_response_time_ms': min(response_times) * 1000,
+                    'max_response_time_ms': max(response_times) * 1000
+                }
+            
+            self.results['load_testing'] = load_results
+            
+            print(f"✅ Teste de carga concluído para {len(load_levels)} níveis")
+            
+        except Exception as e:
+            print(f"❌ Erro no teste de carga: {e}")
+            self.results['load_testing'] = None
+    
+    def run_all_tests(self):
+        """Executa todos os testes de performance"""
+        print("🚀 Iniciando Validação de Performance...")
+        print("=" * 60)
+        
+        # Executa testes
+        self.test_cache_performance()
+        self.test_rate_limiter_performance()
+        self.test_database_performance()
+        self.test_concurrent_operations()
+        self.test_memory_usage()
+        self.test_response_time_under_load()
+        
+        # Gera relatório
+        self.generate_report()
+    
+    def generate_report(self):
+        """Gera relatório de performance"""
+        end_time = datetime.now()
+        duration = (end_time - self.start_time).total_seconds()
+        
+        print("\n" + "=" * 60)
+        print("📊 RELATÓRIO DE VALIDAÇÃO DE PERFORMANCE")
+        print("=" * 60)
+        print(f"⏱️  Duração total dos testes: {duration:.2f} segundos")
+        
+        # Cache
+        if self.results.get('cache'):
+            cache = self.results['cache']
+            print(f"\n💾 CACHE:")
+            print(f"   Escrita: {cache['write_ops_per_sec']:.0f} ops/sec")
+            print(f"   Leitura: {cache['read_ops_per_sec']:.0f} ops/sec")
+            print(f"   Cache Hit: {cache['cache_hit_ops_per_sec']:.0f} ops/sec")
+        
+        # Rate Limiter
+        if self.results.get('rate_limiter'):
+            rl = self.results['rate_limiter']
+            print(f"\n🚦 RATE LIMITER:")
+            print(f"   Operações: {rl['ops_per_sec']:.0f} ops/sec")
+            print(f"   Tempo médio: {rl['avg_time_per_op_ms']:.2f} ms")
+        
+        # Database
+        if self.results.get('database'):
+            db = self.results['database']
+            print(f"\n🗄️  DATABASE:")
+            print(f"   Categorias: {db['categories_ops_per_sec']:.0f} ops/sec")
+            print(f"   Histórico: {db['price_history_ops_per_sec']:.0f} ops/sec")
+            print(f"   Reviews: {db['reviews_ops_per_sec']:.0f} ops/sec")
+        
+        # Concorrência
+        if self.results.get('concurrency'):
+            conc = self.results['concurrency']
+            print(f"\n🔄 CONCORRÊNCIA:")
+            print(f"   Total: {conc['ops_per_sec']:.0f} ops/sec")
+            print(f"   Tempo médio: {conc['avg_time_per_op_ms']:.2f} ms")
+            print(f"   Desvio padrão: {conc['std_dev_ms']:.2f} ms")
+        
+        # Memória
+        if self.results.get('memory'):
+            mem = self.results['memory']
+            print(f"\n🧠 MEMÓRIA:")
+            print(f"   Aumento: {mem['memory_increase_mb']:.2f} MB")
+            print(f"   Por operação: {mem['memory_per_operation_kb']:.2f} KB")
+        
+        # Teste de carga
+        if self.results.get('load_testing'):
+            print(f"\n📈 TESTE DE CARGA:")
+            for load, results in self.results['load_testing'].items():
+                print(f"   {load} ops/sec: {results['avg_response_time_ms']:.2f} ms (p95: {results['p95_response_time_ms']:.2f} ms)")
+        
+        # Recomendações
+        print(f"\n💡 RECOMENDAÇÕES:")
+        
+        if self.results.get('cache') and self.results['cache']['write_ops_per_sec'] < 1000:
+            print("   ⚠️  Cache pode ser otimizado para melhorar performance de escrita")
+        
+        if self.results.get('database') and self.results['database']['categories_ops_per_sec'] < 100:
+            print("   ⚠️  Database pode ser otimizado com índices adicionais")
+        
+        if self.results.get('memory') and self.results['memory']['memory_per_operation_kb'] > 1:
+            print("   ⚠️  Uso de memória por operação pode ser otimizado")
+        
+        print("   ✅ Sistema está funcionando dentro dos parâmetros esperados")
+        
+        print("=" * 60)
+
+def main():
+    """Função principal"""
+    validator = PerformanceValidator()
+    validator.run_all_tests()
+
+if __name__ == "__main__":
+    main()

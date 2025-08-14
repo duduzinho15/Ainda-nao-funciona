@@ -1,0 +1,15 @@
+2025-08-10 15:42:39,786 - aliexpress_test - INFO - Acessando URL: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 15:42:39,790 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): pt.aliexpress.com:443
+2025-08-10 15:42:40,018 - urllib3.connectionpool - DEBUG - https://pt.aliexpress.com:443 "GET /item/1005009463783046.html HTTP/1.1" 200 22529
+2025-08-10 15:42:40,022 - aliexpress_test - INFO - Página salva em 'aliexpress_page_direct.html'
+2025-08-10 15:42:40,038 - charset_normalizer - DEBUG - Encoding detection: utf_8 is most likely the one.
+2025-08-10 15:42:40,053 - aliexpress_test - INFO - 
+=== INFORMAÇÕES EXTRAÍDAS ===
+2025-08-10 15:42:40,054 - aliexpress_test - INFO - Título: Carrinho de armazenamento multifuncional branco 2025 com prateleiras abertas para sala de estar, livros, cozinha, decoração de quarto
+2025-08-10 15:42:40,054 - aliexpress_test - INFO - Preço: 
+2025-08-10 15:42:40,054 - aliexpress_test - INFO - Preço Original: 
+2025-08-10 15:42:40,054 - aliexpress_test - INFO - Imagem: https://ae01.alicdn.com/kf/S23712f1f4ced4f72b467debf1baa2e6bJ.jpg
+2025-08-10 15:42:40,054 - aliexpress_test - INFO - Disponível: Não
+2025-08-10 15:42:40,055 - aliexpress_test - INFO - URL: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 15:42:40,055 - aliexpress_test - INFO - 
+Dados salvos em 'aliexpress_product.json'

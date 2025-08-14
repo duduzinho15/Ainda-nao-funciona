@@ -1,0 +1,462 @@
+"""
+Sistema de Notificações Avançadas para o Bot Garimpeiro Geek
+
+Este módulo fornece funcionalidades para:
+- Notificações personalizadas para usuários
+- Alertas para ofertas favoritas
+- Sistema de categorias de interesse
+- Notificações push para usuários específicos
+"""
+import asyncio
+import logging
+from datetime import datetime, timedelta
+from typing import List, Dict, Any, Optional, Set
+from dataclasses import dataclass, field
+import json
+import os
+
+from telegram import Bot, Update
+from telegram.ext import ContextTypes
+import config
+
+# Configuração de logging
+logger = logging.getLogger(__name__)
+
+@dataclass
+class UserPreferences:
+    """Preferências de notificação de um usuário"""
+    user_id: int
+    username: Optional[str] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    categories: Set[str] = field(default_factory=set)
+    min_discount: int = 20
+    max_price: Optional[float] = None
+    favorite_stores: Set[str] = field(default_factory=set)
+    notification_frequency: str = "immediate"  # immediate, daily, weekly
+    enabled: bool = True
+    created_at: datetime = field(default_factory=datetime.now)
+    last_notification: Optional[datetime] = None
+
+@dataclass
+class NotificationTemplate:
+    """Template para notificações personalizadas"""
+    template_id: str
+    title: str
+    message: str
+    parse_mode: str = "MarkdownV2"
+    reply_markup: Optional[Dict] = None
+
+class NotificationSystem:
+    """Sistema principal de notificações"""
+    
+    def __init__(self):
+        self.users_preferences: Dict[int, UserPreferences] = {}
+        self.notification_templates: Dict[str, NotificationTemplate] = {}
+        self.notification_history: List[Dict] = []
+        self.preferences_file = "user_preferences.json"
+        self.templates_file = "notification_templates.json"
+        
+        # Carrega configurações existentes
+        self._load_preferences()
+        self._load_templates()
+        self._setup_default_templates()
+    
+    def _load_preferences(self):
+        """Carrega preferências dos usuários do arquivo"""
+        try:
+            if os.path.exists(self.preferences_file):
+                with open(self.preferences_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for user_data in data:
+                        user_prefs = UserPreferences(**user_data)
+                        # Converte listas para sets
+                        user_prefs.categories = set(user_data.get('categories', []))
+                        user_prefs.favorite_stores = set(user_data.get('favorite_stores', []))
+                        self.users_preferences[user_prefs.user_id] = user_prefs
+                logger.info(f"✅ Preferências carregadas para {len(self.users_preferences)} usuários")
+        except Exception as e:
+            logger.error(f"❌ Erro ao carregar preferências: {e}")
+    
+    def _save_preferences(self):
+        """Salva preferências dos usuários no arquivo"""
+        try:
+            data = []
+            for user_prefs in self.users_preferences.values():
+                user_data = {
+                    'user_id': user_prefs.user_id,
+                    'username': user_prefs.username,
+                    'first_name': user_prefs.first_name,
+                    'last_name': user_prefs.last_name,
+                    'categories': list(user_prefs.categories),
+                    'min_discount': user_prefs.min_discount,
+                    'max_price': user_prefs.max_price,
+                    'favorite_stores': list(user_prefs.favorite_stores),
+                    'notification_frequency': user_prefs.notification_frequency,
+                    'enabled': user_prefs.enabled,
+                    'created_at': user_prefs.created_at.isoformat(),
+                    'last_notification': user_prefs.last_notification.isoformat() if user_prefs.last_notification else None
+                }
+                data.append(user_data)
+            
+            with open(self.preferences_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"✅ Preferências salvas para {len(self.users_preferences)} usuários")
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar preferências: {e}")
+    
+    def _load_templates(self):
+        """Carrega templates de notificação"""
+        try:
+            if os.path.exists(self.templates_file):
+                with open(self.templates_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for template_data in data:
+                        template = NotificationTemplate(**template_data)
+                        self.notification_templates[template.template_id] = template
+                logger.info(f"✅ Templates carregados: {len(self.notification_templates)}")
+        except Exception as e:
+            logger.error(f"❌ Erro ao carregar templates: {e}")
+    
+    def _setup_default_templates(self):
+        """Configura templates padrão se não existirem"""
+        if not self.notification_templates:
+            default_templates = {
+                'oferta_personalizada': NotificationTemplate(
+                    template_id='oferta_personalizada',
+                    title='🎯 Oferta Personalizada para Você!',
+                    message='*{store}* tem uma oferta que pode te interessar!\n\n'
+                           '📦 *{title}*\n'
+                           '💰 Preço: {price}\n'
+                           '🏷️ Desconto: {discount}%\n'
+                           '🏪 Loja: {store}\n\n'
+                           '🔗 [Ver Oferta]({url})',
+                    parse_mode='MarkdownV2'
+                ),
+                'oferta_favorita': NotificationTemplate(
+                    template_id='oferta_favorita',
+                    title='⭐ Oferta da Sua Loja Favorita!',
+                    message='*{store}* tem uma nova oferta!\n\n'
+                           '📦 *{title}*\n'
+                           '💰 Preço: {price}\n'
+                           '🏷️ Desconto: {discount}%\n\n'
+                           '🔗 [Ver Oferta]({url})',
+                    parse_mode='MarkdownV2'
+                ),
+                'oferta_categoria': NotificationTemplate(
+                    template_id='oferta_categoria',
+                    title='🎮 Oferta da Sua Categoria Favorita!',
+                    message='Nova oferta na categoria *{category}*!\n\n'
+                           '📦 *{title}*\n'
+                           '💰 Preço: {price}\n'
+                           '🏷️ Desconto: {discount}%\n'
+                           '🏪 Loja: {store}\n\n'
+                           '🔗 [Ver Oferta]({url})',
+                    parse_mode='MarkdownV2'
+                )
+            }
+            
+            self.notification_templates.update(default_templates)
+            logger.info("✅ Templates padrão configurados")
+    
+    def register_user(self, user_id: int, username: Optional[str] = None, 
+                     first_name: Optional[str] = None, last_name: Optional[str] = None) -> UserPreferences:
+        """Registra um novo usuário no sistema de notificações"""
+        if user_id not in self.users_preferences:
+            user_prefs = UserPreferences(
+                user_id=user_id,
+                username=username,
+                first_name=first_name,
+                last_name=last_name
+            )
+            self.users_preferences[user_id] = user_prefs
+            self._save_preferences()
+            logger.info(f"✅ Novo usuário registrado: {user_id}")
+        return self.users_preferences[user_id]
+    
+    def update_user_preferences(self, user_id: int, **kwargs) -> bool:
+        """Atualiza preferências de um usuário"""
+        if user_id not in self.users_preferences:
+            logger.warning(f"Usuário {user_id} não registrado")
+            return False
+        
+        user_prefs = self.users_preferences[user_id]
+        
+        # Atualiza campos permitidos
+        allowed_fields = {
+            'categories', 'min_discount', 'max_price', 'favorite_stores',
+            'notification_frequency', 'enabled'
+        }
+        
+        for field_name, value in kwargs.items():
+            if field_name in allowed_fields:
+                if field_name in ['categories', 'favorite_stores']:
+                    # Converte para set se necessário
+                    if isinstance(value, list):
+                        value = set(value)
+                    elif not isinstance(value, set):
+                        value = set([value])
+                setattr(user_prefs, field_name, value)
+        
+        self._save_preferences()
+        logger.info(f"✅ Preferências atualizadas para usuário {user_id}")
+        return True
+    
+    def add_user_category(self, user_id: int, category: str) -> bool:
+        """Adiciona uma categoria de interesse para um usuário"""
+        if user_id not in self.users_preferences:
+            return False
+        
+        self.users_preferences[user_id].categories.add(category.lower())
+        self._save_preferences()
+        return True
+    
+    def add_favorite_store(self, user_id: int, store: str) -> bool:
+        """Adiciona uma loja favorita para um usuário"""
+        if user_id not in self.users_preferences:
+            return False
+        
+        self.users_preferences[user_id].favorite_stores.add(store)
+        self._save_preferences()
+        return True
+    
+    def should_notify_user(self, user_id: int, oferta: Dict[str, Any]) -> bool:
+        """Verifica se um usuário deve ser notificado sobre uma oferta"""
+        if user_id not in self.users_preferences:
+            return False
+        
+        user_prefs = self.users_preferences[user_id]
+        if not user_prefs.enabled:
+            return False
+        
+        # Verifica desconto mínimo
+        discount = oferta.get('desconto', 0)
+        if discount < user_prefs.min_discount:
+            return False
+        
+        # Verifica preço máximo
+        if user_prefs.max_price:
+            try:
+                price_str = oferta.get('preco', '0').replace('R$', '').replace(',', '.').strip()
+                price = float(price_str)
+                if price > user_prefs.max_price:
+                    return False
+            except (ValueError, AttributeError):
+                pass
+        
+        # Verifica se é uma loja favorita
+        if user_prefs.favorite_stores and oferta.get('loja') in user_prefs.favorite_stores:
+            return True
+        
+        # Verifica se é de uma categoria de interesse
+        if user_prefs.categories:
+            categoria = oferta.get('categoria', '').lower()
+            if any(cat in categoria for cat in user_prefs.categories):
+                return True
+        
+        return False
+    
+    async def send_personalized_notification(self, bot: Bot, user_id: int, 
+                                          oferta: Dict[str, Any], template_id: str = 'oferta_personalizada') -> bool:
+        """Envia notificação personalizada para um usuário"""
+        try:
+            if user_id not in self.users_preferences:
+                return False
+            
+            if not self.should_notify_user(user_id, oferta):
+                return False
+            
+            user_prefs = self.users_preferences[user_id]
+            template = self.notification_templates.get(template_id)
+            
+            if not template:
+                logger.warning(f"Template {template_id} não encontrado")
+                return False
+            
+            # Prepara dados para o template
+            template_data = {
+                'title': oferta.get('titulo', 'Produto sem título'),
+                'price': oferta.get('preco', 'Preço não disponível'),
+                'discount': oferta.get('desconto', 0),
+                'store': oferta.get('loja', 'Loja desconhecida'),
+                'url': oferta.get('url_afiliado', oferta.get('url_produto', '')),
+                'category': oferta.get('categoria', 'Geral')
+            }
+            
+            # Formata a mensagem
+            message = template.message.format(**template_data)
+            
+            # Envia a notificação
+            await bot.send_message(
+                chat_id=user_id,
+                text=message,
+                parse_mode=template.parse_mode,
+                reply_markup=template.reply_markup
+            )
+            
+            # Atualiza histórico
+            user_prefs.last_notification = datetime.now()
+            self._save_preferences()
+            
+            # Registra no histórico
+            self.notification_history.append({
+                'user_id': user_id,
+                'oferta_id': oferta.get('id_produto'),
+                'template_id': template_id,
+                'sent_at': datetime.now().isoformat(),
+                'success': True
+            })
+            
+            logger.info(f"✅ Notificação enviada para usuário {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao enviar notificação para usuário {user_id}: {e}")
+            
+            # Registra erro no histórico
+            self.notification_history.append({
+                'user_id': user_id,
+                'oferta_id': oferta.get('id_produto'),
+                'template_id': template_id,
+                'sent_at': datetime.now().isoformat(),
+                'success': False,
+                'error': str(e)
+            })
+            
+            return False
+    
+    async def notify_all_interested_users(self, bot: Bot, oferta: Dict[str, Any]) -> Dict[str, int]:
+        """Notifica todos os usuários interessados em uma oferta"""
+        results = {
+            'total_users': len(self.users_preferences),
+            'notified_users': 0,
+            'successful_notifications': 0,
+            'failed_notifications': 0
+        }
+        
+        for user_id in self.users_preferences:
+            if self.should_notify_user(user_id, oferta):
+                results['notified_users'] += 1
+                
+                # Determina o template baseado no tipo de oferta
+                template_id = 'oferta_personalizada'
+                if oferta.get('loja') in self.users_preferences[user_id].favorite_stores:
+                    template_id = 'oferta_favorita'
+                elif any(cat in oferta.get('categoria', '').lower() 
+                        for cat in self.users_preferences[user_id].categories):
+                    template_id = 'oferta_categoria'
+                
+                success = await self.send_personalized_notification(bot, user_id, oferta, template_id)
+                if success:
+                    results['successful_notifications'] += 1
+                else:
+                    results['failed_notifications'] += 1
+        
+        logger.info(f"📢 Notificações enviadas: {results['successful_notifications']}/{results['notified_users']}")
+        return results
+    
+    def get_user_stats(self, user_id: int) -> Dict[str, Any]:
+        """Obtém estatísticas de notificações de um usuário"""
+        if user_id not in self.users_preferences:
+            return {}
+        
+        user_notifications = [
+            n for n in self.notification_history 
+            if n['user_id'] == user_id
+        ]
+        
+        return {
+            'user_id': user_id,
+            'total_notifications': len(user_notifications),
+            'successful_notifications': len([n for n in user_notifications if n['success']]),
+            'failed_notifications': len([n for n in user_notifications if not n['success']]),
+            'last_notification': user_notifications[-1]['sent_at'] if user_notifications else None,
+            'preferences': {
+                'categories': list(self.users_preferences[user_id].categories),
+                'favorite_stores': list(self.users_preferences[user_id].favorite_stores),
+                'min_discount': self.users_preferences[user_id].min_discount,
+                'max_price': self.users_preferences[user_id].max_price,
+                'notification_frequency': self.users_preferences[user_id].notification_frequency
+            }
+        }
+    
+    def get_system_stats(self) -> Dict[str, Any]:
+        """Obtém estatísticas gerais do sistema de notificações"""
+        total_notifications = len(self.notification_history)
+        successful_notifications = len([n for n in self.notification_history if n['success']])
+        
+        return {
+            'total_users': len(self.users_preferences),
+            'active_users': len([u for u in self.users_preferences.values() if u.enabled]),
+            'total_notifications': total_notifications,
+            'successful_notifications': successful_notifications,
+            'success_rate': (successful_notifications / total_notifications * 100) if total_notifications > 0 else 0,
+            'templates_available': len(self.notification_templates)
+        }
+
+# Instância global do sistema de notificações
+notification_system = NotificationSystem()
+
+# Funções de conveniência para uso externo
+def register_user(user_id: int, **kwargs) -> UserPreferences:
+    """Registra um usuário no sistema de notificações"""
+    return notification_system.register_user(user_id, **kwargs)
+
+def update_user_preferences(user_id: int, **kwargs) -> bool:
+    """Atualiza preferências de um usuário"""
+    return notification_system.update_user_preferences(user_id, **kwargs)
+
+def add_user_category(user_id: int, category: str) -> bool:
+    """Adiciona categoria de interesse para um usuário"""
+    return notification_system.add_user_category(user_id, category)
+
+def add_favorite_store(user_id: int, store: str) -> bool:
+    """Adiciona loja favorita para um usuário"""
+    return notification_system.add_favorite_store(user_id, store)
+
+async def notify_users_about_offer(bot: Bot, oferta: Dict[str, Any]) -> Dict[str, int]:
+    """Notifica usuários interessados sobre uma oferta"""
+    return await notification_system.notify_all_interested_users(bot, oferta)
+
+def get_user_notification_stats(user_id: int) -> Dict[str, Any]:
+    """Obtém estatísticas de notificações de um usuário"""
+    return notification_system.get_user_stats(user_id)
+
+def get_notification_system_stats() -> Dict[str, Any]:
+    """Obtém estatísticas gerais do sistema"""
+    return notification_system.get_system_stats()
+
+if __name__ == "__main__":
+    print("🔔 Testando Sistema de Notificações...")
+    print("=" * 50)
+    
+    # Testa registro de usuário
+    user_prefs = register_user(12345, username="test_user", first_name="Teste")
+    print(f"✅ Usuário registrado: {user_prefs.user_id}")
+    
+    # Testa atualização de preferências
+    update_user_preferences(12345, categories=['gaming', 'tecnologia'], min_discount=25)
+    print(f"✅ Preferências atualizadas")
+    
+    # Testa adição de categoria
+    add_user_category(12345, 'smartphones')
+    print(f"✅ Categoria adicionada")
+    
+    # Testa adição de loja favorita
+    add_favorite_store(12345, 'Kabum!')
+    print(f"✅ Loja favorita adicionada")
+    
+    # Mostra estatísticas
+    stats = get_notification_system_stats()
+    print(f"\n📊 Estatísticas do Sistema:")
+    print(f"   Usuários: {stats['total_users']}")
+    print(f"   Templates: {stats['templates_available']}")
+    
+    user_stats = get_user_notification_stats(12345)
+    print(f"\n👤 Estatísticas do Usuário:")
+    print(f"   Categorias: {user_stats['preferences']['categories']}")
+    print(f"   Lojas Favoritas: {user_stats['preferences']['favorite_stores']}")
+    print(f"   Desconto Mínimo: {user_stats['preferences']['min_discount']}%")
+    
+    print("\n✅ Teste concluído!")

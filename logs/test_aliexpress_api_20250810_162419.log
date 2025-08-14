@@ -1,0 +1,57 @@
+2025-08-10 16:24:19,872 - test_aliexpress_api - INFO - Arquivo de log: C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\logs\test_aliexpress_api_20250810_162419.log
+2025-08-10 16:24:20,329 - test_aliexpress_api - INFO - === TESTE SIMPLES DA API DO ALIEXPRESS ===
+2025-08-10 16:24:20,331 - test_aliexpress_api - INFO - Iniciando teste em: 2025-08-10 16:24:20
+2025-08-10 16:24:20,331 - test_aliexpress_api - INFO - Inicializando a API do AliExpress...
+2025-08-10 16:24:20,332 - test_aliexpress_api - INFO - ✅ Credenciais carregadas com sucesso do arquivo .env
+2025-08-10 16:24:20,332 - test_aliexpress_api - DEBUG - App Key: 517956
+2025-08-10 16:24:20,332 - test_aliexpress_api - DEBUG - App Secret: ********************************
+2025-08-10 16:24:20,332 - test_aliexpress_api - DEBUG - Tracking ID: telegram
+2025-08-10 16:24:20,332 - test_aliexpress_api - INFO - ✅ API inicializada com sucesso!
+2025-08-10 16:24:20,333 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:24:20,333 - test_aliexpress_api - INFO - TESTANDO URL: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 16:24:20,333 - test_aliexpress_api - INFO - ==================================================
+2025-08-10 16:24:20,334 - test_aliexpress_api - INFO - ✅ ID do produto extraído: 1005009463783046
+2025-08-10 16:24:20,334 - test_aliexpress_api - INFO - 
+=== TESTE: OBTENÇÃO DE INFORMAÇÕES DO PRODUTO ===
+2025-08-10 16:24:20,334 - test_aliexpress_api - INFO - Obtendo informações para o produto ID: 1005009463783046
+2025-08-10 16:24:21,085 - test_aliexpress_api - ERROR - ❌ Erro ao obter informações do produto: Erro na API do AliExpress: Invalid app Key (Código: 29)
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_simple_api.py", line 129, in main
+    product_data = api.get_product_info(product_id)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 241, in get_product_info
+    return self._make_request('aliexpress.affiliate.productdetail.get', params)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 204, in _make_request
+    raise AliExpressAPIError(error_msg)
+aliexpress_api.AliExpressAPIError: Erro na API do AliExpress: Invalid app Key (Código: 29)
+2025-08-10 16:24:21,087 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:24:21,087 - test_aliexpress_api - INFO - FIM DO TESTE PARA: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 16:24:21,087 - test_aliexpress_api - INFO - ==================================================
+
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - TESTANDO URL: https://pt.aliexpress.com/item/1005005039898985.html
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - ==================================================
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - ✅ ID do produto extraído: 1005005039898985
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - 
+=== TESTE: OBTENÇÃO DE INFORMAÇÕES DO PRODUTO ===
+2025-08-10 16:24:21,088 - test_aliexpress_api - INFO - Obtendo informações para o produto ID: 1005005039898985
+2025-08-10 16:24:21,825 - test_aliexpress_api - ERROR - ❌ Erro ao obter informações do produto: Erro na API do AliExpress: Invalid app Key (Código: 29)
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_simple_api.py", line 129, in main
+    product_data = api.get_product_info(product_id)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 241, in get_product_info
+    return self._make_request('aliexpress.affiliate.productdetail.get', params)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 204, in _make_request
+    raise AliExpressAPIError(error_msg)
+aliexpress_api.AliExpressAPIError: Erro na API do AliExpress: Invalid app Key (Código: 29)
+2025-08-10 16:24:21,826 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:24:21,826 - test_aliexpress_api - INFO - FIM DO TESTE PARA: https://pt.aliexpress.com/item/1005005039898985.html
+2025-08-10 16:24:21,826 - test_aliexpress_api - INFO - ==================================================
+
+2025-08-10 16:24:21,827 - test_aliexpress_api - INFO - 
+✅ TODOS OS TESTES FORAM CONCLUÍDOS!

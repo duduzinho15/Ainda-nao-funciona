@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""
+Script simples para Windows - Executa em primeiro plano para diagnóstico
+"""
+
+import os
+import sys
+from pathlib import Path
+
+# Adiciona o diretório raiz ao path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+def main():
+    """Função principal"""
+    print("🚀 INICIANDO DASHBOARD GARIMPEIRO GEEK")
+    print("=" * 50)
+    
+    try:
+        # Importa o app
+        from app import app
+        print("✅ App importado com sucesso")
+        
+        # Verifica banco de dados
+        try:
+            db_path = project_root / "ofertas.db"
+            if db_path.exists():
+                import sqlite3
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                cursor.execute("SELECT COUNT(*) FROM ofertas")
+                count = cursor.fetchone()[0]
+                conn.close()
+                print(f"✅ Banco de dados: {count} ofertas")
+            else:
+                print("⚠️ Banco de dados não encontrado")
+        except Exception as e:
+            print(f"⚠️ Erro no banco: {e}")
+        
+        print("\n🔧 Iniciando servidor...")
+        print("💡 Se não funcionar, tente executar como administrador")
+        print("💡 Ou desative temporariamente o Windows Defender")
+        
+        # Configurações específicas para Windows
+        app.config['ENV'] = 'production'
+        app.config['DEBUG'] = False
+        app.config['TESTING'] = False
+        
+        # Tenta porta 8080 (menos restritiva)
+        print("\n🔄 Tentando porta 8080...")
+        print("🌐 Acesse: http://127.0.0.1:8080")
+        
+        app.run(
+            host='127.0.0.1',
+            port=8080,
+            debug=False,
+            use_reloader=False,
+            threaded=True
+        )
+        
+    except Exception as e:
+        print(f"\n❌ Erro: {e}")
+        print("\n💡 SOLUÇÕES PARA WINDOWS:")
+        print("   1. Execute como administrador")
+        print("   2. Desative temporariamente o Windows Defender")
+        print("   3. Verifique configurações de firewall")
+        print("   4. Use uma porta diferente")
+        print("   5. Verifique se o antivírus está bloqueando")
+
+if __name__ == "__main__":
+    main()

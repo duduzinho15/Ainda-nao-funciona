@@ -1,0 +1,78 @@
+2025-08-10 16:07:50,253 - test_aliexpress_api - INFO - Log file: C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api_test_20250810_160750.log
+2025-08-10 16:07:50,253 - test_aliexpress_api - INFO - === INÍCIO DOS TESTES DA API DO ALIEXPRESS ===
+2025-08-10 16:07:50,253 - test_aliexpress_api - INFO - Inicializando a API do AliExpress...
+2025-08-10 16:07:50,254 - garimpeiro_bot.ali_api - INFO - API do AliExpress inicializada com sucesso
+2025-08-10 16:07:50,254 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:07:50,254 - test_aliexpress_api - INFO - TESTE 1: OBTENÇÃO DE INFORMAÇÕES DO PRODUTO
+2025-08-10 16:07:50,254 - test_aliexpress_api - INFO - ==================================================
+2025-08-10 16:07:50,254 - test_aliexpress_api - INFO - 
+=== TESTE: Obtendo informações do produto ===
+2025-08-10 16:07:50,254 - test_aliexpress_api - INFO - URL: https://pt.aliexpress.com/item/1005009463783046.html
+2025-08-10 16:07:50,255 - test_aliexpress_api - INFO - ID do produto extraído: 1005009463783046
+2025-08-10 16:07:50,255 - test_aliexpress_api - INFO - Obtendo informações do produto...
+2025-08-10 16:07:50,255 - garimpeiro_bot.ali_api - DEBUG - Fazendo requisição para aliexpress.affiliate.product.detail com parâmetros: {'app_key': '517956', 'method': 'aliexpress.affiliate.product.detail', 'timestamp': '2025-08-10 19:07:50', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek', 'product_id': '1005009463783046', 'country': 'BR', 'target_currency': 'BRL', 'target_language': 'pt', 'tracking_id': 'telegram', 'sign': '1B3E16C54E55118EE33CCCE7375362C798F4E8A9C7A8845F4298DC493DF62A3C'}
+2025-08-10 16:07:50,259 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 16:07:52,059 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "GET /sync?app_key=517956&method=aliexpress.affiliate.product.detail&timestamp=2025-08-10+19%3A07%3A50&format=json&v=2.0&sign_method=sha256&partner_id=garimpeiro_geek&product_id=1005009463783046&country=BR&target_currency=BRL&target_language=pt&tracking_id=telegram&sign=1B3E16C54E55118EE33CCCE7375362C798F4E8A9C7A8845F4298DC493DF62A3C HTTP/1.1" 200 None
+2025-08-10 16:07:52,060 - garimpeiro_bot.ali_api - ERROR - Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)
+2025-08-10 16:07:52,061 - test_aliexpress_api - ERROR - ❌ Erro ao obter informações do produto: Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_aliexpress_api.py", line 51, in test_product_info
+    product_data = api.get_product_info(product_id)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 180, in get_product_info
+    return self._make_request('aliexpress.affiliate.product.detail', params)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 151, in _make_request
+    raise AliExpressAPIError(error_msg)
+aliexpress_api.AliExpressAPIError: Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)
+2025-08-10 16:07:52,063 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:07:52,063 - test_aliexpress_api - INFO - TESTE 2: GERAÇÃO DE LINKS DE AFILIADO
+2025-08-10 16:07:52,063 - test_aliexpress_api - INFO - ==================================================
+2025-08-10 16:07:52,063 - test_aliexpress_api - INFO - 
+=== TESTE: Gerando links de afiliado ===
+2025-08-10 16:07:52,063 - test_aliexpress_api - INFO - URLs para converter: ['https://pt.aliexpress.com/item/1005009463783046.html']
+2025-08-10 16:07:52,064 - test_aliexpress_api - INFO - Gerando links de afiliado...
+2025-08-10 16:07:52,064 - garimpeiro_bot.ali_api - DEBUG - Fazendo requisição para aliexpress.affiliate.link.generate com parâmetros: {'app_key': '517956', 'method': 'aliexpress.affiliate.link.generate', 'timestamp': '2025-08-10 19:07:52', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek', 'source_values': 'https://pt.aliexpress.com/item/1005009463783046.html', 'tracking_id': 'telegram', 'country': 'BR', 'platform_product_type': 'ALL', 'sign': '3ACC64806B169326CC634EA51E63E42D159E298AF6F59DE266339F0A0A7F6536'}
+2025-08-10 16:07:52,065 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 16:07:53,006 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "GET /sync?app_key=517956&method=aliexpress.affiliate.link.generate&timestamp=2025-08-10+19%3A07%3A52&format=json&v=2.0&sign_method=sha256&partner_id=garimpeiro_geek&source_values=https%3A%2F%2Fpt.aliexpress.com%2Fitem%2F1005009463783046.html&tracking_id=telegram&country=BR&platform_product_type=ALL&sign=3ACC64806B169326CC634EA51E63E42D159E298AF6F59DE266339F0A0A7F6536 HTTP/1.1" 200 None
+2025-08-10 16:07:53,006 - garimpeiro_bot.ali_api - ERROR - Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+2025-08-10 16:07:53,006 - test_aliexpress_api - ERROR - ❌ Erro ao gerar links de afiliado: Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_aliexpress_api.py", line 96, in test_promotion_links
+    links = api.get_promotion_links(product_urls)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 205, in get_promotion_links
+    result = self._make_request('aliexpress.affiliate.link.generate', params)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 151, in _make_request
+    raise AliExpressAPIError(error_msg)
+aliexpress_api.AliExpressAPIError: Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+2025-08-10 16:07:53,007 - test_aliexpress_api - INFO - 
+==================================================
+2025-08-10 16:07:53,007 - test_aliexpress_api - INFO - TESTE 3: BUSCA DE PRODUTOS POR PALAVRAS-CHAVE
+2025-08-10 16:07:53,008 - test_aliexpress_api - INFO - ==================================================
+2025-08-10 16:07:53,008 - test_aliexpress_api - INFO - 
+=== TESTE: Buscando produtos por palavras-chave ===
+2025-08-10 16:07:53,008 - test_aliexpress_api - INFO - Palavras-chave: carrinho de armazenamento
+2025-08-10 16:07:53,008 - test_aliexpress_api - INFO - Preço mínimo: 50
+2025-08-10 16:07:53,008 - test_aliexpress_api - INFO - Preço máximo: 200
+2025-08-10 16:07:53,009 - test_aliexpress_api - INFO - Realizando busca...
+2025-08-10 16:07:53,009 - garimpeiro_bot.ali_api - DEBUG - Fazendo requisição para aliexpress.affiliate.product.query com parâmetros: {'app_key': '517956', 'method': 'aliexpress.affiliate.product.query', 'timestamp': '2025-08-10 19:07:53', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek', 'keywords': 'carrinho de armazenamento', 'sort': 'SALE_PRICE_DESC', 'page_no': '1', 'page_size': '5', 'target_currency': 'BRL', 'target_language': 'pt', 'ship_to_country': 'BR', 'tracking_id': 'telegram', 'min_sale_price': '50', 'max_sale_price': '200', 'sign': '725B3C1F131B05BD52E9647F432FA7461F35431AE2AD63D54B2579487E37AD0F'}
+2025-08-10 16:07:53,010 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 16:07:53,945 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "GET /sync?app_key=517956&method=aliexpress.affiliate.product.query&timestamp=2025-08-10+19%3A07%3A53&format=json&v=2.0&sign_method=sha256&partner_id=garimpeiro_geek&keywords=carrinho+de+armazenamento&sort=SALE_PRICE_DESC&page_no=1&page_size=5&target_currency=BRL&target_language=pt&ship_to_country=BR&tracking_id=telegram&min_sale_price=50&max_sale_price=200&sign=725B3C1F131B05BD52E9647F432FA7461F35431AE2AD63D54B2579487E37AD0F HTTP/1.1" 200 None
+2025-08-10 16:07:53,946 - garimpeiro_bot.ali_api - ERROR - Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+2025-08-10 16:07:53,946 - test_aliexpress_api - ERROR - ❌ Erro ao buscar produtos: Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_aliexpress_api.py", line 131, in test_product_search
+    search_results = api.search_products(
+        keywords=keywords,
+    ...<3 lines>...
+        page_size=5  # Limita a 5 resultados para teste
+    )
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 255, in search_products
+    return self._make_request('aliexpress.affiliate.product.query', params)
+           ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\aliexpress_api.py", line 151, in _make_request
+    raise AliExpressAPIError(error_msg)
+aliexpress_api.AliExpressAPIError: Erro na API do AliExpress: The request signature does not conform to platform standards (Código: IncompleteSignature)
+2025-08-10 16:07:53,947 - test_aliexpress_api - INFO - 
+=== TESTES CONCLUÍDOS COM SUCESSO! ===

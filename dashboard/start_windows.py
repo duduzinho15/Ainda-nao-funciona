@@ -1,0 +1,196 @@
+#!/usr/bin/env python3
+"""
+Script específico para Windows que resolve problemas de firewall e permissões
+"""
+
+import os
+import sys
+import subprocess
+import time
+from pathlib import Path
+
+# Adiciona o diretório raiz ao path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+def check_windows_firewall():
+    """Verifica e configura o firewall do Windows"""
+    print("🔍 Verificando firewall do Windows...")
+    
+    try:
+        # Verifica se a porta 5000 está bloqueada
+        result = subprocess.run(
+            ["netsh", "advfirewall", "firewall", "show", "rule", "name=all"],
+            capture_output=True, text=True, shell=True
+        )
+        
+        if "5000" in result.stdout:
+            print("✅ Porta 5000 já configurada no firewall")
+        else:
+            print("⚠️ Porta 5000 não configurada no firewall")
+            print("🔧 Configurando firewall...")
+            
+            # Adiciona regra para permitir porta 5000
+            subprocess.run([
+                "netsh", "advfirewall", "firewall", "add", "rule",
+                "name=Flask Dashboard", "dir=in", "action=allow",
+                "protocol=TCP", "localport=5000"
+            ], shell=True)
+            
+            print("✅ Firewall configurado para porta 5000")
+            
+    except Exception as e:
+        print(f"⚠️ Erro ao configurar firewall: {e}")
+        print("💡 Execute como administrador se necessário")
+
+def start_with_waitress_windows():
+    """Inicia com Waitress otimizado para Windows"""
+    print("🚀 Iniciando com Waitress (otimizado para Windows)...")
+    
+    try:
+        from app import app
+        import waitress
+        
+        # Configurações específicas para Windows
+        waitress.serve(
+            app,
+            host='127.0.0.1',
+            port=5000,
+            threads=2,
+            connection_limit=100,
+            cleanup_interval=30,
+            channel_timeout=120,
+            log_socket_errors=True
+        )
+        
+    except ImportError:
+        print("❌ Waitress não instalado")
+        return False
+    except Exception as e:
+        print(f"❌ Erro com Waitress: {e}")
+        return False
+
+def start_with_flask_windows():
+    """Inicia com Flask otimizado para Windows"""
+    print("🚀 Iniciando com Flask (otimizado para Windows)...")
+    
+    try:
+        from app import app
+        
+        # Configurações específicas para Windows
+        app.config['ENV'] = 'production'
+        app.config['DEBUG'] = False
+        app.config['TESTING'] = False
+        
+        app.run(
+            host='127.0.0.1',
+            port=5000,
+            debug=False,
+            use_reloader=False,
+            threaded=True,
+            processes=1
+        )
+        
+    except Exception as e:
+        print(f"❌ Erro com Flask: {e}")
+        return False
+
+def main():
+    """Função principal"""
+    print("=" * 60)
+    print("🚀 DASHBOARD GARIMPEIRO GEEK - VERSÃO WINDOWS")
+    print("=" * 60)
+    
+    # Verifica se é Windows
+    if os.name != 'nt':
+        print("❌ Este script é específico para Windows")
+        sys.exit(1)
+    
+    # Verifica dependências
+    try:
+        import flask
+        import sqlite3
+        print("✅ Dependências básicas disponíveis")
+    except ImportError as e:
+        print(f"❌ Dependência não encontrada: {e}")
+        print("💡 Execute: pip install flask sqlite3")
+        sys.exit(1)
+    
+    # Verifica banco de dados
+    try:
+        db_path = project_root / "ofertas.db"
+        if db_path.exists():
+            import sqlite3
+            conn = sqlite3.connect(str(db_path))
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM ofertas")
+            count = cursor.fetchone()[0]
+            conn.close()
+            print(f"✅ Banco de dados: {count} ofertas")
+        else:
+            print("⚠️ Banco de dados não encontrado")
+    except Exception as e:
+        print(f"⚠️ Erro no banco: {e}")
+    
+    # Configura firewall
+    check_windows_firewall()
+    
+    print("\n🔧 Escolha o método de execução:")
+    print("1. Flask (otimizado para Windows)")
+    print("2. Waitress (recomendado para Windows)")
+    print("3. Auto-detect")
+    
+    try:
+        choice = input("\nEscolha (1-3) ou Enter para auto-detect: ").strip()
+    except KeyboardInterrupt:
+        print("\n🛑 Operação cancelada")
+        sys.exit(0)
+    
+    if not choice:
+        choice = "3"
+    
+    print(f"\n🎯 Método selecionado: {choice}")
+    
+    success = False
+    
+    if choice == "1":
+        success = start_with_flask_windows()
+    elif choice == "2":
+        success = start_with_waitress_windows()
+    elif choice == "3":
+        # Auto-detect: tenta Waitress primeiro
+        print("🔍 Auto-detectando melhor método...")
+        if not start_with_waitress_windows():
+            print("⚠️ Waitress falhou, tentando Flask...")
+            success = start_with_flask_windows()
+        else:
+            success = True
+    else:
+        print("❌ Opção inválida")
+        sys.exit(1)
+    
+    if not success:
+        print("\n❌ Todos os métodos falharam")
+        print("\n💡 SOLUÇÕES PARA WINDOWS:")
+        print("   1. Execute como administrador")
+        print("   2. Verifique o Windows Defender")
+        print("   3. Desative temporariamente o firewall")
+        print("   4. Use uma porta diferente (8080, 3000)")
+        print("   5. Verifique se o antivírus está bloqueando")
+        
+        # Tenta porta alternativa
+        print("\n🔄 Tentando porta alternativa (8080)...")
+        try:
+            from app import app
+            print("🚀 Iniciando na porta 8080...")
+            app.run(host='127.0.0.1', port=8080, debug=False, use_reloader=False)
+        except Exception as e:
+            print(f"❌ Também falhou na porta 8080: {e}")
+    
+    print("\n🌐 Se funcionar, acesse:")
+    print("   - http://127.0.0.1:5000")
+    print("   - http://localhost:5000")
+    print("   - http://127.0.0.1:8080 (se usar porta alternativa)")
+
+if __name__ == "__main__":
+    main()

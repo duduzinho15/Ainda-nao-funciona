@@ -1,0 +1,28 @@
+2025-08-10 19:26:36,694 - __main__ - INFO - Iniciando teste de conex„o com a API do Telegram...
+2025-08-10 19:26:38,047 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 19:26:38,048 - __main__ - INFO - Conex„o bem-sucedida! Bot conectado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 19:26:38,048 - __main__ - INFO - Verificando se o bot est· online...
+2025-08-10 19:26:38,680 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"
+2025-08-10 19:26:38,681 - __main__ - INFO - N˙mero de atualizaÁıes pendentes: 0
+2025-08-10 19:26:38,681 - __main__ - INFO - Enviando comando /start para o bot...
+2025-08-10 19:26:39,006 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/sendMessage "HTTP/1.1 403 Forbidden"
+2025-08-10 19:26:39,007 - __main__ - ERROR - Erro ao enviar comando /start: Forbidden: bots can't send messages to bots
+2025-08-10 19:26:39,007 - __main__ - INFO - Enviando mensagem de teste para o bot...
+2025-08-10 19:26:39,328 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/sendMessage "HTTP/1.1 403 Forbidden"
+2025-08-10 19:26:39,329 - __main__ - ERROR - Erro ao enviar mensagem de teste: Forbidden: bots can't send messages to bots
+2025-08-10 19:28:44,245 - __main__ - INFO - Iniciando teste de conex√£o com a API do Telegram...
+2025-08-10 19:28:45,640 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 19:28:45,640 - __main__ - INFO - Conex√£o bem-sucedida! Bot conectado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 19:28:45,641 - __main__ - INFO - Verificando se o bot est√° online...
+2025-08-10 19:28:46,282 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"
+2025-08-10 19:28:46,283 - __main__ - INFO - N√∫mero de atualiza√ß√µes pendentes: 0
+2025-08-10 19:28:46,283 - __main__ - INFO - Criando aplica√ß√£o para teste de polling...
+2025-08-10 19:28:46,867 - __main__ - INFO - Iniciando polling...
+2025-08-10 19:28:47,505 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 19:28:47,506 - apscheduler.scheduler - INFO - Scheduler started
+2025-08-10 19:28:47,506 - telegram.ext.Application - INFO - Application started
+2025-08-10 19:28:47,720 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/deleteWebhook "HTTP/1.1 200 OK"
+2025-08-10 19:28:47,720 - __main__ - INFO - Polling iniciado com sucesso! O bot deve estar respondendo a comandos no Telegram.
+2025-08-10 19:28:47,721 - __main__ - INFO - Pressione Ctrl+C para encerrar o teste.
+2025-08-10 19:28:58,364 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"
+2025-08-10 19:29:08,579 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"

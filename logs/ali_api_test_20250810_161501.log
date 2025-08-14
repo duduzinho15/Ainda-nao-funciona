@@ -1,0 +1,9 @@
+2025-08-10 16:15:01,612 - test_aliexpress_api - INFO - Iniciando teste em: 2025-08-10 16:15:01
+2025-08-10 16:15:01,612 - test_aliexpress_api - INFO - Inicializando a API do AliExpress...
+2025-08-10 16:15:01,612 - test_aliexpress_api - DEBUG - Credenciais carregadas - AppKey: 517...956
+2025-08-10 16:15:01,612 - test_aliexpress_api - DEBUG - Tracking ID: telegram
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - ✅ API inicializada com sucesso!
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - ID do produto extraído: 1005009463783046
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - 
+=== TESTE: OBTENÇÃO DE INFORMAÇÕES DO PRODUTO ===
+2025-08-10 16:15:03,429 - test_aliexpress_api - ERROR - ❌ Erro ao obter informações do produto: Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)

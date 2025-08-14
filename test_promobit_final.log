@@ -1,0 +1,84 @@
+2025-08-09 16:10:34,026 - __main__ - INFO - === INICIANDO TESTES DO PROMOBIT SCRAPPER ===
+
+2025-08-09 16:10:34,026 - __main__ - INFO - 
+=== TESTANDO EXTRAÇÃO DE PREÇOS ===
+2025-08-09 16:10:34,031 - __main__ - INFO -   Esperado: ('999.99', '1199.99', 20)
+2025-08-09 16:10:34,032 - __main__ - INFO -   Obtido:   ('1199.99', '999.99', 20)
+2025-08-09 16:10:34,032 - __main__ - WARNING -   !!! FALHA NO TESTE !!!
+2025-08-09 16:10:34,033 - __main__ - INFO -   Esperado: ('1199.99', None, None)
+2025-08-09 16:10:34,034 - __main__ - INFO -   Obtido:   ('1199.99', None, None)
+2025-08-09 16:10:34,035 - __main__ - INFO -   Esperado: ('999.90', '1199.90', 17)
+2025-08-09 16:10:34,036 - __main__ - INFO -   Obtido:   ('999.90', '1199.90', 17)
+2025-08-09 16:10:34,037 - __main__ - INFO -   Esperado: ('1234.56', None, None)
+2025-08-09 16:10:34,037 - __main__ - INFO -   Obtido:   ('1234.56', None, None)
+2025-08-09 16:10:34,038 - __main__ - INFO - 
+=== TESTANDO NORMALIZAÇÃO DE LOJAS ===
+2025-08-09 16:10:34,046 - __main__ - INFO - 
+=== INICIANDO TESTE DE INTEGRAÇÃO ===
+
+2025-08-09 16:10:34,046 - __main__ - INFO - 
+=== INICIANDO TESTE DO PROMOBIT SCRAPER ===
+
+2025-08-09 16:10:34,046 - __main__ - INFO - Parâmetros da busca:
+2025-08-09 16:10:34,046 - __main__ - INFO -   max_paginas: 2
+2025-08-09 16:10:34,046 - __main__ - INFO -   min_desconto: 10
+2025-08-09 16:10:34,046 - __main__ - INFO -   categoria: informatica
+2025-08-09 16:10:34,046 - __main__ - INFO -   min_preco: 100
+2025-08-09 16:10:34,047 - __main__ - INFO -   max_preco: 5000
+2025-08-09 16:10:34,047 - __main__ - INFO -   min_avaliacao: 4.0
+2025-08-09 16:10:34,047 - __main__ - INFO -   min_votos: 5
+2025-08-09 16:10:34,047 - __main__ - INFO -   apenas_frete_gratis: False
+2025-08-09 16:10:34,047 - __main__ - INFO -   apenas_lojas_oficiais: False
+2025-08-09 16:10:34,047 - __main__ - INFO -   max_requests: 3
+2025-08-09 16:10:34,047 - __main__ - INFO - 
+Iniciando busca de ofertas...
+2025-08-09 16:10:35,460 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:10:35,596 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
+2025-08-09 16:10:36,703 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/informatica/?page=2
+2025-08-09 16:10:36,776 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/?page=2'
+2025-08-09 16:10:36,776 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
+2025-08-09 16:10:36,777 - __main__ - INFO - 
+=== RESULTADOS DA BUSCA ===
+2025-08-09 16:10:36,777 - __main__ - INFO - Total de ofertas encontradas: 0
+2025-08-09 16:12:33,057 - __main__ - INFO - === INICIANDO TESTES DO PROMOBIT SCRAPPER ===
+
+2025-08-09 16:12:33,057 - __main__ - INFO - 
+=== TESTANDO EXTRAÇÃO DE PREÇOS ===
+2025-08-09 16:12:33,061 - __main__ - INFO -   Esperado: ('999.99', '1199.99', 20)
+2025-08-09 16:12:33,061 - __main__ - INFO -   Obtido:   ('1199.99', '999.99', 20)
+2025-08-09 16:12:33,061 - __main__ - WARNING -   !!! FALHA NO TESTE !!!
+2025-08-09 16:12:33,063 - __main__ - INFO -   Esperado: ('1199.99', None, None)
+2025-08-09 16:12:33,064 - __main__ - INFO -   Obtido:   ('1199.99', None, None)
+2025-08-09 16:12:33,065 - __main__ - INFO -   Esperado: ('999.90', '1199.90', 17)
+2025-08-09 16:12:33,066 - __main__ - INFO -   Obtido:   ('999.90', '1199.90', 17)
+2025-08-09 16:12:33,068 - __main__ - INFO -   Esperado: ('1234.56', None, None)
+2025-08-09 16:12:33,068 - __main__ - INFO -   Obtido:   ('1234.56', None, None)
+2025-08-09 16:12:33,068 - __main__ - INFO - 
+=== TESTANDO NORMALIZAÇÃO DE LOJAS ===
+2025-08-09 16:12:33,079 - __main__ - INFO - 
+=== INICIANDO TESTE DE INTEGRAÇÃO ===
+
+2025-08-09 16:12:33,079 - __main__ - INFO - 
+=== INICIANDO TESTE DO PROMOBIT SCRAPER ===
+
+2025-08-09 16:12:33,079 - __main__ - INFO - Parâmetros da busca:
+2025-08-09 16:12:33,079 - __main__ - INFO -   max_paginas: 2
+2025-08-09 16:12:33,080 - __main__ - INFO -   min_desconto: 10
+2025-08-09 16:12:33,080 - __main__ - INFO -   categoria: informatica
+2025-08-09 16:12:33,080 - __main__ - INFO -   min_preco: 100
+2025-08-09 16:12:33,080 - __main__ - INFO -   max_preco: 5000
+2025-08-09 16:12:33,080 - __main__ - INFO -   min_avaliacao: 4.0
+2025-08-09 16:12:33,080 - __main__ - INFO -   min_votos: 5
+2025-08-09 16:12:33,080 - __main__ - INFO -   apenas_frete_gratis: False
+2025-08-09 16:12:33,080 - __main__ - INFO -   apenas_lojas_oficiais: False
+2025-08-09 16:12:33,081 - __main__ - INFO -   max_requests: 3
+2025-08-09 16:12:33,081 - __main__ - INFO - 
+Iniciando busca de ofertas...
+2025-08-09 16:12:34,510 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/informatica/?page=2
+2025-08-09 16:12:34,615 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/?page=2'
+2025-08-09 16:12:35,543 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:12:35,611 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
+2025-08-09 16:12:35,612 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
+2025-08-09 16:12:35,612 - __main__ - INFO - 
+=== RESULTADOS DA BUSCA ===
+2025-08-09 16:12:35,612 - __main__ - INFO - Total de ofertas encontradas: 0

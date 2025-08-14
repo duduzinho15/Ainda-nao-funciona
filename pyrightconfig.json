@@ -1,0 +1,39 @@
+{
+    "include": [
+        "."
+    ],
+    "exclude": [
+        "**/venv",
+        "**/__pycache__",
+        "**/*.pyc",
+        "**/node_modules",
+        "**/.git"
+    ],
+    "ignore": [
+        "**/venv/**"
+    ],
+    "reportMissingImports": "warning",
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.13",
+    "pythonPlatform": "Windows",
+    "executionEnvironments": [
+        {
+            "root": ".",
+            "pythonVersion": "3.13",
+            "pythonPlatform": "Windows",
+            "extraPaths": [
+                "./venv/Lib/site-packages",
+                "./venv/Lib/site-packages/telegram",
+                "./venv/Lib/site-packages/telegram/ext"
+            ]
+        }
+    ],
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "autoImportCompletions": true,
+    "reportOptionalMemberAccess": "warning",
+    "reportOptionalSubscript": "warning",
+    "reportOptionalIterable": "warning",
+    "reportOptionalContextManager": "warning",
+    "reportOptionalOperand": "warning"
+}

@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Garimpeiro Geek</title>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-robot"></i>
+                    Garimpeiro Geek
+                </h1>
+                <p class="header-subtitle">Dashboard Administrativo</p>
+            </div>
+            
+            <!-- Toggle de Tema -->
+            <button id="theme-toggle" class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span>Modo Escuro</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <main class="container">
+        <!-- Cards de Estatísticas Interativos -->
+        <section class="stats-grid">
+            <a href="/estatisticas" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <div class="stat-icon">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.total_ofertas or 0 }}</div>
+                <div class="stat-label">Total de Ofertas</div>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-color); opacity: 0.8;">
+                    <i class="fas fa-arrow-right"></i> Ver detalhes
+                </div>
+            </a>
+            
+            <a href="/ofertas-hoje" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.ofertas_hoje or 0 }}</div>
+                <div class="stat-label">Ofertas Hoje</div>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-color); opacity: 0.8;">
+                    <i class="fas fa-arrow-right"></i> Ver detalhes
+                </div>
+            </a>
+            
+            <a href="/lojas" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <div class="stat-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.total_lojas or 0 }}</div>
+                <div class="stat-label">Lojas Ativas</div>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-color); opacity: 0.8;">
+                    <i class="fas fa-arrow-right"></i> Ver detalhes
+                </div>
+            </a>
+            
+            <a href="/estatisticas" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;">
+                <div class="stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-number">R$ {{ estatisticas.preco_medio or 0 }}</div>
+                <div class="stat-label">Preço Médio</div>
+                <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--accent-color); opacity: 0.8;">
+                    <i class="fas fa-arrow-right"></i> Ver detalhes
+                </div>
+            </a>
+        </section>
+
+        <!-- Tabela de Ofertas -->
+        <section class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-list"></i>
+                    Últimas Ofertas Publicadas
+                </h2>
+                <p class="last-update" style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">
+                    Última Atualização: Carregando...
+                </p>
+            </div>
+            
+            {% if ofertas %}
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th data-sortable="true" data-column="data_postagem">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Data de Postagem
+                                </th>
+                                <th data-sortable="true" data-column="loja">
+                                    <i class="fas fa-store me-1"></i>
+                                    Loja
+                                </th>
+                                <th data-sortable="true" data-column="titulo">
+                                    <i class="fas fa-tag me-1"></i>
+                                    Título do Produto
+                                </th>
+                                <th data-sortable="true" data-column="preco">
+                                    <i class="fas fa-dollar-sign me-1"></i>
+                                    Preço
+                                </th>
+                                <th data-sortable="true" data-column="desconto">
+                                    <i class="fas fa-percentage me-1"></i>
+                                    Desconto
+                                </th>
+                                <th data-sortable="true" data-column="fonte">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Fonte
+                                </th>
+                                <th>
+                                    <i class="fas fa-external-link-alt me-1"></i>
+                                    Ação
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for oferta in ofertas %}
+                            <tr style="cursor: pointer;">
+                                <td>
+                                    <small style="color: var(--text-secondary);">
+                                        {{ oferta.data_formatada }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-store">
+                                        {{ oferta.loja or 'N/A' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ oferta.titulo or 'Título não disponível' }}</strong>
+                                    {% if oferta.asin %}
+                                        <br><small style="color: var(--text-muted);">ASIN: {{ oferta.asin }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-price">
+                                        {{ oferta.preco_formatado }}
+                                    </span>
+                                    {% if oferta.preco_original %}
+                                        <br><small style="color: var(--text-muted); text-decoration: line-through;">
+                                            {{ oferta.preco_original }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if oferta.desconto_formatado != 'N/A' %}
+                                        <span class="badge badge-discount">
+                                            {{ oferta.desconto_formatado }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-source">
+                                        {{ oferta.fonte_formatada }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if oferta.url_produto %}
+                                        <a href="{{ oferta.url_produto }}" 
+                                           target="_blank" 
+                                           class="btn btn-primary"
+                                           onclick="event.stopPropagation();">
+                                            <i class="fas fa-external-link-alt"></i>
+                                            Ver Oferta
+                                        </a>
+                                    {% else %}
+                                        <span style="color: var(--warning-color);">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            URL não disponível
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <h3>Nenhuma oferta encontrada</h3>
+                    <p>O banco de dados ainda não contém ofertas ou não está acessível.</p>
+                    <small>Verifique se o bot está funcionando e se há dados no banco.</small>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Informações Adicionais -->
+        {% if ofertas %}
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-chart-line"></i>
+                    Resumo das Ofertas
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <strong>Total de Ofertas:</strong> {{ total_ofertas }}<br>
+                        <strong>Ofertas de Hoje:</strong> {{ estatisticas.ofertas_hoje or 0 }}
+                    </div>
+                    <div>
+                        <strong>Lojas Ativas:</strong> {{ estatisticas.total_lojas or 0 }}<br>
+                        <strong>Preço Médio:</strong> R$ {{ estatisticas.preco_medio or 0 }}
+                    </div>
+                    <div>
+                        <strong>Última Atualização:</strong> <span class="last-update-summary">Carregando...</span><br>
+                        <strong>Status do Banco:</strong> 
+                        <span style="color: var(--success-color);">✅ Ativo</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <i class="fas fa-code"></i>
+                Desenvolvido com Flask e CSS moderno
+                <br>
+                <small>
+                    Sistema de Recomendações de Ofertas Telegram - Garimpeiro Geek
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

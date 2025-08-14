@@ -1,0 +1,6 @@
+2025-08-10 18:17:30,692 - garimpeiro_bot.ali_api - INFO - API do AliExpress inicializada com sucesso
+2025-08-10 18:17:30,694 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.link.generate
+2025-08-10 18:17:32,558 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.link.generate
+2025-08-10 18:17:33,545 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.link.generate
+2025-08-10 18:17:34,524 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.productdetail.get
+2025-08-10 18:17:35,770 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.product.query

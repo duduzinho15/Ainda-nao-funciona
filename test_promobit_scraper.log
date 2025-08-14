@@ -1,0 +1,110 @@
+2025-08-09 14:33:21,598 - __main__ - INFO - Iniciando teste do Promobit Scraper
+2025-08-09 14:33:21,599 - __main__ - INFO - Buscando ofertas no Promobit...
+2025-08-09 14:33:23,374 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/promocoes/informatica/
+2025-08-09 14:33:24,581 - promobit_scraper - ERROR - Erro ao processar a página 1: 400, message='Can not decode content-encoding: brotli (br). Please install `Brotli`', url='https://www.promobit.com.br/promocoes/informatica/'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_proto.py", line 315, in data_received
+    messages, upgraded, tail = self._parser.feed_data(data)
+                               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "aiohttp/_http_parser.pyx", line 558, in aiohttp._http_parser.HttpParser.feed_data
+  File "aiohttp/_http_parser.pyx", line 747, in aiohttp._http_parser.cb_on_headers_complete
+  File "aiohttp/_http_parser.pyx", line 470, in aiohttp._http_parser.HttpParser._on_headers_complete
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\http_parser.py", line 967, in __init__
+    raise ContentEncodingError(
+    ...<2 lines>...
+    )
+aiohttp.http_exceptions.ContentEncodingError: 400, message:
+  Can not decode content-encoding: brotli (br). Please install `Brotli`
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_reqrep.py", line 532, in start
+    message, payload = await protocol.read()  # type: ignore[union-attr]
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\streams.py", line 672, in read
+    await self._waiter
+aiohttp.http_exceptions.HttpProcessingError: 400, message:
+  Can not decode content-encoding: brotli (br). Please install `Brotli`
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\promobit_scraper.py", line 271, in fetch_page
+    async with session.get(url, headers=headers, timeout=30) as response:
+               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 1488, in __aenter__
+    self._resp: _RetType = await self._coro
+                           ^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 770, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 748, in _connect_and_send_request
+    await resp.start(conn)
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_reqrep.py", line 534, in start
+    raise ClientResponseError(
+    ...<5 lines>...
+    ) from exc
+aiohttp.client_exceptions.ClientResponseError: 400, message='Can not decode content-encoding: brotli (br). Please install `Brotli`', url='https://www.promobit.com.br/promocoes/informatica/'
+2025-08-09 14:33:24,607 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/promocoes/informatica/?page=2
+2025-08-09 14:33:25,358 - promobit_scraper - ERROR - Erro ao processar a página 2: 400, message='Can not decode content-encoding: brotli (br). Please install `Brotli`', url='https://www.promobit.com.br/promocoes/informatica/?page=2'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_proto.py", line 315, in data_received
+    messages, upgraded, tail = self._parser.feed_data(data)
+                               ~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "aiohttp/_http_parser.pyx", line 558, in aiohttp._http_parser.HttpParser.feed_data
+  File "aiohttp/_http_parser.pyx", line 747, in aiohttp._http_parser.cb_on_headers_complete
+  File "aiohttp/_http_parser.pyx", line 470, in aiohttp._http_parser.HttpParser._on_headers_complete
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\http_parser.py", line 967, in __init__
+    raise ContentEncodingError(
+    ...<2 lines>...
+    )
+aiohttp.http_exceptions.ContentEncodingError: 400, message:
+  Can not decode content-encoding: brotli (br). Please install `Brotli`
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_reqrep.py", line 532, in start
+    message, payload = await protocol.read()  # type: ignore[union-attr]
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\streams.py", line 672, in read
+    await self._waiter
+aiohttp.http_exceptions.HttpProcessingError: 400, message:
+  Can not decode content-encoding: brotli (br). Please install `Brotli`
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\promobit_scraper.py", line 271, in fetch_page
+    async with session.get(url, headers=headers, timeout=30) as response:
+               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 1488, in __aenter__
+    self._resp: _RetType = await self._coro
+                           ^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 770, in _request
+    resp = await handler(req)
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client.py", line 748, in _connect_and_send_request
+    await resp.start(conn)
+  File "C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\aiohttp\client_reqrep.py", line 534, in start
+    raise ClientResponseError(
+    ...<5 lines>...
+    ) from exc
+aiohttp.client_exceptions.ClientResponseError: 400, message='Can not decode content-encoding: brotli (br). Please install `Brotli`', url='https://www.promobit.com.br/promocoes/informatica/?page=2'
+2025-08-09 14:33:25,361 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
+2025-08-09 14:33:25,362 - __main__ - INFO - Total de ofertas encontradas: 0
+2025-08-09 14:33:25,363 - __main__ - INFO - 
+Dados completos salvos em: ofertas_promobit_20250809_143325.json
+2025-08-09 16:44:10,450 - __main__ - INFO - Iniciando teste do Promobit Scraper
+2025-08-09 16:44:10,450 - __main__ - INFO - Buscando ofertas no Promobit...
+2025-08-09 16:44:10,450 - promobit_scraper - INFO - Iniciando busca por ofertas na categoria: informatica (URL: https://www.promobit.com.br/promocoes/informatica)
+2025-08-09 16:44:10,451 - promobit_scraper - ERROR - Erro inesperado ao buscar ofertas: name 'processar_pagina' is not defined
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\promobit_scraper.py", line 636, in buscar_ofertas_promobit
+    processar_pagina(
+    ^^^^^^^^^^^^^^^^
+NameError: name 'processar_pagina' is not defined
+2025-08-09 16:44:10,452 - __main__ - INFO - Total de ofertas encontradas: 0
+2025-08-09 16:44:10,453 - __main__ - INFO - 
+Dados completos salvos em: ofertas_promobit_20250809_164410.json

@@ -1,0 +1,131 @@
+# Arquivo robots.txt otimizado para Buscape
+# Ultima atualizacao: 14-07-2025 
+
+# Endereco dos Sitemaps 
+Sitemap:https://www.zoom.com.br/sitemap/categories/index.xml.gz
+Sitemap:https://www.zoom.com.br/sitemap/searches/index.xml.gz
+Sitemap:https://www.zoom.com.br/sitemap/landing-pages/sitemap.xml.gz
+Sitemap:https://www.zoom.com.br/sitemap/sellers/sitemap.xml.gz
+Sitemap:https://www.zoom.com.br/sitemap/articles/index.xml.gz
+Sitemap:https://www.zoom.com.br/sitemap_cat/sitemap_busca_is.xml
+
+# Regras para todos os rastreadores
+User-agent:*
+# Permissoes especificas
+Allow:*?_lc=
+Allow:/ais/_next/static/*
+Allow:/psc/*/*/*
+Allow:/cupom-de-desconto/loja
+Allow:/ais/_next/static/css/*
+Allow:/cupom-de-desconto/*/*/*/*
+
+# Areas privadas e bloqueios
+Disallow:/ajax/tracker
+Disallow:/ajax/pricealert
+Disallow:/ajax/ajaxservice
+Disallow:/dynamic-resource/*
+Disallow:/static/js/za.js
+Disallow:/zpgo
+Disallow:/responsive/*
+Disallow:/perguntar-aos-amigos/*
+Disallow:/lead*
+Disallow:*unavailable
+Disallow:*onlyBestDeals
+Disallow:*/loja
+Disallow:/*highlightedItemID=*
+Disallow:*?onlyEditorPick=
+Disallow:*?viewSimilar=
+Disallow:/*/compare
+Disallow:*?q=
+Disallow:/order-info/*
+Disallow:/conta/*
+Disallow:/meus-pedidos/*
+Disallow:/*/*/*/*/*
+
+# Googlebot para imagens 
+User-agent:Googlebot-Image
+Allow:/images/
+Allow:/img/
+Disallow:/ajax/
+Disallow:/conta/
+
+# Regras para AdsBot do Google
+User-agent:AdsBot-Google
+Allow:/lead*?*pla=
+
+# Regras para Bing
+User-agent:Bingbot
+Crawl-delay:1
+Allow:/lead*?*pla=
+
+# Regras para Yahoo 
+User-agent:Slurp
+Crawl-delay:2
+Disallow:/lead*
+Disallow:/ajax/
+Disallow:/conta/*
+Disallow:/meus-pedidos/*
+Disallow:/search*
+
+# Regras para DuckDuckGo 
+User-agent:DuckDuckBot
+Disallow:/lead*
+Disallow:/ajax/
+Disallow:/conta/
+Disallow:/meus-pedidos/ 
+
+# Bots bloqueados completamente 
+User-agent:YandexBot
+Disallow:/ 
+
+User-agent:PiplBot 
+Disallow:/ 
+
+User-agent:Cliqzbot 
+Disallow:/ 
+
+User-agent:ExaBot
+Disallow:/ 
+
+User-agent:Coccocbot
+Disallow:/ 
+
+User-agent:Bleriot 
+Disallow:/
+
+User-agent:kazbtbot
+Disallow:/
+
+User-agent:startmebot
+Disallow:/
+
+User-agent:SurdotlyBot
+Disallow:/
+
+User-agent:Discordbot
+Disallow:/
+
+User-agent:bbot
+Disallow:/
+
+User-agent:chimebot
+Disallow:/ 
+
+# Bots de SEO tecnico que podem causar carga excessiva 
+User-agent:rogerbot
+Disallow:/
+
+User-agent:AhrefsBot
+Disallow:/ 
+
+User-agent:MJ12bot
+Disallow:/ 
+
+# Regras para todos os rastreadores 
+User-agent:*
+# Permissoes especificas
+Disallow:/*/*/*/*/*
+Allow:/ais/_next/static/css/*
+
+
+# 22-07-2025

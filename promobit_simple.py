@@ -1,0 +1,217 @@
+"""
+Módulo simplificado para busca de ofertas no site Promobit.
+"""
+import asyncio
+import logging
+import random
+import re
+import sys
+from datetime import datetime
+from typing import List, Dict, Optional, Any, Tuple
+
+import aiohttp
+from bs4 import BeautifulSoup
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('promobit_simple.log')
+    ]
+)
+logger = logging.getLogger('promobit_simple')
+
+# User Agents para rotação
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
+]
+
+# URLs base para busca de ofertas
+BASE_URL = "https://www.promobit.com.br/"
+CATEGORIAS = {
+    'informatica': 'ofertas/informatica/',
+    'eletronicos': 'ofertas/eletronicos/',
+    'games': 'ofertas/games/',
+    'celulares': 'ofertas/celulares/'
+}
+
+def get_random_headers() -> dict:
+    """Retorna headers aleatórios para evitar bloqueio."""
+    return {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+    }
+
+async def fetch_page(session: aiohttp.ClientSession, url: str) -> str:
+    """Busca uma página e retorna o HTML."""
+    try:
+        logger.info(f"Buscando página: {url}")
+        headers = get_random_headers()
+        
+        async with session.get(url, headers=headers) as response:
+            response.raise_for_status()
+            html = await response.text()
+            logger.info(f"Página carregada com sucesso: {url}")
+            return html
+            
+    except Exception as e:
+        logger.error(f"Erro ao buscar a página {url}: {e}")
+        return ""
+
+def extract_offers(html: str) -> List[Dict[str, Any]]:
+    """Extrai ofertas do HTML da página."""
+    if not html:
+        return []
+    
+    soup = BeautifulSoup(html, 'html.parser')
+    offers = []
+    
+    # Tenta diferentes seletores para encontrar os cards de oferta
+    selectors = [
+        'div.thread--deal',  # Seletor mais comum
+        'div.thread',
+        'article[data-testid="offer-card"]',
+        'div[class*="card"]',
+        'div[class*="offer"]',
+        'div[class*="deal"]',
+    ]
+    
+    cards = []
+    for selector in selectors:
+        cards = soup.select(selector)
+        if cards:
+            logger.info(f"Encontrados {len(cards)} cards com o seletor: {selector}")
+            break
+    
+    if not cards:
+        logger.warning("Nenhum card de oferta encontrado na página")
+        # Salva o HTML para depuração
+        with open('debug_page.html', 'w', encoding='utf-8') as f:
+            f.write(html)
+        return []
+    
+    logger.info(f"Processando {len(cards)} ofertas...")
+    
+    for card in cards[:5]:  # Limita a 5 ofertas para teste
+        try:
+            # Extrai título
+            title_elem = card.select_one('h3 a, h2 a, a.thread-title, a.title')
+            if not title_elem:
+                logger.debug("Título não encontrado no card")
+                continue
+                
+            title = title_elem.get_text(strip=True)
+            
+            # Extrai preço
+            price_elem = card.select_one('div.thread-price, div.price, span.price')
+            if not price_elem:
+                logger.debug("Preço não encontrado no card")
+                continue
+                
+            price_text = price_elem.get_text(strip=True)
+            
+            # Extrai loja
+            store_elem = card.select_one('a.thread-store, a.store, span.store')
+            store = store_elem.get_text(strip=True) if store_elem else "Desconhecida"
+            
+            # Extrai URL do produto
+            product_url = title_elem.get('href', '')
+            if product_url and not product_url.startswith(('http://', 'https://')):
+                product_url = f"https://www.promobit.com.br{product_url}"
+            
+            # Extrai URL da imagem
+            img_elem = card.select_one('img')
+            img_url = img_elem.get('src', '') if img_elem else ''
+            if img_url and not img_url.startswith(('http://', 'https://')):
+                img_url = f"https://www.promobit.com.br{img_url}"
+            
+            # Cria o dicionário da oferta
+            offer = {
+                'titulo': title,
+                'preco': price_text,
+                'loja': store,
+                'url_produto': product_url,
+                'imagem_url': img_url,
+                'data_coleta': datetime.now().isoformat()
+            }
+            
+            logger.info(f"Oferta encontrada: {title} - {price_text}")
+            offers.append(offer)
+            
+        except Exception as e:
+            logger.error(f"Erro ao processar card: {e}")
+            continue
+    
+    return offers
+
+async def buscar_ofertas_promobit(
+    session: aiohttp.ClientSession,
+    categoria: str = 'informatica',
+    max_paginas: int = 1
+) -> List[Dict[str, Any]]:
+    """Busca ofertas no Promobit."""
+    if categoria not in CATEGORIAS:
+        logger.warning(f"Categoria '{categoria}' inválida. Usando 'informatica'.")
+        categoria = 'informatica'
+    
+    base_url = f"{BASE_URL}{CATEGORIAS[categoria]}"
+    all_offers = []
+    
+    try:
+        # Busca apenas a primeira página para teste
+        url = base_url
+        logger.info(f"Buscando ofertas em: {url}")
+        
+        html = await fetch_page(session, url)
+        if not html:
+            logger.error("Falha ao obter o conteúdo da página")
+            return []
+        
+        # Extrai as ofertas da página
+        offers = extract_offers(html)
+        all_offers.extend(offers)
+        
+        logger.info(f"Total de ofertas encontradas: {len(all_offers)}")
+        return all_offers
+        
+    except Exception as e:
+        logger.error(f"Erro ao buscar ofertas: {e}", exc_info=True)
+        return []
+
+async def main():
+    """Função principal para teste."""
+    timeout = aiohttp.ClientTimeout(total=30)
+    
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        # Testa com diferentes categorias
+        categorias = ['informatica', 'eletronicos', 'games', 'celulares']
+        
+        for categoria in categorias:
+            logger.info(f"\n{'='*50}")
+            logger.info(f"TESTANDO CATEGORIA: {categoria.upper()}")
+            logger.info(f"{'='*50}")
+            
+            ofertas = await buscar_ofertas_promobit(session, categoria=categoria)
+            
+            if ofertas:
+                logger.info(f"\nOfertas encontradas em {categoria}:")
+                for i, oferta in enumerate(ofertas, 1):
+                    logger.info(f"{i}. {oferta['titulo']} - {oferta['preco']}")
+            else:
+                logger.warning(f"Nenhuma oferta encontrada em {categoria}")
+            
+            # Pequena pausa entre as requisições
+            await asyncio.sleep(2)
+
+if __name__ == "__main__":
+    logger.info("Iniciando teste do Promobit Scraper")
+    asyncio.run(main())

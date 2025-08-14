@@ -1,0 +1,39 @@
+2025-08-10 16:15:01,203 - test_aliexpress_api - INFO - Arquivo de log: C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_aliexpress_api_20250810_161501.log
+2025-08-10 16:15:01,611 - test_aliexpress_api - INFO - === TESTE SIMPLES DA API DO ALIEXPRESS ===
+2025-08-10 16:15:01,612 - test_aliexpress_api - INFO - Iniciando teste em: 2025-08-10 16:15:01
+2025-08-10 16:15:01,612 - test_aliexpress_api - INFO - Inicializando a API do AliExpress...
+2025-08-10 16:15:01,612 - test_aliexpress_api - DEBUG - Credenciais carregadas - AppKey: 517...956
+2025-08-10 16:15:01,612 - test_aliexpress_api - DEBUG - Tracking ID: telegram
+2025-08-10 16:15:01,613 - garimpeiro_bot.ali_api - INFO - API do AliExpress inicializada com sucesso
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - ✅ API inicializada com sucesso!
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - ID do produto extraído: 1005009463783046
+2025-08-10 16:15:01,613 - test_aliexpress_api - INFO - 
+=== TESTE: OBTENÇÃO DE INFORMAÇÕES DO PRODUTO ===
+2025-08-10 16:15:01,613 - garimpeiro_bot.ali_api - DEBUG - Parâmetros base: {'app_key': '517956', 'method': 'aliexpress.affiliate.product.detail', 'timestamp': '2025-08-10 19:15:01', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek'}
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - DEBUG - Parâmetros do método: {'product_id': '1005009463783046', 'country': 'BR', 'target_currency': 'BRL', 'target_language': 'pt', 'tracking_id': 'telegram'}
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - DEBUG - Parâmetros finais da requisição: {'app_key': '517956', 'method': 'aliexpress.affiliate.product.detail', 'timestamp': '2025-08-10 19:15:01', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek', 'product_id': '1005009463783046', 'country': 'BR', 'target_currency': 'BRL', 'target_language': 'pt', 'tracking_id': 'telegram', 'sign': '2246EAF242CDFB83C0839B1F4660CACFC2FF5218030F43AF97938CE3B9295385'}
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - DEBUG - Assinatura gerada: 2246EAF242CDFB83C0839B1F4660CACFC2FF5218030F43AF97938CE3B9295385
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - DEBUG - URL da requisição: https://api-sg.aliexpress.com/sync?app_key=517956&method=aliexpress.affiliate.product.detail&timestamp=2025-08-10%2019%3A15%3A01&format=json&v=2.0&sign_method=sha256&partner_id=garimpeiro_geek&product_id=1005009463783046&country=BR&target_currency=BRL&target_language=pt&tracking_id=telegram&sign=2246EAF242CDFB83C0839B1F4660CACFC2FF5218030F43AF97938CE3B9295385
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - INFO - Enviando requisição para: aliexpress.affiliate.product.detail
+2025-08-10 16:15:01,614 - garimpeiro_bot.ali_api - DEBUG - Parâmetros: {'app_key': '517956', 'method': 'aliexpress.affiliate.product.detail', 'timestamp': '2025-08-10 19:15:01', 'format': 'json', 'v': '2.0', 'sign_method': 'sha256', 'partner_id': 'garimpeiro_geek', 'product_id': '1005009463783046', 'country': 'BR', 'target_currency': 'BRL', 'target_language': 'pt', 'tracking_id': 'telegram', 'sign': '2246EAF242CDFB83C0839B1F4660CACFC2FF5218030F43AF97938CE3B9295385'}
+2025-08-10 16:15:01,618 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 16:15:03,427 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "GET /sync?app_key=517956&method=aliexpress.affiliate.product.detail&timestamp=2025-08-10+19%3A15%3A01&format=json&v=2.0&sign_method=sha256&partner_id=garimpeiro_geek&product_id=1005009463783046&country=BR&target_currency=BRL&target_language=pt&tracking_id=telegram&sign=2246EAF242CDFB83C0839B1F4660CACFC2FF5218030F43AF97938CE3B9295385 HTTP/1.1" 200 None
+2025-08-10 16:15:03,428 - garimpeiro_bot.ali_api - DEBUG - Resposta recebida em 1.81s
+2025-08-10 16:15:03,428 - garimpeiro_bot.ali_api - DEBUG - Status code: 200
+2025-08-10 16:15:03,428 - garimpeiro_bot.ali_api - DEBUG - Cabeçalhos da resposta: {'Date': 'Sun, 10 Aug 2025 19:15:04 GMT', 'Content-Type': 'application/json;charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Vary': 'Accept-Encoding', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'Content-Encoding': 'gzip', 'Server': 'Tengine/Aserver', 'EagleEye-TraceId': '2103080e17548533040321040e3fe8', 'Strict-Transport-Security': 'max-age=31536000', 'Timing-Allow-Origin': '*'}
+2025-08-10 16:15:03,429 - garimpeiro_bot.ali_api - DEBUG - Resposta JSON: {
+  "error_response": {
+    "type": "ISV",
+    "code": "InvalidApiPath",
+    "msg": "The specified API Path is invalid",
+    "request_id": "2151ec7e17548533043688815"
+  }
+}
+2025-08-10 16:15:03,429 - garimpeiro_bot.ali_api - ERROR - Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)
+2025-08-10 16:15:03,429 - garimpeiro_bot.ali_api - DEBUG - Resposta completa de erro: {
+  "type": "ISV",
+  "code": "InvalidApiPath",
+  "msg": "The specified API Path is invalid",
+  "request_id": "2151ec7e17548533043688815"
+}
+2025-08-10 16:15:03,429 - test_aliexpress_api - ERROR - ❌ Erro ao obter informações do produto: Erro na API do AliExpress: The specified API Path is invalid (Código: InvalidApiPath)

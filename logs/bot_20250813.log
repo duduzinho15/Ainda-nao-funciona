@@ -1,0 +1,33 @@
+2025-08-13 10:11:05 - garimpeiro_bot - INFO - Arquivo de log criado em: C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\logs\bot_20250813.log
+2025-08-13 10:11:05 - garimpeiro_bot - INFO - Logging configurado com sucesso!
+2025-08-13 10:11:05 - garimpeiro_bot - INFO - Iniciando função main()
+2025-08-13 10:11:05 - garimpeiro_bot - INFO - Iniciando o Garimpeiro Geek...
+2025-08-13 10:11:06 - garimpeiro_bot - ERROR - Erro na função main_async: 'Updater' object has no attribute '_Updater__polling_cleanup_cb' and no __dict__ for setting new attributes
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\main.py", line 2076, in main_async
+    application = Application.builder().token(token).build()
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\venv\Lib\site-packages\telegram\ext\_applicationbuilder.py", line 312, in build
+    updater = Updater(bot=bot, update_queue=update_queue)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\venv\Lib\site-packages\telegram\ext\_updater.py", line 128, in __init__
+    self.__polling_cleanup_cb: Optional[Callable[[], Coroutine[Any, Any, None]]] = None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute '_Updater__polling_cleanup_cb' and no __dict__ for setting new attributes
+2025-08-13 10:11:06 - garimpeiro_bot - ERROR - Erro fatal: 'Updater' object has no attribute '_Updater__polling_cleanup_cb' and no __dict__ for setting new attributes
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\main.py", line 2211, in main
+    loop.run_until_complete(main_async())
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\asyncio\base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\main.py", line 2076, in main_async
+    application = Application.builder().token(token).build()
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\venv\Lib\site-packages\telegram\ext\_applicationbuilder.py", line 312, in build
+    updater = Updater(bot=bot, update_queue=update_queue)
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\venv\Lib\site-packages\telegram\ext\_updater.py", line 128, in __init__
+    self.__polling_cleanup_cb: Optional[Callable[[], Coroutine[Any, Any, None]]] = None
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Updater' object has no attribute '_Updater__polling_cleanup_cb' and no __dict__ for setting new attributes
+2025-08-13 10:11:06 - garimpeiro_bot - INFO - Aplicação finalizada com sucesso.
+2025-08-13 21:19:42 - garimpeiro_bot - INFO - Arquivo de log criado em: C:\Users\Eduardo Vitorino\CascadeProjects\Sistema de Recomendações de Ofertas Telegram\logs\bot_20250813.log
+2025-08-13 21:19:42 - garimpeiro_bot - INFO - Logging configurado com sucesso!

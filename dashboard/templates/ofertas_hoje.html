@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ofertas de Hoje - Dashboard Garimpeiro Geek</title>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-calendar-day"></i>
+                    Ofertas de Hoje
+                </h1>
+                <p class="header-subtitle">Ofertas publicadas nas últimas 24 horas</p>
+            </div>
+            
+            <!-- Toggle de Tema -->
+            <button id="theme-toggle" class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span>Modo Escuro</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <main class="container">
+        <!-- Breadcrumb -->
+        <nav style="margin: 1rem 0;">
+            <a href="/" style="color: var(--accent-color); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </nav>
+
+        <!-- Resumo -->
+        <div class="stat-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                <i class="fas fa-chart-line"></i>
+                Resumo do Dia
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <strong>Total de Ofertas Hoje:</strong> {{ total_ofertas }}<br>
+                    <strong>Data:</strong> <span id="data-hoje">Carregando...</span>
+                </div>
+                <div>
+                    <strong>Status:</strong> 
+                    {% if total_ofertas > 0 %}
+                        <span style="color: var(--success-color);">✅ Ativo</span>
+                    {% else %}
+                        <span style="color: var(--warning-color);">⚠️ Sem ofertas</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Ofertas de Hoje -->
+        <section class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-list"></i>
+                    Ofertas Publicadas Hoje
+                </h2>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">
+                    {% if total_ofertas > 0 %}
+                        {{ total_ofertas }} oferta{{ 's' if total_ofertas != 1 else '' }} encontrada{{ 's' if total_ofertas != 1 else '' }}
+                    {% else %}
+                        Nenhuma oferta encontrada para hoje
+                    {% endif %}
+                </p>
+            </div>
+            
+            {% if ofertas %}
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th data-sortable="true" data-column="data_postagem">
+                                    <i class="fas fa-clock"></i>
+                                    Hora da Postagem
+                                </th>
+                                <th data-sortable="true" data-column="loja">
+                                    <i class="fas fa-store"></i>
+                                    Loja
+                                </th>
+                                <th data-sortable="true" data-column="titulo">
+                                    <i class="fas fa-tag"></i>
+                                    Título do Produto
+                                </th>
+                                <th data-sortable="true" data-column="preco">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    Preço
+                                </th>
+                                <th data-sortable="true" data-column="desconto">
+                                    <i class="fas fa-percentage"></i>
+                                    Desconto
+                                </th>
+                                <th data-sortable="true" data-column="fonte">
+                                    <i class="fas fa-info-circle"></i>
+                                    Fonte
+                                </th>
+                                <th>
+                                    <i class="fas fa-external-link-alt"></i>
+                                    Ação
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for oferta in ofertas %}
+                            <tr style="cursor: pointer;">
+                                <td>
+                                    <small style="color: var(--text-secondary);">
+                                        {{ oferta.data_formatada }}
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="badge badge-store">
+                                        {{ oferta.loja or 'N/A' }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong>{{ oferta.titulo or 'Título não disponível' }}</strong>
+                                    {% if oferta.asin %}
+                                        <br><small style="color: var(--text-muted);">ASIN: {{ oferta.asin }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-price">
+                                        {{ oferta.preco_formatado }}
+                                    </span>
+                                    {% if oferta.preco_original %}
+                                        <br><small style="color: var(--text-muted); text-decoration: line-through;">
+                                            {{ oferta.preco_original }}
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if oferta.desconto_formatado != 'N/A' %}
+                                        <span class="badge badge-discount">
+                                            {{ oferta.desconto_formatado }}
+                                        </span>
+                                    {% else %}
+                                        <span style="color: var(--text-muted);">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge badge-source">
+                                        {{ oferta.fonte_formatada }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if oferta.url_produto %}
+                                        <a href="{{ oferta.url_produto }}" 
+                                           target="_blank" 
+                                           class="btn btn-primary"
+                                           onclick="event.stopPropagation();">
+                                            <i class="fas fa-external-link-alt"></i>
+                                            Ver Oferta
+                                        </a>
+                                    {% else %}
+                                        <span style="color: var(--warning-color);">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            URL não disponível
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-day"></i>
+                    <h3>Nenhuma oferta encontrada para hoje</h3>
+                    <p>O bot ainda não publicou ofertas nas últimas 24 horas.</p>
+                    <small>Verifique se o bot está funcionando ou se não há ofertas disponíveis.</small>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Estatísticas Adicionais -->
+        {% if ofertas %}
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-chart-bar"></i>
+                    Análise das Ofertas de Hoje
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <strong>Lojas Ativas Hoje:</strong><br>
+                        {% set lojas_hoje = [] %}
+                        {% for oferta in ofertas %}
+                            {% if oferta.loja and oferta.loja not in lojas_hoje %}
+                                {% set _ = lojas_hoje.append(oferta.loja) %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ lojas_hoje | length }} loja{{ 's' if (lojas_hoje | length) != 1 else '' }}
+                    </div>
+                    <div>
+                        <strong>Preço Médio:</strong><br>
+                        {% set precos = [] %}
+                        {% for oferta in ofertas %}
+                            {% if oferta.preco %}
+                                {% set _ = precos.append(oferta.preco) %}
+                            {% endif %}
+                        {% endfor %}
+                        {% if precos %}
+                            {% set preco_medio = 0 %}
+                            {% for preco in precos %}
+                                {% set preco_limpo = preco | replace(',', '.') | float %}
+                                {% set preco_medio = preco_medio + preco_limpo %}
+                            {% endfor %}
+                            {% set preco_medio = preco_medio / (precos | length) %}
+                            R$ {{ "%.2f"|format(preco_medio) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div>
+                        <strong>Ofertas com Desconto:</strong><br>
+                        {% set ofertas_com_desconto = 0 %}
+                        {% for oferta in ofertas %}
+                            {% if oferta.desconto_formatado and oferta.desconto_formatado != 'N/A' %}
+                                {% set ofertas_com_desconto = ofertas_com_desconto + 1 %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ ofertas_com_desconto }} de {{ total_ofertas }}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <i class="fas fa-code"></i>
+                Desenvolvido com Flask e CSS moderno
+                <br>
+                <small>
+                    Sistema de Recomendações de Ofertas Telegram - Garimpeiro Geek
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

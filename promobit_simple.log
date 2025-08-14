@@ -1,0 +1,37 @@
+2025-08-09 16:16:23,635 - promobit_simple - INFO - Iniciando teste do Promobit Scraper
+2025-08-09 16:16:23,637 - promobit_simple - INFO - 
+==================================================
+2025-08-09 16:16:23,637 - promobit_simple - INFO - TESTANDO CATEGORIA: INFORMATICA
+2025-08-09 16:16:23,637 - promobit_simple - INFO - ==================================================
+2025-08-09 16:16:23,638 - promobit_simple - INFO - Buscando ofertas em: https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:16:23,638 - promobit_simple - INFO - Buscando página: https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:16:23,729 - promobit_simple - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
+2025-08-09 16:16:23,729 - promobit_simple - ERROR - Falha ao obter o conteúdo da página
+2025-08-09 16:16:23,729 - promobit_simple - WARNING - Nenhuma oferta encontrada em informatica
+2025-08-09 16:16:25,744 - promobit_simple - INFO - 
+==================================================
+2025-08-09 16:16:25,745 - promobit_simple - INFO - TESTANDO CATEGORIA: ELETRONICOS
+2025-08-09 16:16:25,745 - promobit_simple - INFO - ==================================================
+2025-08-09 16:16:25,745 - promobit_simple - INFO - Buscando ofertas em: https://www.promobit.com.br/ofertas/eletronicos/
+2025-08-09 16:16:25,745 - promobit_simple - INFO - Buscando página: https://www.promobit.com.br/ofertas/eletronicos/
+2025-08-09 16:16:25,818 - promobit_simple - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/eletronicos/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/eletronicos/'
+2025-08-09 16:16:25,818 - promobit_simple - ERROR - Falha ao obter o conteúdo da página
+2025-08-09 16:16:25,818 - promobit_simple - WARNING - Nenhuma oferta encontrada em eletronicos
+2025-08-09 16:16:27,828 - promobit_simple - INFO - 
+==================================================
+2025-08-09 16:16:27,828 - promobit_simple - INFO - TESTANDO CATEGORIA: GAMES
+2025-08-09 16:16:27,828 - promobit_simple - INFO - ==================================================
+2025-08-09 16:16:27,829 - promobit_simple - INFO - Buscando ofertas em: https://www.promobit.com.br/ofertas/games/
+2025-08-09 16:16:27,829 - promobit_simple - INFO - Buscando página: https://www.promobit.com.br/ofertas/games/
+2025-08-09 16:16:27,916 - promobit_simple - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/games/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/games/'
+2025-08-09 16:16:27,916 - promobit_simple - ERROR - Falha ao obter o conteúdo da página
+2025-08-09 16:16:27,917 - promobit_simple - WARNING - Nenhuma oferta encontrada em games
+2025-08-09 16:16:29,930 - promobit_simple - INFO - 
+==================================================
+2025-08-09 16:16:29,930 - promobit_simple - INFO - TESTANDO CATEGORIA: CELULARES
+2025-08-09 16:16:29,931 - promobit_simple - INFO - ==================================================
+2025-08-09 16:16:29,931 - promobit_simple - INFO - Buscando ofertas em: https://www.promobit.com.br/ofertas/celulares/
+2025-08-09 16:16:29,931 - promobit_simple - INFO - Buscando página: https://www.promobit.com.br/ofertas/celulares/
+2025-08-09 16:16:30,033 - promobit_simple - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/celulares/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/celulares/'
+2025-08-09 16:16:30,034 - promobit_simple - ERROR - Falha ao obter o conteúdo da página
+2025-08-09 16:16:30,034 - promobit_simple - WARNING - Nenhuma oferta encontrada em celulares

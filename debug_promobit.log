@@ -1,0 +1,64 @@
+2025-08-09 16:14:11,904 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-08-09 16:14:11,906 - promobit_debug - INFO - 
+================================================================================
+2025-08-09 16:14:11,906 - promobit_debug - INFO - TESTING URL: https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:14:11,906 - promobit_debug - INFO - ================================================================================
+2025-08-09 16:14:11,906 - promobit_debug - INFO - Fetching URL: https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:14:12,063 - promobit_debug - INFO - Status: 404
+2025-08-09 16:14:12,064 - promobit_debug - INFO - Content-Type: text/html; charset=UTF-8
+2025-08-09 16:14:12,064 - promobit_debug - INFO - HTML length: 57223 characters
+2025-08-09 16:14:12,101 - promobit_debug - INFO - Found 12 elements with selector: div[class*="card"]
+2025-08-09 16:14:12,101 - promobit_debug - INFO - 
+--- Match 1 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:12,101 - promobit_debug - INFO - Element: div with classes: ['pr-tl-card', 'c_2']
+2025-08-09 16:14:12,102 - promobit_debug - INFO - Text preview: Samsung Galaxy Watch7 Smartwatch 44mm LTE Galaxy AI Tela em Cristal de Safira Verde0R$1.999,00R$1.349,10casasbahia.com.brGênio3...
+2025-08-09 16:14:12,102 - promobit_debug - INFO - HTML preview: <div class="pr-tl-card c_2" data-key="2275969" itemscope="" itemtype="http://schema.org/Product">
+<a class="" data-ga-action="product_image" href="/oferta/samsung-galaxy-watch7-smartwatch-44mm-lte-gal...
+2025-08-09 16:14:12,102 - promobit_debug - INFO - 
+--- Match 2 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:12,103 - promobit_debug - INFO - Element: div with classes: ['oldprice', 'strike', 'offer-card__strike']
+2025-08-09 16:14:12,103 - promobit_debug - INFO - Text preview: R$1.999,00...
+2025-08-09 16:14:12,103 - promobit_debug - INFO - HTML preview: <div class="oldprice strike offer-card__strike">R$ <span>1.999,00</span> </div>...
+2025-08-09 16:14:12,103 - promobit_debug - INFO - Successfully fetched 57223 bytes from https://www.promobit.com.br/ofertas/informatica/
+2025-08-09 16:14:14,116 - promobit_debug - INFO - 
+================================================================================
+2025-08-09 16:14:14,117 - promobit_debug - INFO - TESTING URL: https://www.promobit.com.br/ofertas/celulares/
+2025-08-09 16:14:14,117 - promobit_debug - INFO - ================================================================================
+2025-08-09 16:14:14,117 - promobit_debug - INFO - Fetching URL: https://www.promobit.com.br/ofertas/celulares/
+2025-08-09 16:14:14,222 - promobit_debug - INFO - Status: 404
+2025-08-09 16:14:14,222 - promobit_debug - INFO - Content-Type: text/html; charset=UTF-8
+2025-08-09 16:14:14,222 - promobit_debug - INFO - HTML length: 57221 characters
+2025-08-09 16:14:14,257 - promobit_debug - INFO - Found 12 elements with selector: div[class*="card"]
+2025-08-09 16:14:14,257 - promobit_debug - INFO - 
+--- Match 1 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:14,257 - promobit_debug - INFO - Element: div with classes: ['pr-tl-card', 'c_2']
+2025-08-09 16:14:14,258 - promobit_debug - INFO - Text preview: Samsung Galaxy Watch7 Smartwatch 44mm LTE Galaxy AI Tela em Cristal de Safira Verde0R$1.999,00R$1.349,10casasbahia.com.brGênio3...
+2025-08-09 16:14:14,258 - promobit_debug - INFO - HTML preview: <div class="pr-tl-card c_2" data-key="2275969" itemscope="" itemtype="http://schema.org/Product">
+<a class="" data-ga-action="product_image" href="/oferta/samsung-galaxy-watch7-smartwatch-44mm-lte-gal...
+2025-08-09 16:14:14,259 - promobit_debug - INFO - 
+--- Match 2 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:14,259 - promobit_debug - INFO - Element: div with classes: ['oldprice', 'strike', 'offer-card__strike']
+2025-08-09 16:14:14,259 - promobit_debug - INFO - Text preview: R$1.999,00...
+2025-08-09 16:14:14,259 - promobit_debug - INFO - HTML preview: <div class="oldprice strike offer-card__strike">R$ <span>1.999,00</span> </div>...
+2025-08-09 16:14:14,260 - promobit_debug - INFO - Successfully fetched 57221 bytes from https://www.promobit.com.br/ofertas/celulares/
+2025-08-09 16:14:16,262 - promobit_debug - INFO - 
+================================================================================
+2025-08-09 16:14:16,263 - promobit_debug - INFO - TESTING URL: https://www.promobit.com.br/ofertas/games/
+2025-08-09 16:14:16,263 - promobit_debug - INFO - ================================================================================
+2025-08-09 16:14:16,263 - promobit_debug - INFO - Fetching URL: https://www.promobit.com.br/ofertas/games/
+2025-08-09 16:14:16,342 - promobit_debug - INFO - Status: 404
+2025-08-09 16:14:16,342 - promobit_debug - INFO - Content-Type: text/html; charset=UTF-8
+2025-08-09 16:14:16,342 - promobit_debug - INFO - HTML length: 57217 characters
+2025-08-09 16:14:16,389 - promobit_debug - INFO - Found 12 elements with selector: div[class*="card"]
+2025-08-09 16:14:16,389 - promobit_debug - INFO - 
+--- Match 1 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:16,389 - promobit_debug - INFO - Element: div with classes: ['pr-tl-card', 'c_2']
+2025-08-09 16:14:16,390 - promobit_debug - INFO - Text preview: Samsung Galaxy Watch7 Smartwatch 44mm LTE Galaxy AI Tela em Cristal de Safira Verde0R$1.999,00R$1.349,10casasbahia.com.brGênio3...
+2025-08-09 16:14:16,391 - promobit_debug - INFO - HTML preview: <div class="pr-tl-card c_2" data-key="2275969" itemscope="" itemtype="http://schema.org/Product">
+<a class="" data-ga-action="product_image" href="/oferta/samsung-galaxy-watch7-smartwatch-44mm-lte-gal...
+2025-08-09 16:14:16,391 - promobit_debug - INFO - 
+--- Match 2 with selector 'div[class*="card"]' ---
+2025-08-09 16:14:16,391 - promobit_debug - INFO - Element: div with classes: ['oldprice', 'strike', 'offer-card__strike']
+2025-08-09 16:14:16,391 - promobit_debug - INFO - Text preview: R$1.999,00...
+2025-08-09 16:14:16,391 - promobit_debug - INFO - HTML preview: <div class="oldprice strike offer-card__strike">R$ <span>1.999,00</span> </div>...
+2025-08-09 16:14:16,392 - promobit_debug - INFO - Successfully fetched 57217 bytes from https://www.promobit.com.br/ofertas/games/

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estatísticas - Dashboard Garimpeiro Geek</title>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-chart-line"></i>
+                    Estatísticas Detalhadas
+                </h1>
+                <p class="header-subtitle">Análise completa dos dados do bot</p>
+            </div>
+            
+            <!-- Toggle de Tema -->
+            <button id="theme-toggle" class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span>Modo Escuro</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <main class="container">
+        <!-- Breadcrumb -->
+        <nav style="margin: 1rem 0;">
+            <a href="/" style="color: var(--accent-color); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </nav>
+
+        <!-- Cards de Estatísticas Principais -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-tags"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.total_ofertas or 0 }}</div>
+                <div class="stat-label">Total de Ofertas</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.ofertas_hoje or 0 }}</div>
+                <div class="stat-label">Ofertas Hoje</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-store"></i>
+                </div>
+                <div class="stat-number">{{ estatisticas.total_lojas or 0 }}</div>
+                <div class="stat-label">Lojas Ativas</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-number">R$ {{ estatisticas.preco_medio or 0 }}</div>
+                <div class="stat-label">Preço Médio</div>
+            </div>
+        </section>
+
+        <!-- Análise de Preços -->
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-chart-bar"></i>
+                    Análise de Preços
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--success-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-primary);">
+                            R$ {{ estatisticas.preco_max or 0 }}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            Produto Mais Caro
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--accent-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-minus"></i>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-primary);">
+                            R$ {{ estatisticas.preco_medio or 0 }}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            Preço Médio
+                        </div>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 10px;">
+                        <div style="font-size: 2rem; color: var(--danger-color); margin-bottom: 0.5rem;">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div style="font-size: 1.5rem; font-weight: bold; color: var(--text-primary);">
+                            R$ {{ estatisticas.preco_min or 0 }}
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem;">
+                            Produto Mais Barato
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estatísticas Avançadas -->
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-calculator"></i>
+                    Cálculos Avançados
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <strong>Faixa de Preços:</strong><br>
+                        R$ {{ estatisticas.preco_min or 0 }} - R$ {{ estatisticas.preco_max or 0 }}
+                    </div>
+                    <div>
+                        <strong>Amplitude de Preços:</strong><br>
+                        {% if estatisticas.preco_max and estatisticas.preco_min %}
+                            {% set amplitude = estatisticas.preco_max - estatisticas.preco_min %}
+                            R$ {{ "%.2f"|format(amplitude) }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div>
+                        <strong>Densidade de Ofertas:</strong><br>
+                        {% if estatisticas.total_ofertas and estatisticas.total_lojas %}
+                            {% set densidade = estatisticas.total_ofertas / estatisticas.total_lojas %}
+                            {{ "%.1f"|format(densidade) }} por loja
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                    <div>
+                        <strong>Atividade Diária:</strong><br>
+                        {% if estatisticas.total_ofertas and estatisticas.ofertas_hoje %}
+                            {% set atividade = (estatisticas.ofertas_hoje / estatisticas.total_ofertas) * 100 %}
+                            {{ "%.1f"|format(atividade) }}% hoje
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Gráfico de Distribuição de Preços (Simulado) -->
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-chart-area"></i>
+                    Distribuição de Preços
+                </h3>
+                <div style="background: var(--bg-secondary); border-radius: 10px; padding: 1rem; height: 200px; position: relative;">
+                    <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 150px; display: flex; align-items: end; justify-content: space-around;">
+                        {% if estatisticas.preco_min and estatisticas.preco_max and estatisticas.preco_medio %}
+                            {% set faixa1 = estatisticas.preco_min %}
+                            {% set faixa2 = estatisticas.preco_min + (estatisticas.preco_max - estatisticas.preco_min) * 0.25 %}
+                            {% set faixa3 = estatisticas.preco_medio %}
+                            {% set faixa4 = estatisticas.preco_min + (estatisticas.preco_max - estatisticas.preco_min) * 0.75 %}
+                            {% set faixa5 = estatisticas.preco_max %}
+                            
+                            <div style="
+                                width: 20px; 
+                                background: linear-gradient(to top, var(--accent-color), var(--accent-hover));
+                                border-radius: 3px 3px 0 0;
+                                margin: 0 5px;
+                                height: 70px;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    font-size: 0.7rem;
+                                    color: var(--text-secondary);
+                                    white-space: nowrap;
+                                ">
+                                    R$ {{ "%.0f"|format(faixa1) }}
+                                </div>
+                            </div>
+                            
+                            <div style="
+                                width: 20px; 
+                                background: linear-gradient(to top, var(--accent-color), var(--accent-hover));
+                                border-radius: 3px 3px 0 0;
+                                margin: 0 5px;
+                                height: 90px;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    font-size: 0.7rem;
+                                    color: var(--text-secondary);
+                                    white-space: nowrap;
+                                ">
+                                    R$ {{ "%.0f"|format(faixa2) }}
+                                </div>
+                            </div>
+                            
+                            <div style="
+                                width: 20px; 
+                                background: linear-gradient(to top, var(--accent-color), var(--accent-hover));
+                                border-radius: 3px 3px 0 0;
+                                margin: 0 5px;
+                                height: 110px;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    font-size: 0.7rem;
+                                    color: var(--text-secondary);
+                                    white-space: nowrap;
+                                ">
+                                    R$ {{ "%.0f"|format(faixa3) }}
+                                </div>
+                            </div>
+                            
+                            <div style="
+                                width: 20px; 
+                                background: linear-gradient(to top, var(--accent-color), var(--accent-hover));
+                                border-radius: 3px 3px 0 0;
+                                margin: 0 5px;
+                                height: 130px;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    font-size: 0.7rem;
+                                    color: var(--text-secondary);
+                                    white-space: nowrap;
+                                ">
+                                    R$ {{ "%.0f"|format(faixa4) }}
+                                </div>
+                            </div>
+                            
+                            <div style="
+                                width: 20px; 
+                                background: 0px; 
+                                background: linear-gradient(to top, var(--accent-color), var(--accent-hover));
+                                border-radius: 3px 3px 0 0;
+                                margin: 0 5px;
+                                height: 150px;
+                                position: relative;
+                            ">
+                                <div style="
+                                    position: absolute;
+                                    top: -25px;
+                                    left: 50%;
+                                    transform: translateX(-50%);
+                                    font-size: 0.7rem;
+                                    color: var(--text-secondary);
+                                    white-space: nowrap;
+                                ">
+                                    R$ {{ "%.0f"|format(faixa5) }}
+                                </div>
+                            </div>
+                        {% else %}
+                            <div style="
+                                width: 100%; 
+                                height: 100%; 
+                                display: flex; 
+                                align-items: center; 
+                                justify-content: center; 
+                                color: var(--text-muted);
+                            ">
+                                Dados insuficientes para gerar gráfico
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                    <i class="fas fa-info-circle"></i>
+                    Visualização simplificada da distribuição de preços
+                </div>
+            </div>
+        </section>
+
+        <!-- Links para Outras Páginas -->
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-link"></i>
+                    Navegação Rápida
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <a href="/lojas" class="btn btn-outline" style="text-align: center; text-decoration: none;">
+                        <i class="fas fa-store"></i><br>
+                        Ver Lojas Ativas
+                    </a>
+                    <a href="/ofertas-hoje" class="btn btn-outline" style="text-align: center; text-decoration: none;">
+                        <i class="fas fa-calendar-day"></i><br>
+                        Ofertas de Hoje
+                    </a>
+                    <a href="/" class="btn btn-outline" style="text-align: center; text-decoration: none;">
+                        <i class="fas fa-home"></i><br>
+                        Dashboard Principal
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <i class="fas fa-code"></i>
+                Desenvolvido com Flask e CSS moderno
+                <br>
+                <small>
+                    Sistema de Recomendações de Ofertas Telegram - Garimpeiro Geek
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

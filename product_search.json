@@ -1,0 +1,137 @@
+{
+  "resp_result": {
+    "result": {
+      "current_record_count": 3,
+      "total_record_count": 39985,
+      "current_page_no": 1,
+      "products": {
+        "product": [
+          {
+            "original_price": "3400.00",
+            "product_detail_url": "https://pt.aliexpress.com/item/1005009691829094.html?pdp_npi=4%40dis%21BRL%2119972.96%2119972.96%21%21%213400.00%213400.00%21%40212a7b1017548606577962853d0d3a%2112000049870276783%21affd%21%21%21",
+            "product_small_image_urls": {
+              "string": [
+                "https://ae-pic-a1.aliexpress-media.com/kf/A54e33b702d554d9782398f93bc69e7faQ.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/A85f09681fad14e05a67bd6bdc4c45dafu.jpg"
+              ]
+            },
+            "second_level_category_name": "Brindes",
+            "target_sale_price": "19972.96",
+            "second_level_category_id": 200001621,
+            "discount": "0%",
+            "product_main_image_url": "https://ae-pic-a1.aliexpress-media.com/kf/A54e33b702d554d9782398f93bc69e7faQ.jpg",
+            "first_level_category_id": 200001075,
+            "target_sale_price_currency": "BRL",
+            "tax_rate": "0.00",
+            "original_price_currency": "USD",
+            "shop_url": "https://pt.aliexpress.com/store/1102846245",
+            "target_original_price_currency": "BRL",
+            "product_id": 1005009691829094,
+            "target_original_price": "19972.96",
+            "product_video_url": "",
+            "first_level_category_name": "Categoria especial",
+            "promotion_link": "https://s.click.aliexpress.com/s/pyFri10M6ltAv61YZY9TfrxiDaaFXRreuZWJMeLtD8jig1wPxn51K2eq59ds8iT5Wl5L3w5KJyrl7SjOO3B0oJ0Xjwnc7n8AQA7gf5qnT4sCyU05LNms9JvyWQNFHNKtzBcoBpSguMg3UBR1FOODkmGTloXosMhqhnKgzzuJPYPxewVvzupiAiKSJA5SK0iQRxmaQ7UPG0AP2HC7uLitVpvXIfjMl7RnsnN7B8FrGfP9TWP7emQeaXV90Bp9fLEiLeKHsRf9R2jgKD32Axm5na4bRJdkhGVyv3GcDgMjmYrrZWinWctR9gnPwA4FFyjUCEWrzsUdSX7y59xfvHfXuuuD3TdjPVjWEaU7ybKKiEJ7wqInTppgGD1ZWgVFsZrjCPtYFKSE52nRV57b6pa61tjeu5zfCbT0XWUuABlSKIUP5gUyDf5a1CeS5U4s5GQvOlXbm2j4k1Edish0ph9Plkbz96MQsupnTBNCcf2mY4ON9i177qtd58T3PsfuuFNT0tCz76n38B1LZvZtjTnRIx9evaH59CvD9J6UnhXgxAFjNNAsD4zVm7MDn6URu0s1UFqDPq1ARIkj0gxxK2DKEORAm87teu59fGFSMRWlGftAAUF0Y5XMf2Su2PTyFjqJQ2LNvMkYEu8HfY1MYcgA8JG7p9swRYWrjda0g1QrSFGPVFzIG1AArJE2MIZ0K1AMSzgFaZ6XVRdogpJ4vrn4UqiSlq6VWg0DxFrUxIgKlk8iduhvT0FhiwJtex23hbRvI0FJv8I35OxsSDjFrV4EgD0AFWL3GE8wUz7gvtD046Tv7gR43bS2yIpkJoDZyHqq1CvZUrIHxfM5ldo5mQfbZFDv0EbEaWEA1W1JAH3OtPoK5LZn8LyA7rtL93rxnNI5yqZAKkD6XTjXBmztQy5KY0WhZAxhQbqt9rPfl8hOpOxOIGDk8Qug5S4Afa2j6PvoyAvHHUiavqlvfiVjSmNHHvLrBfTkdeYoj2Dsx9sP4v2RdtFrHmwHXZzEgoYlaBDPzMAUFSz6",
+            "sku_id": 12000049870276783,
+            "shop_name": "Your Name Wedding Party Shop Store",
+            "sale_price": "3400.00",
+            "product_title": "NOVO Gar min fПnix ®   8 – 43 mm, AMOLED, safira, smartwatch GPS multisporte premium, bateria de longa duração,",
+            "hot_product_commission_rate": "0.0%",
+            "shop_id": 1102846245,
+            "sale_price_currency": "USD",
+            "lastest_volume": 0,
+            "commission_rate": "0.0%"
+          },
+          {
+            "app_sale_price": "17716.12",
+            "original_price": "18264.04",
+            "product_detail_url": "https://pt.aliexpress.com/item/1005008889835142.html?pdp_npi=4%40dis%21BRL%2114925.37%2114477.61%21%21%2118264.04%2117716.12%21%40212a7b1017548606577962853d0d3a%2112000047093685716%21affd%21%21%21",
+            "product_small_image_urls": {
+              "string": [
+                "https://ae-pic-a1.aliexpress-media.com/kf/Sde19ba41ef704656840a1fbf54adf9fbW.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S130e697d048b4994b20007a2e7f6a6c2R.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/Sfb374085191445c382aee33bec657c7eC.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/Sd8b33d1ccbaa4483b5be84e1134e31f1p.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S68a10fa19d054893a124b3ec8070dce4a.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S4bc166d81a9441748bc0efe29b83ed5bi.jpg"
+              ]
+            },
+            "second_level_category_name": "Rede",
+            "target_sale_price": "14477.61",
+            "second_level_category_id": 200001077,
+            "discount": "3%",
+            "product_main_image_url": "https://ae-pic-a1.aliexpress-media.com/kf/Sde19ba41ef704656840a1fbf54adf9fbW.jpg",
+            "first_level_category_id": 7,
+            "target_sale_price_currency": "BRL",
+            "target_app_sale_price_currency": "BRL",
+            "tax_rate": "0.00",
+            "original_price_currency": "CNY",
+            "shop_url": "https://pt.aliexpress.com/store/1104719132",
+            "target_original_price_currency": "BRL",
+            "product_id": 1005008889835142,
+            "target_original_price": "14925.37",
+            "product_video_url": "",
+            "first_level_category_name": "Computador e escritório",
+            "promotion_link": "https://s.click.aliexpress.com/s/pyFri10M6ltAv61YZY9TfrxiDaaFXRreuZWJMeLtD8jig1wPxn51K2eq59ds8iT5Wl5L3w5KJyrl7SjOO3B0oJ0Xjwnc7n8AQA7gf5qnT4sCyU05LNms9JvyWQNFHNKtzBcoBpSguMg3UBR1FOODkmGTloXosMhqhnKgzzuJPYPxewVvzupiAiKSJA5SK0iQRxmaQ7UPG0AP2HC7uLitVpvXIfjMl7RnsnN7B8FrGfP9TWP7emQeaXV90Bp9fLEiLeKHsRf9R2jgKD32Axm5na4bRJdkhGVyv3GcDgMjmYrrZWinWctR9gnPwA4orPGHjWV9lcATMKQUuu0SalEXaiLFQxl5XHJDyJiBOAhqhjXSyhJ1usQERPxoycBxgGywjTEpFHl9fr60EgHj2vNr8fKVQMmkiXXSRe3JjIUXWKs9AW8RFt5FAXzuKzgwkLkXmyJ6wDkv4LryueUwZpMZspqVGIPEE7ncmRoKTOAl67jvl5Rqga9bcs6cInoIwfZaHIm0gNpjNZdzcb3gvj8y5RsWL6wku65bmLLgWluJ7byhaxLNSktXlOXDLFzVZPYtQ9OCdkaxaMKlEP9Ox2ffnWj5CftJcBg7ZRxPdpgxrM5RLraEetZOUvEK9gBy6bEgjyTSInraXhmZ4SPQIoOVDJcrqtYXz5oPoDTSFdbiUaRHzhqPpAboaPeSfh8H9etVoRr5y4VOkBvP7iyds39lj920uCPmmjZVp8AfoPhuT1eHTgzYjNW4t29jhEeWeLeEWYNGvdflO9SFo4jvp9Uj4DG4NezNm5V7ncGsusJfDK7ilbtZ9SIJASs1rItBb4I2eVfBJZj5X6p4aeERcYO6AAnrxJW1KBYd6G9OJaEOVVFHgfSqfDenl5q5bVPN0WTAgHdpKl0p765k8j4UG54SX4iuuwKaTwzByotFqc4TL5jf7oOWB0KMPJbn94k9REWnJVRXMrMaJvyNw7M1uHOSTB4iM4I6yotCnrn4HY4OmKCpm3237ZqwLG9P2D5xlPYQOqfIOlMa",
+            "sku_id": 12000047093685716,
+            "shop_name": "Tech3C Arena Store",
+            "sale_price": "17716.12",
+            "product_title": "Preço baixo Animal veterinário icu coelho filhote de cachorro incubadora calor e oxigênio incubadoras icu automáticas para venda",
+            "hot_product_commission_rate": "20.0%",
+            "shop_id": 1104719132,
+            "app_sale_price_currency": "CNY",
+            "sale_price_currency": "CNY",
+            "lastest_volume": 0,
+            "target_app_sale_price": "14477.61",
+            "commission_rate": "7.0%"
+          },
+          {
+            "app_sale_price": "41510.58",
+            "original_price": "42794.41",
+            "product_detail_url": "https://pt.aliexpress.com/item/1005008889189556.html?pdp_npi=4%40dis%21BRL%2134971.59%2133922.44%21%21%2142794.41%2141510.58%21%40212a7b1017548606577962853d0d3a%2112000047091737815%21affd%21%21%21",
+            "product_small_image_urls": {
+              "string": [
+                "https://ae-pic-a1.aliexpress-media.com/kf/See67825ab06e424eac8e79b763e85dbbe.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S27fb2a1e4cee42c0bb073bc1d90459a9s.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/Sf4baaf7b0c3a40408115126cde2390dft.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S4d0f2be9e53a4fd6894610a4097d5c82W.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/Se58b93e9da214f019445977697624e58U.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S998f89c75681454b90b9513f776cf14bY.jpg"
+              ]
+            },
+            "second_level_category_name": "Rede",
+            "target_sale_price": "33922.44",
+            "second_level_category_id": 200001077,
+            "discount": "3%",
+            "product_main_image_url": "https://ae-pic-a1.aliexpress-media.com/kf/See67825ab06e424eac8e79b763e85dbbe.jpg",
+            "first_level_category_id": 7,
+            "target_sale_price_currency": "BRL",
+            "target_app_sale_price_currency": "BRL",
+            "tax_rate": "0.00",
+            "original_price_currency": "CNY",
+            "shop_url": "https://pt.aliexpress.com/store/1104719132",
+            "target_original_price_currency": "BRL",
+            "product_id": 1005008889189556,
+            "target_original_price": "34971.59",
+            "product_video_url": "",
+            "first_level_category_name": "Computador e escritório",
+            "promotion_link": "https://s.click.aliexpress.com/s/pyFri10M6ltAv61YZY9TfrxiDaaFXRreuZWJMeLtD8jig1wPxn51K2eq59ds8iT5Wl5L3w5KJyrl7SjOO3B0oJ0Xjwnc7n8AQA7gf5qnT4sCyU05LNms9JvyWQNFHNKtzBcoBpSguMg3UBR1FOODkmGTloXosMhqhnKgzzuJPYPxewVvzupiAiKSJA5SK0iQRxmaQ7UPG0AP2HC7uLitVpvXIfjMl7RnsnN7B8FrGfP9TWP7emQeaXV90Bp9fLEiLeKHsRf9R2jgKD32Axm5na4bRJdkhGVyv3GcDgMjmYrrZWinWctR9gnPwA4kWX0iB7neyC83D90Pl67izuU8ljyc5n8jQ4U0v6tdokzgjdXJIglp7FsnAmsYR0hA97FKHiUUwTxZUmUIBnGOf05qWdViPkB3SxFe15SOd6g6RttTwqZ6OLwRKislb6ePFhME4WypbI0bhgenCpRkVUNffPFojiXNkOX4NSbMF7mLdRSfEs8cHtfnxnKSG4pdISjqj6m3ViAzEAKZm9ajsEHR1NtrvdLVxFbJ8V8zevctuh0vTxVEOfCuhSVY1kHsDeRVKz4nEXy25QG1ZAvFUoEkXYbdyya30VP6xMauj6lfjyfdBEElht3vkLES9yk0QwaTWHbs0OR8Jkq3bBNSZgnzo42IS9wMXKBZ4osFGxR36BR8UFbivVmTEkAfm1xSBPULtOd8AoMulAjX5vRTRTitnJ1fOAR6WLG40ri0iAy7NlX6EKJbC0ZDhFGJityajxcvJYJLqAP6Uhfsp0oyBipkPPpGqg4w6Z1IaWvJFujWsQb30HjMyNWSKT2IVXu9V9r93vDB5O8ySUYQUwGbc1Tk4PrAosGgLpnnyi4hvbvzAuEwYznPprYQMVLDIf4ID3v9Kqo6NOQraCWf37j0pcJ85cPDY8tSHQQRCiRlm7TGLMbNiUwqvWYkHgWylK7M8mgy84ab0QSe9vjbtKRjO5uCqc6wgQ81ZyhYEHFBr5hCL6TnJ1ctkSpTNz27FRqcCI9DzwUNjc5g",
+            "sku_id": 12000047091737815,
+            "shop_name": "Tech3C Arena Store",
+            "sale_price": "41510.58",
+            "product_title": "Máquina portátil de anestesia veterinária, válvula de rebarbação de oxigênio reutilizável para inalação segura de cães",
+            "hot_product_commission_rate": "20.0%",
+            "shop_id": 1104719132,
+            "app_sale_price_currency": "CNY",
+            "sale_price_currency": "CNY",
+            "lastest_volume": 0,
+            "target_app_sale_price": "33922.44",
+            "commission_rate": "7.0%"
+          }
+        ]
+      }
+    },
+    "resp_code": 200,
+    "resp_msg": "Call succeeds"
+  },
+  "request_id": "212a7b1017548606577962160"
+}

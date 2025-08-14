@@ -1,0 +1,30 @@
+2025-08-10 21:08:55,195 - __main__ - INFO - === INICIANDO TESTE DE CONEXÃO COM A API DO TELEGRAM ===
+2025-08-10 21:08:55,196 - __main__ - INFO - 
+Criando instância do bot...
+2025-08-10 21:08:55,936 - __main__ - INFO - 
+Obtendo informações do bot...
+2025-08-10 21:08:56,594 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 21:08:56,594 - __main__ - INFO - Conexão bem-sucedida! Bot conectado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 21:08:56,595 - __main__ - INFO - 
+Verificando webhooks configurados...
+2025-08-10 21:08:57,236 - __main__ - INFO - 
+=== INFORMAÇÕES DO WEBHOOK ===
+2025-08-10 21:08:57,236 - __main__ - INFO - URL do Webhook: 
+2025-08-10 21:08:57,236 - __main__ - INFO - Tem certificado pendente: False
+2025-08-10 21:08:57,236 - __main__ - INFO - Número de atualizações pendentes: 0
+2025-08-10 21:08:57,992 - __main__ - INFO - 
+=== COMANDOS DO BOT ===
+2025-08-10 21:08:57,993 - __main__ - INFO - /start - Inicia o bot e exibe ajuda
+2025-08-10 21:08:57,993 - __main__ - INFO - /buscar - Força uma busca por ofertas (apenas admin)
+2025-08-10 21:08:57,993 - __main__ - INFO - /oferta - Publica uma oferta manualmente (apenas admin)
+2025-08-10 21:08:57,994 - __main__ - INFO - 
+Obtendo atualizações recentes...
+2025-08-10 21:08:58,652 - __main__ - INFO - 
+=== ATUALIZAÇÕES RECENTES ===
+2025-08-10 21:08:58,652 - __main__ - INFO - Nenhuma atualização recente.
+2025-08-10 21:08:58,653 - __main__ - INFO - 
+Enviando mensagem de teste para o chat ID: -1002853967960...
+2025-08-10 21:08:59,064 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/sendMessage "HTTP/1.1 200 OK"
+2025-08-10 21:08:59,065 - __main__ - INFO - Mensagem de teste enviada com sucesso!
+2025-08-10 21:08:59,065 - __main__ - INFO - 
+=== TESTE DE CONEXÃO CONCLUÍDO COM SUCESSO ===

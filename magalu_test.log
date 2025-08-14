@@ -1,0 +1,56 @@
+2025-08-09 15:44:14,859 - test_magalu - INFO - 🚀 Iniciando teste do scraper do Magazine Luiza
+2025-08-09 15:44:15,388 - test_magalu - INFO - 🔍 Buscando ofertas na primeira página...
+2025-08-09 15:44:15,388 - magalu_scraper - INFO - 🔍 Buscando ofertas em: https://www.magazineluiza.com.br/selecao/ofertasdodia/?page=1&results_per_page=48&sort_by=discount&filters=price_under_10000:true
+2025-08-09 15:44:17,560 - magalu_scraper - INFO - Encontrados 792 itens na página 1
+2025-08-09 15:44:17,607 - magalu_scraper - INFO - Página 1 processada: 55 ofertas válidas
+2025-08-09 15:44:19,608 - magalu_scraper - INFO - 🔍 Buscando ofertas em: https://www.magazineluiza.com.br/mais-vendidos/informatica/?page=1&results_per_page=48&sort_by=discount&filters=price_under_10000:true
+2025-08-09 15:44:21,591 - magalu_scraper - ERROR - Erro na requisição HTTP: 404 Client Error: Not Found for url: https://www.magazineluiza.com.br/mais-vendidos/informatica/?page=1&results_per_page=48&sort_by=discount&filters=price_under_10000:true
+2025-08-09 15:44:21,591 - magalu_scraper - INFO - ✅ Busca concluída. Total de 55 ofertas únicas encontradas.
+2025-08-09 15:44:21,592 - test_magalu - INFO - ✅ Encontradas 55 ofertas no Magazine Luiza
+2025-08-09 15:44:21,592 - test_magalu - INFO - 
+📦 Oferta 1:
+2025-08-09 15:44:21,592 - test_magalu - INFO -    Título: Creatina Pura 300g - Max Titanium
+2025-08-09 15:44:21,592 - test_magalu - INFO -    Preço: R$ 48,90
+2025-08-09 15:44:21,592 - test_magalu - INFO -    Preço Original: R$ 71,90
+2025-08-09 15:44:21,592 - test_magalu - INFO -    Desconto: 31%
+2025-08-09 15:44:21,592 - test_magalu - INFO -    URL: https://www.magazineluiza.com.br/creatina-pura-300g-max-titanium/p/dfjb5908ak/sa/sacr/
+2025-08-09 15:44:21,593 - test_magalu - INFO -    Loja: Magazine Luiza
+2025-08-09 15:44:21,593 - test_magalu - INFO -    Fonte: Magalu - Ofertas do Dia
+2025-08-09 15:44:21,593 - test_magalu - INFO - 
+📦 Oferta 2:
+2025-08-09 15:44:21,593 - test_magalu - INFO -    Título: Ferro de Passar Roupa a Seco Mondial FSN-55-B
+2025-08-09 15:44:21,593 - test_magalu - INFO -    Preço: R$ 62,61
+2025-08-09 15:44:21,593 - test_magalu - INFO -    Preço Original: R$ 99,90
+2025-08-09 15:44:21,594 - test_magalu - INFO -    Desconto: 37%
+2025-08-09 15:44:21,594 - test_magalu - INFO -    URL: https://www.magazineluiza.com.br/ferro-de-passar-roupa-a-seco-mondial-fsn-55-b-branco/p/227604300/ep/elfs/
+2025-08-09 15:44:21,594 - test_magalu - INFO -    Loja: Magazine Luiza
+2025-08-09 15:44:21,594 - test_magalu - INFO -    Fonte: Magalu - Ofertas do Dia
+2025-08-09 15:44:21,594 - test_magalu - INFO - 
+📦 Oferta 3:
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Título: Caixa de Som Torre AMVOX ACA 1000 NEW X
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Preço: ouR$ 854,05
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Preço Original: R$ 1.399,00
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Desconto: 38%
+2025-08-09 15:44:21,595 - test_magalu - INFO -    URL: https://www.magazineluiza.com.br/caixa-de-som-torre-amvox-aca-1000-new-x-bluetooth-1000w-rms-amplificada/p/237877800/ea/cxsm/
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Loja: Magazine Luiza
+2025-08-09 15:44:21,595 - test_magalu - INFO -    Fonte: Magalu - Ofertas do Dia
+2025-08-09 15:44:21,595 - test_magalu - INFO - 
+📦 Oferta 4:
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Título: Pneu Aro 13” 175/75R13 Westlake 85T
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Preço: ouR$ 227,99
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Preço Original: R$ 315,68
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Desconto: 27%
+2025-08-09 15:44:21,596 - test_magalu - INFO -    URL: https://www.magazineluiza.com.br/pneu-aro-13-175-75r13-westlake-85t/p/235315800/au/aupa/
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Loja: Magazine Luiza
+2025-08-09 15:44:21,596 - test_magalu - INFO -    Fonte: Magalu - Ofertas do Dia
+2025-08-09 15:44:21,596 - test_magalu - INFO - 
+📦 Oferta 5:
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Título: Colchão Queen Gazin de Molas Ensacadas 32x158x198cm
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Preço: ouR$ 1.469,90
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Preço Original: R$ 2.516,00
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Desconto: 41%
+2025-08-09 15:44:21,597 - test_magalu - INFO -    URL: https://www.magazineluiza.com.br/colchao-queen-gazin-de-molas-ensacadas-32x158x198cm-diamond-blue/p/236390900/co/ccbc/
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Loja: Magazine Luiza
+2025-08-09 15:44:21,597 - test_magalu - INFO -    Fonte: Magalu - Ofertas do Dia
+2025-08-09 15:44:21,597 - test_magalu - INFO - 
+🎉 Teste concluído com sucesso!

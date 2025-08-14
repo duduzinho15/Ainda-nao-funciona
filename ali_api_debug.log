@@ -1,0 +1,82 @@
+2025-08-10 18:11:29,330 - ali_api_test - INFO - 
+=== Testando geração de link de afiliado ===
+2025-08-10 18:11:29,330 - ali_api_test - INFO - URL: https://api-sg.aliexpress.com/sync
+2025-08-10 18:11:29,331 - ali_api_test - INFO - Método: aliexpress.affiliate.link.generate
+2025-08-10 18:11:29,331 - ali_api_test - INFO - Parâmetros: {
+  "method": "aliexpress.affiliate.link.generate",
+  "app_key": "517956",
+  "sign_method": "md5",
+  "timestamp": "2025-08-10 21:11:29",
+  "v": "2.0",
+  "format": "json",
+  "source_values": "https://pt.aliexpress.com/item/1005009463783046.html",
+  "tracking_id": "telegram",
+  "country": "BR",
+  "target_currency": "BRL",
+  "target_language": "PT",
+  "sign": "10AB80C0744D9B990B31A3D5A04ECEDB"
+}
+2025-08-10 18:11:29,331 - ali_api_test - DEBUG - String para assinatura: okv8nzEGIvWqV0XxONcN9loPNrYwWDsmapp_key517956countryBRformatjsonmethodaliexpress.affiliate.link.generatesign10AB80C0744D9B990B31A3D5A04ECEDBsign_methodmd5source_valueshttps://pt.aliexpress.com/item/1005009463783046.htmltarget_currencyBRLtarget_languagePTtimestamp2025-08-10 21:11:29tracking_idtelegramv2.0okv8nzEGIvWqV0XxONcN9loPNrYwWDsm
+2025-08-10 18:11:29,331 - ali_api_test - INFO - Enviando requisição...
+2025-08-10 18:11:29,334 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 18:11:30,291 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "POST /sync HTTP/1.1" 200 None
+2025-08-10 18:11:30,292 - ali_api_test - INFO - Status da resposta: 200
+2025-08-10 18:11:30,292 - ali_api_test - INFO - Cabeçalhos da resposta: {'Date': 'Sun, 10 Aug 2025 21:11:31 GMT', 'Content-Type': 'application/json;charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Vary': 'Accept-Encoding', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'Content-Encoding': 'gzip', 'Server': 'Tengine/Aserver', 'EagleEye-TraceId': '21032dc617548602910275415edcc7', 'Strict-Transport-Security': 'max-age=0', 'Timing-Allow-Origin': '*'}
+2025-08-10 18:11:30,292 - ali_api_test - INFO - Resposta JSON:
+2025-08-10 18:11:30,292 - ali_api_test - INFO - {
+  "error_response": {
+    "type": "ISV",
+    "code": "MissingParameter",
+    "msg": "The input parameter “promotion_link_type” that is mandatory for processing this request is not supplied",
+    "request_id": "21012c4617548602913658211"
+  }
+}
+2025-08-10 18:11:30,293 - ali_api_test - INFO - Resposta completa salva em 'ali_api_response.json'
+2025-08-10 18:11:56,757 - ali_api_test - INFO - 
+=== Testando geração de link de afiliado ===
+2025-08-10 18:11:56,757 - ali_api_test - INFO - URL: https://api-sg.aliexpress.com/sync
+2025-08-10 18:11:56,758 - ali_api_test - INFO - Método: aliexpress.affiliate.link.generate
+2025-08-10 18:11:56,758 - ali_api_test - INFO - Parâmetros: {
+  "method": "aliexpress.affiliate.link.generate",
+  "app_key": "517956",
+  "sign_method": "md5",
+  "timestamp": "2025-08-10 21:11:56",
+  "v": "2.0",
+  "format": "json",
+  "source_values": "https://pt.aliexpress.com/item/1005009463783046.html",
+  "tracking_id": "telegram",
+  "country": "BR",
+  "target_currency": "BRL",
+  "target_language": "PT",
+  "promotion_link_type": "0",
+  "sign": "DEF0FB8A0CC9FFCE634280C1AC14E2B0"
+}
+2025-08-10 18:11:56,758 - ali_api_test - DEBUG - String para assinatura: okv8nzEGIvWqV0XxONcN9loPNrYwWDsmapp_key517956countryBRformatjsonmethodaliexpress.affiliate.link.generatepromotion_link_type0signDEF0FB8A0CC9FFCE634280C1AC14E2B0sign_methodmd5source_valueshttps://pt.aliexpress.com/item/1005009463783046.htmltarget_currencyBRLtarget_languagePTtimestamp2025-08-10 21:11:56tracking_idtelegramv2.0okv8nzEGIvWqV0XxONcN9loPNrYwWDsm
+2025-08-10 18:11:56,758 - ali_api_test - INFO - Enviando requisição...
+2025-08-10 18:11:56,760 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api-sg.aliexpress.com:443
+2025-08-10 18:11:58,454 - urllib3.connectionpool - DEBUG - https://api-sg.aliexpress.com:443 "POST /sync HTTP/1.1" 200 None
+2025-08-10 18:11:58,454 - ali_api_test - INFO - Status da resposta: 200
+2025-08-10 18:11:58,455 - ali_api_test - INFO - Cabeçalhos da resposta: {'Date': 'Sun, 10 Aug 2025 21:11:59 GMT', 'Content-Type': 'application/json;charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Vary': 'Accept-Encoding', 'access-control-allow-origin': '*', 'access-control-allow-headers': '*', 'Content-Encoding': 'gzip', 'Server': 'Tengine/Aserver', 'EagleEye-TraceId': '2103080f17548603191615921ecf2a', 'Strict-Transport-Security': 'max-age=0', 'Timing-Allow-Origin': '*'}
+2025-08-10 18:11:58,455 - ali_api_test - INFO - Resposta JSON:
+2025-08-10 18:11:58,455 - ali_api_test - INFO - {
+  "aliexpress_affiliate_link_generate_response": {
+    "resp_result": {
+      "result": {
+        "total_result_count": 1,
+        "promotion_links": {
+          "promotion_link": [
+            {
+              "promotion_link": "https://s.click.aliexpress.com/e/_oDeRlg7",
+              "source_value": "https://pt.aliexpress.com/item/1005009463783046.html"
+            }
+          ]
+        },
+        "tracking_id": "telegram"
+      },
+      "resp_code": 200,
+      "resp_msg": "Call succeeds"
+    },
+    "request_id": "2101248517548603194924344"
+  }
+}
+2025-08-10 18:11:58,456 - ali_api_test - INFO - Resposta completa salva em 'ali_api_response.json'

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojas Ativas - Dashboard Garimpeiro Geek</title>
+    
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CSS personalizado -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div>
+                <h1 class="header-title">
+                    <i class="fas fa-store"></i>
+                    Lojas Ativas
+                </h1>
+                <p class="header-subtitle">Análise detalhada das lojas parceiras</p>
+            </div>
+            
+            <!-- Toggle de Tema -->
+            <button id="theme-toggle" class="theme-toggle">
+                <i class="fas fa-moon"></i>
+                <span>Modo Escuro</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <main class="container">
+        <!-- Breadcrumb -->
+        <nav style="margin: 1rem 0;">
+            <a href="/" style="color: var(--accent-color); text-decoration: none;">
+                <i class="fas fa-arrow-left"></i> Voltar ao Dashboard
+            </a>
+        </nav>
+
+        <!-- Resumo -->
+        <div class="stat-card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                <i class="fas fa-chart-pie"></i>
+                Resumo das Lojas
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <div>
+                    <strong>Total de Lojas:</strong> {{ total_lojas }}<br>
+                    <strong>Total de Ofertas:</strong> 
+                    {% set total = 0 %}
+                    {% for loja in lojas %}
+                        {% set total = total + loja.contagem %}
+                    {% endfor %}
+                    {{ total }}
+                </div>
+                <div>
+                    <strong>Loja com mais ofertas:</strong><br>
+                    {% if lojas %}
+                        {{ lojas[0].nome }} ({{ lojas[0].contagem }} ofertas)
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabela de Lojas -->
+        <section class="table-container">
+            <div class="table-header">
+                <h2 class="table-title">
+                    <i class="fas fa-list"></i>
+                    Lojas e Contagem de Ofertas
+                </h2>
+                <p style="margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 0.9rem;">
+                    Ordenadas por número de ofertas (maior para menor)
+                </p>
+            </div>
+            
+            {% if lojas %}
+                <div style="overflow-x: auto;">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px;">
+                                    <i class="fas fa-hashtag"></i>
+                                    #
+                                </th>
+                                <th>
+                                    <i class="fas fa-store"></i>
+                                    Nome da Loja
+                                </th>
+                                <th style="text-align: center;">
+                                    <i class="fas fa-tags"></i>
+                                    Total de Ofertas
+                                </th>
+                                <th style="text-align: center;">
+                                    <i class="fas fa-percentage"></i>
+                                    % do Total
+                                </th>
+                                <th style="text-align: center;">
+                                    <i class="fas fa-chart-bar"></i>
+                                    Barra de Progresso
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total_ofertas = 0 %}
+                            {% for loja in lojas %}
+                                {% set total_ofertas = total_ofertas + loja.contagem %}
+                            {% endfor %}
+                            {% for loja in lojas %}
+                            <tr>
+                                <td style="text-align: center; font-weight: bold; color: var(--accent-color);">
+                                    {{ loop.index }}
+                                </td>
+                                <td>
+                                    <strong>{{ loja.nome }}</strong>
+                                </td>
+                                <td style="text-align: center;">
+                                    <span class="badge badge-store">
+                                        {{ loja.contagem }}
+                                    </span>
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if total_ofertas > 0 %}
+                                        {{ "%.1f"|format((loja.contagem / total_ofertas) * 100) }}%
+                                    {% else %}
+                                        0%
+                                    {% endif %}
+                                </td>
+                                <td style="text-align: center;">
+                                    {% if total_ofertas > 0 %}
+                                        {% set percentual = (loja.contagem / total_ofertas) * 100 %}
+                                        <div style="width: 100%; background: var(--bg-secondary); border-radius: 10px; height: 20px; overflow: hidden;">
+                                            <div style="width: {{ percentual }}%; height: 100%; background: linear-gradient(90deg, var(--accent-color), var(--accent-hover)); transition: width 0.3s ease;"></div>
+                                        </div>
+                                    {% else %}
+                                        <div style="width: 100%; background: var(--bg-secondary); border-radius: 10px; height: 20px;"></div>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-store"></i>
+                    <h3>Nenhuma loja encontrada</h3>
+                    <p>O banco de dados ainda não contém informações sobre lojas.</p>
+                    <small>Verifique se o bot está funcionando e se há dados no banco.</small>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Gráfico de Pizza Simples (CSS) -->
+        {% if lojas %}
+        <section style="margin: 2rem 0;">
+            <div class="stat-card">
+                <h3 style="margin-bottom: 1rem; color: var(--accent-color);">
+                    <i class="fas fa-chart-pie"></i>
+                    Distribuição Visual das Ofertas
+                </h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center;">
+                    {% for loja in lojas[:8] %}  <!-- Limita a 8 lojas para visualização -->
+                        {% if total_ofertas > 0 %}
+                            {% set percentual = (loja.contagem / total_ofertas) * 100 %}
+                            <div style="text-align: center;">
+                                <div style="
+                                    width: 80px; 
+                                    height: 80px; 
+                                    border-radius: 50%; 
+                                    background: conic-gradient(
+                                        var(--accent-color) 0deg {{ percentual * 3.6 }}deg,
+                                        var(--bg-secondary) {{ percentual * 3.6 }}deg 360deg
+                                    );
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    margin: 0 auto 0.5rem;
+                                    position: relative;
+                                ">
+                                    <div style="
+                                        width: 60px; 
+                                        height: 60px; 
+                                        border-radius: 50%; 
+                                        background: var(--bg-card);
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        font-size: 0.8rem;
+                                        font-weight: bold;
+                                        color: var(--accent-color);
+                                    ">
+                                        {{ "%.0f"|format(percentual) }}%
+                                    </div>
+                                </div>
+                                <small style="font-size: 0.8rem; color: var(--text-secondary);">
+                                    {{ loja.nome[:15] }}{% if loja.nome|length > 15 %}...{% endif %}
+                                </small>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>
+                <i class="fas fa-code"></i>
+                Desenvolvido com Flask e CSS moderno
+                <br>
+                <small>
+                    Sistema de Recomendações de Ofertas Telegram - Garimpeiro Geek
+                </small>
+            </p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

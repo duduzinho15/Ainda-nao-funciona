@@ -1,0 +1,9 @@
+2025-08-10 21:17:44,303 - __main__ - INFO - === INICIANDO TESTE DE CONEXÃO SIMPLES COM A API DO TELEGRAM ===
+2025-08-10 21:17:44,304 - __main__ - INFO - Token: 8478680741...1TXnQ
+2025-08-10 21:17:44,304 - __main__ - INFO - Fazendo requisição para: https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe
+2025-08-10 21:17:44,967 - __main__ - INFO - Resposta da API: {'ok': True, 'result': {'id': 8478680741, 'is_bot': True, 'first_name': 'Garimpeiro Geek', 'username': 'GarimpeiroGeek_bot', 'can_join_groups': True, 'can_read_all_group_messages': False, 'supports_inline_queries': False, 'can_connect_to_business': False, 'has_main_web_app': False}}
+2025-08-10 21:17:44,968 - __main__ - INFO - Conexão bem-sucedida! Bot: @GarimpeiroGeek_bot (ID: 8478680741)
+2025-08-10 21:17:44,968 - __main__ - INFO - Enviando mensagem de teste para o chat ID: -1002853967960
+2025-08-10 21:17:45,341 - __main__ - INFO - Resposta do envio de mensagem: {'ok': True, 'result': {'message_id': 14, 'sender_chat': {'id': -1002853967960, 'title': 'Garimpeiro Geek', 'username': 'GarimpeiroGeek', 'type': 'channel'}, 'chat': {'id': -1002853967960, 'title': 'Garimpeiro Geek', 'username': 'GarimpeiroGeek', 'type': 'channel'}, 'date': 1754871466, 'text': 'Teste de conexão bem-sucedido!'}}
+2025-08-10 21:17:45,341 - __main__ - INFO - Mensagem de teste enviada com sucesso!
+2025-08-10 21:17:45,342 - __main__ - INFO - === TESTE DE CONEXÃO CONCLUÍDO ===

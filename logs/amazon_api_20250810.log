@@ -1,0 +1,279 @@
+2025-08-10 00:09:46 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:09:46 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:09:46 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:09:46 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:09:57 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:09:57 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:09:57 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:09:57 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:11:12 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:11:12 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:11:12 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:11:12 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:11:24 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:11:24 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:11:24 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:11:24 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:13:51 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:13:51 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:13:51 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:13:51 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:14:02 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:14:02 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:14:02 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:14:02 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:14:40 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:14:40 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:14:40 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:14:40 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:14:51 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:14:51 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:14:51 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:14:51 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:16:58 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:16:58 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:16:58 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:16:58 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:17:10 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:17:10 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:17:10 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:17:10 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:24:23 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:24:23 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:24:23 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:24:23 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:24:35 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:24:35 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:24:35 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:24:35 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:34:48 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:34:48 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:34:48 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:34:48 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:35:00 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:35:00 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:35:00 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:35:00 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:51:00 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 00:51:00 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 00:51:00 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 00:51:00 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 00:51:12 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:51:12 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 00:51:12 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 00:51:12 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:02:29 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:02:29 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:02:29 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:02:29 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:04:38 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:04:38 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:04:38 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:04:38 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:04:50 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:04:50 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:04:50 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:04:50 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:07:07 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:07:07 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:07:07 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:07:07 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:07:19 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:07:19 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:07:19 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:07:19 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:20:11 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:20:11 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:20:11 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:20:11 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:20:23 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:20:23 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:20:23 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:20:23 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:22:22 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:22:22 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:22:22 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:22:22 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:22:34 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:22:34 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:22:34 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:22:34 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:30:20 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:30:20 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:30:20 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:30:20 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:30:31 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:30:31 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:30:31 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:30:31 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:32:28 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:32:28 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:32:28 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:32:28 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:32:40 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:32:40 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:32:40 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:32:40 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:40:15 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:40:15 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:40:15 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:40:15 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:40:27 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:40:27 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:40:27 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:40:27 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:42:54 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:42:54 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:42:54 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:42:54 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:43:05 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:43:05 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:43:05 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:43:05 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:43:23 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:43:23 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:50:49 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 01:50:49 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 01:50:49 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 01:50:49 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 01:51:01 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:51:01 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:51:01 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:51:01 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 01:53:28 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 01:53:28 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 02:27:44 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 02:27:44 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 02:27:44 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 02:27:44 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 02:27:55 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 02:27:55 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 02:27:55 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 02:27:55 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 02:30:27 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 02:30:27 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 02:30:27 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 02:30:27 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 02:30:39 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 02:30:39 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 02:30:39 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 02:30:39 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 02:30:46 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 02:30:46 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 07:40:27 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 07:40:27 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 07:40:27 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 07:40:27 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 09:45:31 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 09:45:31 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 09:45:31 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 09:45:31 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 09:45:42 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 09:45:42 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 09:45:42 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 09:45:42 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 09:46:12 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 09:46:12 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 10:01:35 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 10:01:35 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 10:01:35 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 10:01:35 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 10:01:47 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 10:01:47 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 10:01:47 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 10:01:47 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 10:04:12 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 10:04:12 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 10:04:12 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 10:04:12 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 10:04:24 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 10:04:24 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 10:04:24 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 10:04:24 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 12:47:50 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 12:47:50 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 12:47:50 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 12:47:50 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 13:30:25 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 13:30:25 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 13:30:25 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 13:30:25 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 13:30:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 13:30:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 13:30:36 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 13:30:36 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:27:01 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:27:01 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:27:01 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:27:01 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:36:29 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:36:29 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:36:29 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:36:29 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:39:45 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:39:45 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:39:45 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:39:45 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:41:22 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:41:22 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:41:22 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:41:22 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:42:16 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:42:16 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:42:16 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:42:16 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:42:25 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:42:25 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:42:25 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:42:25 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:42:34 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:42:34 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:42:34 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:42:34 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:42:57 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:42:57 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:42:57 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:42:57 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:45:18 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:45:18 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:45:18 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:45:18 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:45:30 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:45:30 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:45:30 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:45:30 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:45:30 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:45:30 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:47:24 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:47:24 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:47:24 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:47:24 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:47:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:47:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:47:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:47:36 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:47:36 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:47:36 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:49:47 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:49:47 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:49:47 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:49:47 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:49:59 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:49:59 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:49:59 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:49:59 - amazon_paapi - WARNING - PA-API não está disponível. Verifique as dependências.
+2025-08-10 18:49:59 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:49:59 - amazon_paapi - ERROR - Não foi possível criar o cliente da API da Amazon.
+2025-08-10 18:51:43 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:51:43 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:51:43 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:51:43 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 18:52:44 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 18:52:44 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 18:52:44 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 18:52:44 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-10 21:38:50 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-10 21:38:50 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-10 21:38:50 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-10 21:38:50 - amazon_paapi - WARNING - Credenciais da Amazon PA-API não configuradas. A funcionalidade da Amazon estará desativada.
+2025-08-10 21:38:50 - amazon_paapi - WARNING - Credenciais da Amazon PA-API não configuradas. A funcionalidade da Amazon estará desativada.

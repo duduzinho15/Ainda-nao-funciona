@@ -1,0 +1,56 @@
+{
+  "resp_result": {
+    "result": {
+      "current_record_count": 1,
+      "products": {
+        "product": [
+          {
+            "app_sale_price": "29.99",
+            "original_price": "64.88",
+            "product_detail_url": "https://pt.aliexpress.com/item/1005009463783046.html?pdp_npi=4%40dis%21BRL%2153.02%2124.51%21%21%2164.88%2129.99%21%402101771217548606565724176d13cf%2112000049184146574%21affd%21%21%21",
+            "product_small_image_urls": {
+              "string": [
+                "https://ae-pic-a1.aliexpress-media.com/kf/S23712f1f4ced4f72b467debf1baa2e6bJ.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S0e2e8a1213814e82a49e2e5b8cd09282K.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S06756f8de1ce4da498f40711aafcb3d7Q.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S946cbed237e6433e9883a1b926b51c08R.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S4f1bed62ee624bcd852f9a5dee92954a0.jpg",
+                "https://ae-pic-a1.aliexpress-media.com/kf/S645306ed157c4a12a3ca42800d3fae3fT.jpg"
+              ]
+            },
+            "second_level_category_name": "Organização e Arrumação",
+            "target_sale_price": "24.51",
+            "second_level_category_id": 1541,
+            "discount": "53%",
+            "product_main_image_url": "https://ae-pic-a1.aliexpress-media.com/kf/S23712f1f4ced4f72b467debf1baa2e6bJ.jpg",
+            "first_level_category_id": 15,
+            "target_sale_price_currency": "BRL",
+            "target_app_sale_price_currency": "BRL",
+            "tax_rate": "0.00",
+            "original_price_currency": "CNY",
+            "shop_url": "https://pt.aliexpress.com/store/1104672754",
+            "target_original_price_currency": "BRL",
+            "product_id": 1005009463783046,
+            "target_original_price": "53.02",
+            "product_video_url": "",
+            "first_level_category_name": "Casa e jardim",
+            "promotion_link": "https://s.click.aliexpress.com/s/NdpwztbAIgDMmxGbP8fFks7yUFfsHjzlImSYmA68h7xlMRgzueFsRgokQ9f9hcpVKttxtQE2VzIoqkXJXrpOr6uR3zv7mP4CDO9CddoFf4t0QE5DXPy8Pgjhz4irfQSEjEGUmy5yF3A5gJ9h3NYjLMgqIMqa3zcpq5E2BC3W5EbV40Dm9buQxWpZzw1lbX8Zm2kZtNIa4KyDieNjsH7IU6Yv8StELKVvT9r4eFAaXPGhwHsgaDqdNcmY116r3GC2YvmvR57S69fGyn8Tt4pCtmLccxQz3g0L1ZKu00BPwYOT3BF4QZOqRqMDB0DQRuX2CMujxk634YBz7PIZfOkJnSGdR6Y35V5oXYjWlGSjVBmkUbg3tvtgwxp7hCGij8iWDNpVtcQuyorM5cPNOP7WbXKyAqqLEMLfKbiKw8zyeQckLAUWxSpHx2XbXaPljNf0vDVrCAbucOETajgsLQSeGiVgAEXSOIePxSxZyePs0xQN2Of3bKivZgRtqBh76UWIm42IHEiHddwk0qPwO6H0qMUMw5ONHQ22hqkeIIZinXAX0ccwBdXopqyxQy9ASIxLm0dGFh3gGpsPQS4fRd3dT0UzNzOuAhmPKIBktfpz8DRnDNmMVPTq65V8UTStDm8fdXKSKFoh3bLz6btPVjLGEXc3KCV41rxq0bNgzwmgqseC9eIv3pQj5bpMhSoUuNaFAcIG1rpLTSUJtstXblyZ2dYWqYSjy0sZbqnxpsN6muo5On76p1LmIjFN6Edc3rFF0Il4L6N232laWsS8oX2Eu24QegKOvuN9uZ5Vfm5Iyf4YtuxKt0HgaXUBC9hyTSwbKkws8pRdcvJfRVjFeTunjH1x3MUsKANuai3ctgdjDEFgaPuUVvVtJR8MWpUOFoIXRoUVsPqig3qnZ9lOSaL517HFUYcsA1XmNL6qqkgsQl6LxVW4NANzyRWkKesqfRh2s718WgXypClfgnpQCvdTEHNfuIMIg3HF73o5HXuLsSDRN",
+            "sku_id": 12000049184146574,
+            "shop_name": "Shop1104672754 Store",
+            "sale_price": "29.99",
+            "product_title": "Carrinho de armazenamento multifuncional branco 2025 com prateleiras abertas para sala de estar, livros, cozinha, decoração de quarto",
+            "hot_product_commission_rate": "0.0%",
+            "shop_id": 1104672754,
+            "app_sale_price_currency": "CNY",
+            "sale_price_currency": "CNY",
+            "lastest_volume": 1870,
+            "target_app_sale_price": "24.51",
+            "commission_rate": "7.0%"
+          }
+        ]
+      }
+    },
+    "resp_code": 200
+  },
+  "request_id": "2101771217548606565722993"
+}

@@ -1,0 +1,387 @@
+"""
+Sistema de Cache Inteligente para o Bot Garimpeiro Geek
+
+Este módulo implementa um sistema de cache em memória com:
+- TTL (Time To Live) configurável
+- Limpeza automática de itens expirados
+- Cache de diferentes tipos de dados (requisições, resultados de scrapers, etc.)
+- Métricas de performance do cache
+- Persistência opcional em disco
+"""
+
+import time
+import json
+import pickle
+import hashlib
+import threading
+from typing import Any, Dict, Optional, Union, List
+from datetime import datetime, timedelta
+from collections import OrderedDict
+import logging
+
+logger = logging.getLogger(__name__)
+
+class CacheItem:
+    """Representa um item individual no cache."""
+    
+    def __init__(self, key: str, value: Any, ttl: int = 3600):
+        self.key = key
+        self.value = value
+        self.created_at = time.time()
+        self.ttl = ttl
+        self.access_count = 0
+        self.last_accessed = time.time()
+    
+    @property
+    def is_expired(self) -> bool:
+        """Verifica se o item expirou."""
+        return time.time() > (self.created_at + self.ttl)
+    
+    @property
+    def age(self) -> float:
+        """Retorna a idade do item em segundos."""
+        return time.time() - self.created_at
+    
+    def access(self):
+        """Marca o item como acessado."""
+        self.access_count += 1
+        self.last_accessed = time.time()
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Converte o item para dicionário para serialização."""
+        return {
+            'key': self.key,
+            'value': self.value,
+            'created_at': self.created_at,
+            'ttl': self.ttl,
+            'access_count': self.access_count,
+            'last_accessed': self.last_accessed
+        }
+
+class IntelligentCache:
+    """
+    Sistema de cache inteligente com TTL e limpeza automática.
+    """
+    
+    def __init__(self, max_size: int = 1000, default_ttl: int = 3600, 
+                 cleanup_interval: int = 300, enable_persistence: bool = False,
+                 persistence_file: str = "cache_backup.pkl"):
+        self.max_size = max_size
+        self.default_ttl = default_ttl
+        self.cleanup_interval = cleanup_interval
+        self.enable_persistence = enable_persistence
+        self.persistence_file = persistence_file
+        
+        # Cache principal usando OrderedDict para LRU
+        self._cache: OrderedDict[str, CacheItem] = OrderedDict()
+        self._lock = threading.RLock()
+        
+        # Métricas
+        self.hits = 0
+        self.misses = 0
+        self.evictions = 0
+        self.total_requests = 0
+        
+        # Inicia thread de limpeza
+        self._cleanup_thread = threading.Thread(target=self._cleanup_worker, daemon=True)
+        self._cleanup_thread.start()
+        
+        # Carrega cache persistido se habilitado
+        if self.enable_persistence:
+            self._load_persistence()
+    
+    def _cleanup_worker(self):
+        """Worker thread para limpeza automática do cache."""
+        while True:
+            time.sleep(self.cleanup_interval)
+            try:
+                self._cleanup_expired()
+            except Exception as e:
+                logger.error(f"Erro na limpeza automática do cache: {e}")
+    
+    def _cleanup_expired(self):
+        """Remove itens expirados do cache."""
+        with self._lock:
+            expired_keys = [key for key, item in self._cache.items() if item.is_expired]
+            for key in expired_keys:
+                del self._cache[key]
+                logger.debug(f"Item expirado removido do cache: {key}")
+    
+    def _evict_lru(self):
+        """Remove o item menos usado recentemente se o cache estiver cheio."""
+        if len(self._cache) >= self.max_size:
+            # Remove o item mais antigo (LRU)
+            _, oldest_item = self._cache.popitem(last=False)
+            self.evictions += 1
+            logger.debug(f"Item removido por LRU: {oldest_item.key}")
+    
+    def _generate_key(self, *args, **kwargs) -> str:
+        """Gera uma chave única baseada nos argumentos."""
+        key_data = str(args) + str(sorted(kwargs.items()))
+        return hashlib.md5(key_data.encode()).hexdigest()
+    
+    def get(self, key: str, default: Any = None) -> Any:
+        """
+        Obtém um item do cache.
+        
+        Args:
+            key: Chave do item
+            default: Valor padrão se o item não existir ou estiver expirado
+            
+        Returns:
+            O valor do item ou o valor padrão
+        """
+        self.total_requests += 1
+        
+        with self._lock:
+            if key in self._cache:
+                item = self._cache[key]
+                
+                if item.is_expired:
+                    # Remove item expirado
+                    del self._cache[key]
+                    self.misses += 1
+                    logger.debug(f"Item expirado encontrado: {key}")
+                    return default
+                
+                # Move para o final (LRU)
+                self._cache.move_to_end(key)
+                item.access()
+                self.hits += 1
+                logger.debug(f"Cache hit: {key}")
+                return item.value
+            
+            self.misses += 1
+            logger.debug(f"Cache miss: {key}")
+            return default
+    
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        """
+        Define um item no cache.
+        
+        Args:
+            key: Chave do item
+            value: Valor a ser armazenado
+            ttl: Tempo de vida em segundos (None para usar o padrão)
+            
+        Returns:
+            True se o item foi armazenado com sucesso
+        """
+        if ttl is None:
+            ttl = self.default_ttl
+        
+        with self._lock:
+            # Remove item existente se houver
+            if key in self._cache:
+                del self._cache[key]
+            
+            # Evita item se necessário
+            self._evict_lru()
+            
+            # Adiciona novo item
+            item = CacheItem(key, value, ttl)
+            self._cache[key] = item
+            
+            logger.debug(f"Item armazenado no cache: {key} (TTL: {ttl}s)")
+            return True
+    
+    def delete(self, key: str) -> bool:
+        """Remove um item do cache."""
+        with self._lock:
+            if key in self._cache:
+                del self._cache[key]
+                logger.debug(f"Item removido do cache: {key}")
+                return True
+            return False
+    
+    def clear(self):
+        """Limpa todo o cache."""
+        with self._lock:
+            self._cache.clear()
+            logger.info("Cache limpo completamente")
+    
+    def exists(self, key: str) -> bool:
+        """Verifica se uma chave existe e não está expirada."""
+        with self._lock:
+            if key in self._cache:
+                item = self._cache[key]
+                if not item.is_expired:
+                    return True
+                else:
+                    # Remove item expirado
+                    del self._cache[key]
+            return False
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do cache."""
+        with self._lock:
+            current_size = len(self._cache)
+            expired_count = sum(1 for item in self._cache.values() if item.is_expired)
+            
+            return {
+                'current_size': current_size,
+                'max_size': self.max_size,
+                'usage_percentage': (current_size / self.max_size) * 100 if self.max_size > 0 else 0,
+                'expired_items': expired_count,
+                'hits': self.hits,
+                'misses': self.misses,
+                'evictions': self.evictions,
+                'total_requests': self.total_requests,
+                'hit_rate': (self.hits / self.total_requests * 100) if self.total_requests > 0 else 0,
+                'miss_rate': (self.misses / self.total_requests * 100) if self.total_requests > 0 else 0
+            }
+    
+    def get_keys(self) -> List[str]:
+        """Retorna lista de todas as chaves válidas (não expiradas)."""
+        with self._lock:
+            valid_keys = [key for key, item in self._cache.items() if not item.is_expired]
+            return valid_keys
+    
+    def _save_persistence(self):
+        """Salva o cache em disco."""
+        if not self.enable_persistence:
+            return
+        
+        try:
+            with self._lock:
+                cache_data = {
+                    'items': {key: item.to_dict() for key, item in self._cache.items()},
+                    'stats': {
+                        'hits': self.hits,
+                        'misses': self.misses,
+                        'evictions': self.evictions,
+                        'total_requests': self.total_requests
+                    }
+                }
+            
+            with open(self.persistence_file, 'wb') as f:
+                pickle.dump(cache_data, f)
+            
+            logger.debug("Cache persistido em disco com sucesso")
+        except Exception as e:
+            logger.error(f"Erro ao persistir cache: {e}")
+    
+    def _load_persistence(self):
+        """Carrega o cache do disco."""
+        if not self.enable_persistence:
+            return
+        
+        try:
+            with open(self.persistence_file, 'rb') as f:
+                cache_data = pickle.load(f)
+            
+            with self._lock:
+                # Restaura itens
+                for key, item_data in cache_data['items'].items():
+                    item = CacheItem(
+                        key=item_data['key'],
+                        value=item_data['value'],
+                        ttl=item_data['ttl']
+                    )
+                    item.created_at = item_data['created_at']
+                    item.access_count = item_data['access_count']
+                    item.last_accessed = item_data['last_accessed']
+                    
+                    # Só adiciona se não estiver expirado
+                    if not item.is_expired:
+                        self._cache[key] = item
+                
+                # Restaura estatísticas
+                if 'stats' in cache_data:
+                    self.hits = cache_data['stats'].get('hits', 0)
+                    self.misses = cache_data['stats'].get('misses', 0)
+                    self.evictions = cache_data['stats'].get('evictions', 0)
+                    self.total_requests = cache_data['stats'].get('total_requests', 0)
+            
+            logger.info(f"Cache carregado do disco: {len(self._cache)} itens válidos")
+        except FileNotFoundError:
+            logger.info("Arquivo de persistência não encontrado, iniciando com cache vazio")
+        except Exception as e:
+            logger.error(f"Erro ao carregar cache do disco: {e}")
+    
+    def save_persistence(self):
+        """Força o salvamento do cache em disco."""
+        self._save_persistence()
+    
+    def __len__(self) -> int:
+        """Retorna o número de itens válidos no cache."""
+        with self._lock:
+            return len([item for item in self._cache.values() if not item.is_expired])
+    
+    def __contains__(self, key: str) -> bool:
+        """Verifica se uma chave existe no cache."""
+        return self.exists(key)
+
+# Instância global do cache
+cache = IntelligentCache(
+    max_size=2000,
+    default_ttl=1800,  # 30 minutos
+    cleanup_interval=300,  # 5 minutos
+    enable_persistence=True
+)
+
+# Decorator para cache automático
+def cached(ttl: Optional[int] = None, key_prefix: str = ""):
+    """
+    Decorator para cache automático de funções.
+    
+    Args:
+        ttl: Tempo de vida em segundos (None para usar o padrão)
+        key_prefix: Prefixo para a chave do cache
+    """
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            # Gera chave única baseada na função e argumentos
+            cache_key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(sorted(kwargs.items())))}"
+            
+            # Tenta obter do cache
+            result = cache.get(cache_key)
+            if result is not None:
+                return result
+            
+            # Executa função e armazena resultado
+            result = func(*args, **kwargs)
+            cache.set(cache_key, result, ttl)
+            return result
+        
+        return wrapper
+    return decorator
+
+# Cache específico para requisições HTTP
+http_cache = IntelligentCache(
+    max_size=500,
+    default_ttl=900,  # 15 minutos
+    cleanup_interval=180,  # 3 minutos
+    enable_persistence=False
+)
+
+# Cache específico para resultados de scrapers
+scraper_cache = IntelligentCache(
+    max_size=1000,
+    default_ttl=3600,  # 1 hora
+    cleanup_interval=600,  # 10 minutos
+    enable_persistence=True,
+    persistence_file="scraper_cache.pkl"
+)
+
+if __name__ == "__main__":
+    # Teste do sistema de cache
+    import logging
+    logging.basicConfig(level=logging.DEBUG)
+    
+    # Teste básico
+    cache.set("test_key", "test_value", 10)
+    print(f"Valor: {cache.get('test_key')}")
+    print(f"Existe: {cache.exists('test_key')}")
+    
+    # Teste de estatísticas
+    print(f"Stats: {cache.get_stats()}")
+    
+    # Teste do decorator
+    @cached(ttl=60, key_prefix="test")
+    def test_function(x, y):
+        return x + y
+    
+    result1 = test_function(1, 2)
+    result2 = test_function(1, 2)  # Deve vir do cache
+    print(f"Resultados: {result1}, {result2}")

@@ -1,0 +1,78 @@
+2025-08-09 10:50:12,910 - root - INFO - === INICIALIZANDO TESTE DE PUBLICAÇÃO MANUAL ===
+2025-08-09 10:50:12,910 - root - INFO - Diretório de trabalho: C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project
+2025-08-09 10:50:12,910 - root - INFO - Python version: 3.13.5 (tags/v3.13.5:6cb20a2, Jun 11 2025, 16:15:46) [MSC v.1943 64 bit (AMD64)]
+2025-08-09 10:50:13,290 - root - INFO - Iniciando execução dos testes...
+2025-08-09 10:50:13,290 - asyncio - DEBUG - Using proactor: IocpProactor
+2025-08-09 10:50:13,291 - root - INFO - 
+================================================================================
+2025-08-09 10:50:13,291 - root - INFO - INICIANDO TESTES DE PUBLICAÇÃO MANUAL
+2025-08-09 10:50:13,291 - root - INFO - ================================================================================
+
+2025-08-09 10:50:13,291 - root - INFO - 🔍 Verificando configurações...
+2025-08-09 10:50:13,292 - root - INFO - ✅ Todas as configurações necessárias estão definidas.
+
+2025-08-09 10:50:13,292 - root - INFO - 🔧 TESTANDO PUBLICAÇÃO MANUAL
+2025-08-09 10:50:13,292 - root - INFO - ------------------------------------------------------------
+2025-08-09 10:50:13,292 - root - INFO - 
+=== INÍCIO DO TESTE DE PUBLICAÇÃO MANUAL ===
+2025-08-09 10:50:13,292 - root - INFO - 1. Configurando banco de dados...
+2025-08-09 10:50:13,293 - root - INFO - ✅ Banco de dados configurado com sucesso.
+2025-08-09 10:50:13,293 - root - INFO - 2. Formatando mensagem de teste...
+2025-08-09 10:50:13,294 - root - DEBUG - Mensagem formatada: 🔥 *Monitor Gamer 24" 144Hz - Teste*
+💵 *Preço:* R$ 999,99
+🏪 *Loja:* Loja de Teste
+📰 *Fonte:* Teste Manual
+
+🛒 [Ver oferta](https://www.exemplo.com/produto-teste)
+2025-08-09 10:50:13,294 - root - INFO - 3. Iniciando publicação da oferta...
+2025-08-09 10:50:13,294 - root - DEBUG - URL da imagem: https://via.placeholder.com/300
+2025-08-09 10:50:13,294 - root - DEBUG - URL afiliado: https://www.exemplo.com/produto-teste
+2025-08-09 10:50:13,294 - root - DEBUG - Chat ID: -1002853967960
+2025-08-09 10:50:13,294 - root - ERROR - ❌ Erro durante a publicação: cannot import name 'ParseMode' from 'telegram' (C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\__init__.py)
+2025-08-09 10:50:13,296 - root - DEBUG - Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_manual_posting.py", line 101, in testar_publicacao_manual
+    sucesso = await publicar_oferta(
+              ^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    )
+    ^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\telegram_poster.py", line 52, in publicar_oferta
+    from main import application  # Importação local para evitar importação circular
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\main.py", line 6, in <module>
+    from telegram import Update, ParseMode
+ImportError: cannot import name 'ParseMode' from 'telegram' (C:\Users\Eduardo Vitorino\AppData\Roaming\Python\Python313\site-packages\telegram\__init__.py)
+
+2025-08-09 10:50:13,296 - root - INFO - === FIM DO TESTE DE PUBLICAÇÃO MANUAL ===
+
+2025-08-09 10:50:13,296 - root - INFO - 
+🔧 TESTANDO COMANDO /OFERTA
+2025-08-09 10:50:13,296 - root - INFO - ------------------------------------------------------------
+2025-08-09 10:50:13,296 - root - INFO - 
+=== INÍCIO DO TESTE DO COMANDO /OFERTA ===
+2025-08-09 10:50:13,297 - root - INFO - 1. Importando módulos necessários...
+2025-08-09 10:50:13,376 - root - INFO - ✅ Módulos importados com sucesso.
+2025-08-09 10:50:13,376 - root - INFO - 2. Configurando banco de dados...
+2025-08-09 10:50:13,377 - root - INFO - ✅ Banco de dados configurado com sucesso.
+2025-08-09 10:50:13,377 - root - INFO - 3. Configurando mocks...
+2025-08-09 10:50:13,383 - root - DEBUG - Mensagem de teste: /oferta Monitor Teste R$ 999,99 https://www.exemplo.com/produto-teste
+2025-08-09 10:50:13,383 - root - DEBUG - Argumentos do comando: ['Monitor', 'Teste', 'R$', '999,99', 'https://www.exemplo.com/produto-teste']
+2025-08-09 10:50:13,383 - root - INFO - ✅ Mocks configurados com sucesso.
+2025-08-09 10:50:13,383 - root - INFO - 4. Executando comando /oferta...
+2025-08-09 10:50:13,384 - root - INFO - ✅ Comando /oferta executado com sucesso.
+2025-08-09 10:50:13,384 - root - INFO - ✅ Resposta do comando verificada com sucesso.
+2025-08-09 10:50:13,385 - root - ERROR - ❌ Oferta não encontrada no banco de dados.
+2025-08-09 10:50:13,385 - root - INFO - === FIM DO TESTE DO COMANDO /OFERTA ===
+
+2025-08-09 10:50:13,385 - root - INFO - 
+================================================================================
+2025-08-09 10:50:13,385 - root - INFO - RESUMO DOS TESTES
+2025-08-09 10:50:13,385 - root - INFO - ================================================================================
+2025-08-09 10:50:13,385 - root - INFO - Publicação manual: ❌
+2025-08-09 10:50:13,385 - root - INFO - Comando /oferta: ❌
+2025-08-09 10:50:13,385 - root - ERROR - 
+❌ ALGUNS TESTES FALHARAM. Verifique os logs para mais detalhes.
+2025-08-09 10:50:13,386 - root - INFO - 
+================================================================================
+2025-08-09 10:50:13,386 - root - INFO - EXECUÇÃO DOS TESTES CONCLUÍDA
+2025-08-09 10:50:13,386 - root - INFO - ================================================================================

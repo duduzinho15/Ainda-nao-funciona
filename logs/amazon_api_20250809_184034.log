@@ -1,0 +1,6 @@
+2025-08-09 18:40:34 - amazon_paapi - INFO - Logging configurado. Logs detalhados serão salvos em: logs\amazon_api_20250809_184034.log
+2025-08-09 18:40:34 - amazon_paapi - ERROR - Erro ao importar biblioteca PA-API: No module named 'paapi5_python_sdk'
+2025-08-09 18:40:34 - amazon_paapi - ERROR - Instale com: pip install python-amazon-paapi
+2025-08-09 18:40:34 - amazon_paapi - ERROR - A funcionalidade de busca automática da Amazon estará desativada.
+2025-08-09 18:40:34 - amazon_paapi - INFO - Todas as credenciais necessárias da Amazon foram configuradas.
+2025-08-09 18:40:34 - amazon_paapi - INFO - Logging configurado. Logs detalhados serão salvos em: logs\amazon_api_20250809_184034.log

@@ -1,0 +1,19 @@
+2025-08-10 19:36:01,956 - __main__ - INFO - Iniciando teste de conexão com a API do Telegram...
+2025-08-10 19:36:02,717 - __main__ - ERROR - Erro inesperado: 'coroutine' object has no attribute 'username'
+Traceback (most recent call last):
+  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\test_telegram_connection.py", line 40, in test_telegram_connection
+    logger.info(f"Conexão bem-sucedida! Bot conectado como @{me.username} (ID: {me.id}, Nome: {me.first_name})")
+                                                             ^^^^^^^^^^^
+AttributeError: 'coroutine' object has no attribute 'username'
+2025-08-10 19:37:05,611 - __main__ - INFO - Iniciando teste de conexão com a API do Telegram...
+2025-08-10 19:37:06,977 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 19:37:06,978 - __main__ - INFO - Conexão bem-sucedida! Bot conectado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 19:37:06,978 - __main__ - INFO - Verificando se o bot está online...
+2025-08-10 19:37:07,609 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"
+2025-08-10 19:37:07,609 - __main__ - INFO - Número de atualizações pendentes: 0
+2025-08-10 20:12:06,116 - __main__ - INFO - Iniciando teste de conexão com a API do Telegram...
+2025-08-10 20:12:07,482 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getMe "HTTP/1.1 200 OK"
+2025-08-10 20:12:07,483 - __main__ - INFO - Conexão bem-sucedida! Bot conectado como @GarimpeiroGeek_bot (ID: 8478680741, Nome: Garimpeiro Geek)
+2025-08-10 20:12:07,483 - __main__ - INFO - Verificando se o bot está online...
+2025-08-10 20:12:08,124 - httpx - INFO - HTTP Request: POST https://api.telegram.org/bot8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ/getUpdates "HTTP/1.1 200 OK"
+2025-08-10 20:12:08,125 - __main__ - INFO - Número de atualizações pendentes: 0

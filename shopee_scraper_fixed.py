@@ -1,0 +1,334 @@
+#!/usr/bin/env python3
+"""
+Scraper Corrigido para a Shopee Brasil - Versão Robusta
+Usa métodos alternativos para contornar proteções anti-bot
+"""
+import time
+import logging
+import requests
+import json
+from typing import List, Dict, Optional
+from urllib.parse import urljoin, quote
+import random
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class ShopeeScraperFixed:
+    """Scraper corrigido e robusto para a Shopee Brasil"""
+    
+    def __init__(self):
+        self.base_url = "https://shopee.com.br"
+        self.session = requests.Session()
+        
+        # Headers para parecer navegador real
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+            'Referer': 'https://shopee.com.br/'
+        }
+        
+        # URLs alternativas para ofertas
+        self.ofertas_urls = [
+            "https://shopee.com.br/daily-discover",
+            "https://shopee.com.br/flash-sale",
+            "https://shopee.com.br/ofertas-relampago",
+            "https://shopee.com.br/promocoes"
+        ]
+        
+        # Categorias populares para buscar ofertas
+        self.categorias = [
+            "smartphone",
+            "notebook", 
+            "fone de ouvido",
+            "smart tv",
+            "console de videogame",
+            "câmera digital",
+            "tablet",
+            "smartwatch"
+        ]
+    
+    def get_random_delay(self):
+        """Retorna um delay aleatório para parecer humano"""
+        return random.uniform(2, 5)
+    
+    def search_products_by_category(self, categoria: str, max_pages: int = 2) -> List[Dict]:
+        """Busca produtos por categoria na Shopee"""
+        ofertas = []
+        
+        try:
+            logger.info(f"🔍 Buscando ofertas na categoria: {categoria}")
+            
+            for page in range(1, max_pages + 1):
+                # Constrói URL de busca
+                search_url = f"{self.base_url}/search"
+                params = {
+                    'keyword': categoria,
+                    'page': page,
+                    'sortBy': 'sales',  # Ordena por vendas (mais populares)
+                    'order': 'desc'
+                }
+                
+                try:
+                    logger.info(f"📄 Acessando página {page}: {categoria}")
+                    
+                    response = self.session.get(
+                        search_url, 
+                        params=params, 
+                        headers=self.headers,
+                        timeout=30
+                    )
+                    
+                    if response.status_code == 200:
+                        # Extrai produtos da página
+                        page_ofertas = self.extract_products_from_html(response.text, categoria)
+                        ofertas.extend(page_ofertas)
+                        
+                        logger.info(f"✅ Página {page}: {len(page_ofertas)} produtos encontrados")
+                        
+                        # Delay entre páginas
+                        time.sleep(self.get_random_delay())
+                    else:
+                        logger.warning(f"⚠️ Página {page}: Status {response.status_code}")
+                        
+                except Exception as e:
+                    logger.error(f"❌ Erro na página {page}: {e}")
+                    continue
+                
+                # Limita o número de produtos por categoria
+                if len(ofertas) >= 15:
+                    logger.info(f"🛑 Limite de 15 produtos atingido para {categoria}")
+                    break
+            
+            logger.info(f"🎯 Total de ofertas para {categoria}: {len(ofertas)}")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar categoria {categoria}: {e}")
+        
+        return ofertas
+    
+    def extract_products_from_html(self, html_content: str, categoria: str) -> List[Dict]:
+        """Extrai produtos do HTML da página de busca da Shopee"""
+        ofertas = []
+        
+        try:
+            from bs4 import BeautifulSoup
+            
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            # Procura por produtos na página da Shopee
+            product_containers = soup.find_all('div', class_=lambda x: x and 'shopee-search-item-result' in x)
+            
+            if not product_containers:
+                # Fallback: procura por outros seletores
+                product_containers = soup.find_all('div', class_=lambda x: x and 'item' in x)
+            
+            if not product_containers:
+                # Fallback adicional: procura por qualquer div que contenha link de produto
+                product_containers = soup.find_all('div', class_=lambda x: x and any(word in x.lower() for word in ['product', 'item', 'card']))
+            
+            logger.info(f"🔍 Encontrados {len(product_containers)} containers de produto")
+            
+            for container in product_containers:
+                try:
+                    produto = self.extract_single_product(container, categoria)
+                    if produto:
+                        ofertas.append(produto)
+                except Exception as e:
+                    logger.debug(f"⚠️ Erro ao extrair produto: {e}")
+                    continue
+                    
+        except Exception as e:
+            logger.error(f"❌ Erro ao extrair produtos do HTML: {e}")
+        
+        return ofertas
+    
+    def extract_single_product(self, container, categoria: str) -> Optional[Dict]:
+        """Extrai informações de um produto individual da Shopee"""
+        try:
+            # Título do produto
+            titulo = None
+            title_selectors = [
+                '[data-sqe="name"]',
+                '.ie3A\+n',
+                '[class*="title"]',
+                '[class*="name"]',
+                'h1', 'h2', 'h3', 'h4'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = container.find(selector)
+                if title_elem and title_elem.get_text(strip=True):
+                    titulo = title_elem.get_text(strip=True)
+                    break
+            
+            # Preço do produto
+            preco = None
+            price_selectors = [
+                '[data-sqe="name"] + div',
+                '.ie3A\+n + div',
+                '[class*="price"]',
+                '.price',
+                '[class*="cost"]'
+            ]
+            
+            for selector in price_selectors:
+                price_elem = container.find(selector)
+                if price_elem and price_elem.get_text(strip=True):
+                    preco_text = price_elem.get_text(strip=True)
+                    # Remove caracteres não numéricos exceto vírgula e ponto
+                    import re
+                    preco = re.sub(r'[^\d,.]', '', preco_text)
+                    if preco:
+                        break
+            
+            # Link do produto
+            link = None
+            link_elem = container.find('a', href=True)
+            if link_elem:
+                href = link_elem['href']
+                if '/product/' in href or '/item/' in href:
+                    if not href.startswith('http'):
+                        link = urljoin(self.base_url, href)
+                    else:
+                        link = href
+            
+            # Imagem do produto
+            imagem = None
+            img_elem = container.find('img')
+            if img_elem:
+                imagem = img_elem.get('src') or img_elem.get('data-src')
+            
+            # Desconto
+            desconto = None
+            discount_selectors = [
+                '[class*="discount"]',
+                '[class*="off"]',
+                '.badge',
+                '[class*="badge"]'
+            ]
+            
+            for selector in discount_selectors:
+                discount_elem = container.find(selector)
+                if discount_elem:
+                    discount_text = discount_elem.get_text(strip=True)
+                    import re
+                    discount_match = re.search(r'(\d+)%?', discount_text)
+                    if discount_match:
+                        desconto = int(discount_match.group(1))
+                        break
+            
+            # Validação: produto deve ter título e preço
+            if titulo and preco:
+                return {
+                    'titulo': titulo,
+                    'preco': preco,
+                    'link': link,
+                    'imagem': imagem,
+                    'desconto': desconto,
+                    'loja': 'Shopee Brasil',
+                    'categoria': categoria,
+                    'timestamp': time.time()
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"❌ Erro ao extrair produto individual: {e}")
+            return None
+    
+    def buscar_ofertas_gerais(self) -> List[Dict]:
+        """Busca ofertas gerais de todas as categorias"""
+        todas_ofertas = []
+        
+        logger.info("🚀 INICIANDO BUSCA DE OFERTAS NA SHOPEE")
+        logger.info("=" * 60)
+        
+        for categoria in self.categorias:
+            try:
+                logger.info(f"\n🔍 Buscando: {categoria.upper()}")
+                ofertas_categoria = self.search_products_by_category(categoria)
+                todas_ofertas.extend(ofertas_categoria)
+                
+                # Delay entre categorias
+                time.sleep(self.get_random_delay())
+                
+            except Exception as e:
+                logger.error(f"❌ Erro na categoria {categoria}: {e}")
+                continue
+        
+        # Remove duplicatas baseado no título
+        ofertas_unicas = []
+        titulos_vistos = set()
+        
+        for oferta in todas_ofertas:
+            if oferta['titulo'] not in titulos_vistos:
+                ofertas_unicas.append(oferta)
+                titulos_vistos.add(oferta['titulo'])
+        
+        logger.info(f"\n🎯 TOTAL DE OFERTAS ÚNICAS: {len(ofertas_unicas)}")
+        
+        return ofertas_unicas
+    
+    def test_connection(self) -> bool:
+        """Testa a conexão com a Shopee"""
+        try:
+            logger.info("🔍 Testando conexão com a Shopee...")
+            
+            response = self.session.get(
+                self.base_url,
+                headers=self.headers,
+                timeout=10
+            )
+            
+            if response.status_code == 200:
+                logger.info("✅ Conexão com a Shopee funcionando")
+                return True
+            else:
+                logger.warning(f"⚠️ Status da conexão: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Erro na conexão: {e}")
+            return False
+
+def main():
+    """Função principal para teste"""
+    print("🚀 TESTANDO SHOPEE SCRAPER CORRIGIDO")
+    print("=" * 60)
+    
+    scraper = ShopeeScraperFixed()
+    
+    # Testa conexão primeiro
+    if not scraper.test_connection():
+        print("❌ Não foi possível conectar com a Shopee")
+        return
+    
+    # Busca ofertas
+    ofertas = scraper.buscar_ofertas_gerais()
+    
+    print(f"\n🎯 RESULTADO: {len(ofertas)} ofertas encontradas")
+    print("=" * 60)
+    
+    for i, oferta in enumerate(ofertas[:10], 1):  # Mostra apenas as primeiras 10
+        print(f"\n{i}. {oferta['titulo']}")
+        print(f"   💰 Preço: {oferta['preco']}")
+        if oferta.get('desconto'):
+            print(f"   🏷️ Desconto: {oferta['desconto']}%")
+        print(f"   🏪 Loja: {oferta['loja']}")
+        print(f"   📂 Categoria: {oferta['categoria']}")
+        if oferta.get('link'):
+            print(f"   🔗 Link: {oferta['link'][:80]}...")
+
+if __name__ == "__main__":
+    main()

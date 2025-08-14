@@ -1,0 +1,21 @@
+User-agent: Alexabot
+Allow: /
+
+User-agent: *
+Disallow: /endereco
+Disallow: /pagamento
+Disallow: /pedido
+Disallow: /basket
+Disallow: /support
+Disallow: /catalog
+Disallow: /checkout
+Disallow: /customer
+Disallow: /promotion
+Disallow: /stewie
+Disallow: /*?sfilters=0
+Disallow: /busca/*/?*
+Disallow: /busca/?*
+Disallow: */s/*---*--
+Disallow: /selecao/*---*--
+Disallow: /lojista/*---*--
+Disallow: /r/

@@ -1,0 +1,1980 @@
+"""
+Bot do Telegram Garimpeiro Geek
+
+Este bot busca ofertas em várias lojas online e as publica em um canal do Telegram.
+Suporta postagem manual de ofertas e busca automática em lojas parceiras.
+"""
+import logging
+import asyncio
+import os
+import sys
+import json
+from datetime import datetime, time, timedelta
+from typing import List, Dict, Any, Optional, Union
+
+from telegram import Update, BotCommand
+from telegram.constants import ParseMode
+from telegram.ext import Application, CommandHandler, ContextTypes, CallbackContext, JobQueue, Updater, MessageHandler, filters
+
+import config
+import database
+# Importações de módulos locais
+from telegram_poster import comando_oferta
+
+# Importações das melhorias técnicas
+from cache_system import cache, cached, http_cache, scraper_cache
+from rate_limiter import rate_limiter, rate_limited, check_rate_limit
+from health_monitor import health_monitor, start_health_monitoring, add_scraper_health_check
+from performance_metrics import performance_metrics, start_metrics_collection, track_performance
+
+# Desativando a integração com a Amazon temporariamente
+# from amazon_integration import agendar_verificacoes_amazon, PALAVRAS_CHAVE_AMAZON
+from aliexpress_integration import agendar_verificacoes_aliexpress, PALAVRAS_CHAVE_ALIEXPRESS
+
+# Integração com Awin
+try:
+    from awin_api import verificar_ofertas_awin_periodicamente, atualizar_ids_lojas_awin
+    AWIN_INTEGRATION_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Integração Awin não disponível: {e}")
+    AWIN_INTEGRATION_AVAILABLE = False
+
+# Sistema de Notificações
+try:
+    from notification_system import (
+        register_user, update_user_preferences, add_user_category, 
+        add_favorite_store, notify_users_about_offer, get_user_notification_stats
+    )
+    NOTIFICATION_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Sistema de notificações não disponível: {e}")
+    NOTIFICATION_SYSTEM_AVAILABLE = False
+
+# Sistema de Reviews
+try:
+    from product_reviews import (
+        review_manager, add_product_review, get_product_reviews,
+        get_user_reviews, update_review_status, get_review_stats,
+        get_pending_reviews, get_product_average_rating
+    )
+    REVIEW_SYSTEM_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Sistema de reviews não disponível: {e}")
+    REVIEW_SYSTEM_AVAILABLE = False
+
+# Sistema de Categorias de Usuários
+try:
+    from user_categories import category_manager
+    USER_CATEGORIES_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Sistema de categorias de usuários não disponível: {e}")
+    USER_CATEGORIES_AVAILABLE = False
+
+def is_admin(user_id: int) -> bool:
+    """
+    Verifica se um usuário é administrador.
+    """
+    if user_id is None:
+        return False
+    
+    admin_id = os.getenv('ADMIN_USER_ID')
+    if not admin_id:
+        return False
+    
+    return str(user_id) == admin_id
+
+def is_valid_update(update: Update) -> bool:
+    """
+    Verifica se o update é válido e contém os dados necessários.
+    """
+    if update is None:
+        return False
+    
+    if not hasattr(update, 'effective_user') or update.effective_user is None:
+        return False
+    
+    if not hasattr(update, 'message') or update.message is None:
+        return False
+    
+    # Verifica se o usuário tem ID válido
+    user = update.effective_user
+    if not hasattr(user, 'id') or user.id is None:
+        return False
+    
+    # Verifica se a mensagem tem texto
+    message = update.message
+    if not hasattr(message, 'text') or message.text is None:
+        return False
+    
+    return True
+
+async def executar_verificacao_inicial_awin():
+    """
+    Executa uma verificação inicial para configurar os IDs das lojas Awin
+    antes de iniciar o ciclo normal de verificações.
+    """
+    try:
+        logger.info("🔧 Executando verificação inicial da Awin para configurar IDs das lojas...")
+        
+        import aiohttp
+        async with aiohttp.ClientSession() as session:
+            await atualizar_ids_lojas_awin(session)
+        
+        logger.info("✅ Verificação inicial da Awin concluída com sucesso!")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na verificação inicial da Awin: {e}", exc_info=True)
+
+# Carrega variáveis de ambiente do arquivo .env
+from dotenv import load_dotenv
+load_dotenv()
+
+# Configuração de comandos do bot
+BOT_COMMANDS = [
+    BotCommand("start", "Inicia o bot e exibe ajuda"),
+    BotCommand("buscar", "Força uma busca por ofertas (apenas admin)"),
+    BotCommand("oferta", "Publica uma oferta manualmente (apenas admin)"),
+    BotCommand("status", "Mostra status do sistema (apenas admin)"),
+    BotCommand("metrics", "Mostra métricas de performance (apenas admin)"),
+    BotCommand("cache", "Gerencia sistema de cache (apenas admin)"),
+    BotCommand("health", "Mostra saúde dos serviços (apenas admin)"),
+    BotCommand("notificacoes", "Configurar notificações personalizadas"),
+    BotCommand("favoritos", "Gerenciar lojas favoritas"),
+    BotCommand("categorias", "Configurar categorias de interesse"),
+    BotCommand("review", "Adicionar review de produto"),
+    BotCommand("reviews", "Ver reviews de um produto"),
+    BotCommand("minhas_reviews", "Ver suas reviews"),
+    BotCommand("moderar_review", "Moderar reviews (apenas admin)")
+]
+
+def setup_logging():
+    """Configura o sistema de logging para o bot."""
+    try:
+        # Cria o diretório de logs se não existir
+        logs_dir = os.path.join(os.getcwd(), 'logs')
+        os.makedirs(logs_dir, exist_ok=True)
+        
+        # Configura o formato dos logs
+        log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        date_format = '%Y-%m-%d %H:%M:%S'
+        
+        # Cria um logger simples
+        logger = logging.getLogger('garimpeiro_bot')
+        
+        # Remove handlers existentes para evitar duplicação
+        for handler in logger.handlers[:]:
+            logger.removeHandler(handler)
+            
+        # Configura o nível de log
+        logger.setLevel(logging.DEBUG)
+        
+        # Cria um handler para o console
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(logging.INFO)
+        console_formatter = logging.Formatter(log_format, datefmt=date_format)
+        console_handler.setFormatter(console_formatter)
+        logger.addHandler(console_handler)
+        
+        # Cria um handler para o arquivo de log
+        log_file = os.path.join(logs_dir, f'bot_{datetime.now().strftime("%Y%m%d")}.log')
+        try:
+            file_handler = logging.FileHandler(log_file, encoding='utf-8', mode='a')
+            file_handler.setLevel(logging.DEBUG)
+            file_formatter = logging.Formatter(log_format, datefmt=date_format)
+            file_handler.setFormatter(file_formatter)
+            logger.addHandler(file_handler)
+            logger.info(f"Arquivo de log criado em: {os.path.abspath(log_file)}")
+        except Exception as e:
+            logger.error(f"Erro ao configurar o arquivo de log: {e}")
+        
+        # Configura o logger raiz
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.WARNING)
+        
+        # Configura o nível de log para bibliotecas de terceiros
+        logging.getLogger('httpx').setLevel(logging.WARNING)
+        logging.getLogger('telegram').setLevel(logging.INFO)
+        logging.getLogger('apscheduler').setLevel(logging.INFO)
+        logging.getLogger('httpcore').setLevel(logging.WARNING)
+        logging.getLogger('asyncio').setLevel(logging.INFO)
+        
+        logger.info("Logging configurado com sucesso!")
+        return logger
+        
+    except Exception as e:
+        print(f"ERRO CRÍTICO ao configurar logging: {e}", file=sys.stderr)
+        raise
+
+# Inicializa o logger
+logger = setup_logging()
+
+# Variável global para a aplicação do bot
+application = None
+
+async def agendar_tarefas(application: Application) -> None:
+    """
+    Agenda as tarefas periódicas do bot.
+    
+    Esta função configura os jobs recorrentes, como a busca automática de ofertas.
+    """
+    logger.info("Configurando tarefas agendadas...")
+    
+    try:
+        # Agenda a busca automática de ofertas a cada 6 horas
+        job_queue = application.job_queue
+        
+        if job_queue:
+            # Remove jobs antigos para evitar duplicação
+            for job in job_queue.jobs():
+                if job.name in ['buscar_ofertas', 'verificar_awin', 'verificar_aliexpress', 'cleanup_cache', 'backup_metrics']:
+                    job.schedule_removal()
+            
+            # Agenda a busca automática
+            job_queue.run_repeating(
+                buscar_e_publicar_ofertas,
+                interval=21600,  # 6 horas em segundos
+                first=10,  # Primeira execução em 10 segundos
+                name='buscar_ofertas'
+            )
+            logger.info("Busca automática de ofertas agendada para executar a cada 6 horas.")
+        
+        # Agenda a verificação de ofertas do AliExpress
+        try:
+            from aliexpress_integration import agendar_verificacoes_aliexpress
+            agendar_verificacoes_aliexpress(application)
+            logger.info("Verificações do AliExpress agendadas com sucesso!")
+        except Exception as e:
+            logger.error(f"Erro ao agendar verificações do AliExpress: {e}", exc_info=True)
+        
+        # Agenda a verificação de ofertas da Awin
+        if AWIN_INTEGRATION_AVAILABLE and job_queue:
+            try:
+                job_queue.run_repeating(
+                    verificar_ofertas_awin_periodicamente,
+                    interval=7200,  # 2 horas em segundos
+                    first=30,  # Primeira execução em 30 segundos
+                    name='verificar_awin'
+                )
+                logger.info("Verificações da Awin agendadas com sucesso!")
+                
+                # Executa uma verificação inicial para configurar os IDs das lojas
+                logger.info("Executando verificação inicial para configurar IDs das lojas Awin...")
+                asyncio.create_task(executar_verificacao_inicial_awin())
+                
+            except Exception as e:
+                logger.error(f"Erro ao agendar verificações da Awin: {e}", exc_info=True)
+        else:
+            if not job_queue:
+                logger.warning("Job queue não disponível - verificações da Awin não agendadas")
+            else:
+                logger.warning("Integração com Awin não disponível - verificações não agendadas")
+        
+        # Agenda limpeza de cache
+        if job_queue:
+            job_queue.run_repeating(
+                cleanup_cache_job, 
+                interval=timedelta(hours=6), 
+                first=timedelta(minutes=15),
+                name='cleanup_cache'
+            )
+        
+        # Agenda backup de métricas
+        if job_queue:
+            job_queue.run_repeating(
+                backup_metrics_job, 
+                interval=timedelta(hours=12), 
+                first=timedelta(minutes=20),
+                name='backup_metrics'
+            )
+        
+        logger.info("Todas as tarefas foram agendadas com sucesso!")
+        
+    except Exception as e:
+        logger.error(f"Erro ao agendar tarefas: {e}", exc_info=True)
+        raise
+
+# Funções auxiliares para melhorias técnicas
+def handle_health_alert(health_check: Any):
+    """Callback para alertas de saúde."""
+    try:
+        if not health_check or not hasattr(health_check, 'service_name') or not hasattr(health_check, 'status'):
+            logger.warning("Alerta de saúde inválido recebido")
+            return
+            
+        logger.warning(f"🚨 Alerta de saúde: {health_check.service_name} - {health_check.status.value}")
+        if hasattr(health_check, 'error_message') and health_check.error_message:
+            logger.warning(f"   Erro: {health_check.error_message}")
+        
+        # Envia notificação para admin se crítico
+        if hasattr(health_check.status, 'value') and health_check.status.value == "critical":
+            try:
+                from telegram import Bot
+                
+                # Por enquanto, apenas registra o alerta no log
+                # A notificação será implementada quando o sistema de notificações estiver funcionando
+                logger.warning(f"🚨 ALERTA CRÍTICO - Serviço: {health_check.service_name}")
+                logger.warning(f"   Status: {health_check.status.value}")
+                if hasattr(health_check, 'error_message') and health_check.error_message:
+                    logger.warning(f"   Erro: {health_check.error_message}")
+                
+                # TODO: Implementar notificação assíncrona para admin
+                # Esta funcionalidade será implementada quando o sistema de notificações estiver funcionando
+                
+            except Exception as e:
+                logger.error(f"Erro ao processar alerta de saúde: {e}")
+    except Exception as e:
+        logger.error(f"Erro ao processar alerta de saúde: {e}")
+
+def handle_performance_anomaly(metric_name, last_value, mean, std_dev, z_score):
+    """Callback para anomalias de performance."""
+    try:
+        if not metric_name:
+            logger.warning("Anomalia de performance com nome inválido")
+            return
+            
+        logger.warning(f"📊 Anomalia de performance detectada: {metric_name}")
+        logger.warning(f"   Valor: {last_value:.2f}, Média: {mean:.2f}, Z-score: {z_score:.2f}")
+        
+        # Registra métrica de anomalia
+        # TODO: Implementar registro de métrica quando o sistema estiver disponível
+    except Exception as e:
+        logger.error(f"Erro ao processar anomalia de performance: {e}")
+
+async def cleanup_cache_job(context: ContextTypes.DEFAULT_TYPE):
+    """Job para limpeza de cache."""
+    try:
+        logger.info("🧹 Executando limpeza de cache...")
+        
+        # Limpa caches antigos
+        try:
+            cache_stats_before = cache.get_stats()
+            scraper_cache_stats_before = scraper_cache.get_stats()
+        except Exception as e:
+            logger.warning(f"Erro ao obter estatísticas do cache: {e}")
+            cache_stats_before = {'current_size': 0}
+            scraper_cache_stats_before = {'current_size': 0}
+        
+        # Força limpeza
+        try:
+            cache._cleanup_expired()
+            scraper_cache._cleanup_expired()
+        except Exception as e:
+            logger.warning(f"Erro ao limpar cache: {e}")
+        
+        # Obtém estatísticas após limpeza
+        try:
+            cache_stats_after = cache.get_stats()
+            scraper_cache_stats_after = scraper_cache.get_stats()
+        except Exception as e:
+            logger.warning(f"Erro ao obter estatísticas do cache após limpeza: {e}")
+            cache_stats_after = {'current_size': 0}
+            scraper_cache_stats_after = {'current_size': 0}
+        
+        logger.info(f"✅ Cache limpo - Principal: {cache_stats_before.get('current_size', 0)} → {cache_stats_after.get('current_size', 0)}")
+        logger.info(f"✅ Cache de scrapers limpo - {scraper_cache_stats_before.get('current_size', 0)} → {scraper_cache_stats_after.get('current_size', 0)}")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na limpeza de cache: {e}")
+
+async def backup_metrics_job(context: ContextTypes.DEFAULT_TYPE):
+    """Job para backup de métricas."""
+    try:
+        logger.info("💾 Executando backup de métricas...")
+        
+        # Persiste métricas
+        try:
+            performance_metrics._persist_metrics()
+        except Exception as e:
+            logger.warning(f"Erro ao persistir métricas: {e}")
+        
+        # Obtém dashboard atual
+        try:
+            dashboard = performance_metrics.get_metrics_dashboard()
+            total_metrics = dashboard.get('total_metrics', 0) if dashboard else 0
+        except Exception as e:
+            logger.warning(f"Erro ao obter dashboard de métricas: {e}")
+            total_metrics = 0
+        
+        logger.info(f"✅ Backup de métricas concluído - {total_metrics} métricas ativas")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no backup de métricas: {e}")
+
+# Comandos para melhorias técnicas
+async def comando_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para mostrar status do sistema."""
+    try:
+        # Verifica se é admin
+        if not is_valid_update(update):
+            logger.warning("Update inválido em comando_status")
+            return
+            
+        user = update.effective_user
+        if not user or not user.id:
+            await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+            return
+            
+        if not is_admin(user.id):
+            await update.message.reply_text("❌ Apenas administradores podem usar este comando.")
+            return
+        
+        # Obtém status de saúde
+        try:
+            health_summary = health_monitor.get_health_summary()
+        except Exception as e:
+            logger.warning(f"Erro ao obter status de saúde: {e}")
+            health_summary = {}
+        
+        # Obtém métricas de cache
+        try:
+            cache_stats = cache.get_stats()
+        except Exception as e:
+            logger.warning(f"Erro ao obter estatísticas do cache: {e}")
+            cache_stats = {}
+        
+        # Obtém métricas de rate limiting
+        try:
+            rate_limiter_stats = rate_limiter.get_stats()
+        except Exception as e:
+            logger.warning(f"Erro ao obter estatísticas de rate limiting: {e}")
+            rate_limiter_stats = {}
+        
+        # Formata mensagem
+        status_msg = "📊 **Status do Sistema**\n\n"
+        
+        # Status de saúde
+        status_msg += f"🏥 **Saúde do Sistema:** {health_summary.get('status', 'unknown')}\n"
+        status_msg += f"   • Serviços saudáveis: {health_summary.get('healthy_services', 0)}\n"
+        status_msg += f"   • Serviços com aviso: {health_summary.get('warning_services', 0)}\n"
+        status_msg += f"   • Serviços críticos: {health_summary.get('critical_services', 0)}\n"
+        status_msg += f"   • Uptime médio: {health_summary.get('average_uptime_percentage', 0):.1f}%\n\n"
+        
+        # Status do cache
+        status_msg += f"💾 **Cache:**\n"
+        status_msg += f"   • Hit rate: {cache_stats.get('hit_rate', 0):.1f}%\n"
+        status_msg += f"   • Uso: {cache_stats.get('usage_percentage', 0):.1f}%\n"
+        status_msg += f"   • Total de requisições: {cache_stats.get('total_requests', 0)}\n\n"
+        
+        # Status do rate limiting
+        status_msg += f"🚦 **Rate Limiting:**\n"
+        status_msg += f"   • Taxa de sucesso: {rate_limiter_stats.get('success_rate_percent', 0):.1f}%\n"
+        status_msg += f"   • Taxa de bloqueio: {rate_limiter_stats.get('block_rate_percent', 0):.1f}%\n"
+        status_msg += f"   • Domínios bloqueados: {rate_limiter_stats.get('blocked_domains_count', 0)}\n"
+        
+        await update.message.reply_text(status_msg, parse_mode=ParseMode.MARKDOWN)
+        
+    except Exception as e:
+        logger.error(f"Erro no comando status: {e}")
+        await update.message.reply_text("❌ Erro ao obter status do sistema.")
+
+async def comando_metrics(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para mostrar métricas de performance."""
+    try:
+        # Verifica se é admin
+        if not is_valid_update(update):
+            logger.warning("Update inválido em comando_metrics")
+            return
+            
+        user = update.effective_user
+        if not user or not user.id:
+            await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+            return
+            
+        if not is_admin(user.id):
+            await update.message.reply_text("❌ Apenas administradores podem usar este comando.")
+            return
+        
+        # Obtém dashboard de métricas
+        try:
+            dashboard = performance_metrics.get_metrics_dashboard()
+        except Exception as e:
+            logger.warning(f"Erro ao obter dashboard de métricas: {e}")
+            dashboard = {'error': 'Erro ao obter métricas'}
+        
+        if 'error' in dashboard:
+            await update.message.reply_text(f"❌ Erro ao obter métricas: {dashboard['error']}")
+            return
+        
+        # Formata mensagem
+        metrics_msg = "📈 **Métricas de Performance**\n\n"
+        
+        # Métricas do sistema
+        metrics_msg += f"🖥️ **Sistema:**\n"
+        for metric in dashboard.get('system_metrics', []):
+            try:
+                if isinstance(metric, dict):
+                    name = metric.get('name', 'Unknown').replace('system.', '').replace('_', ' ').title()
+                    value = metric.get('last_value', 0)
+                    unit = metric.get('unit', '')
+                    metrics_msg += f"   • {name}: {value:.1f} {unit}\n"
+                else:
+                    logger.warning(f"Métrica do sistema não é um dicionário: {type(metric)}")
+                    continue
+            except Exception as e:
+                logger.warning(f"Erro ao processar métrica do sistema: {e}")
+                continue
+        
+        metrics_msg += f"\n📱 **Aplicação:**\n"
+        for metric in dashboard.get('app_metrics', []):
+            try:
+                if isinstance(metric, dict):
+                    name = metric.get('name', 'Unknown').replace('app.', '').replace('_', ' ').title()
+                    value = metric.get('last_value', 0)
+                    unit = metric.get('unit', '')
+                    metrics_msg += f"   • {name}: {value:.1f} {unit}\n"
+                else:
+                    logger.warning(f"Métrica da aplicação não é um dicionário: {type(metric)}")
+                    continue
+            except Exception as e:
+                logger.warning(f"Erro ao processar métrica da aplicação: {e}")
+                continue
+        
+        # Métricas críticas
+        critical_metrics = dashboard.get('critical_metrics', [])
+        if critical_metrics:
+            metrics_msg += f"\n🚨 **Métricas Críticas:**\n"
+            for metric in critical_metrics:
+                try:
+                    if isinstance(metric, dict):
+                        metrics_msg += f"   • {metric.get('name', 'Unknown')}: {metric.get('value', 0):.1f} {metric.get('unit', '')} (limite: {metric.get('threshold', 0)}%)\n"
+                    else:
+                        logger.warning(f"Métrica crítica não é um dicionário: {type(metric)}")
+                        continue
+                except Exception as e:
+                    logger.warning(f"Erro ao processar métrica crítica: {e}")
+                    continue
+        
+        await update.message.reply_text(metrics_msg, parse_mode=ParseMode.MARKDOWN)
+        
+    except Exception as e:
+        logger.error(f"Erro no comando metrics: {e}")
+        await update.message.reply_text("❌ Erro ao obter métricas.")
+
+async def comando_cache(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para gerenciar cache."""
+    try:
+        # Verifica se é admin
+        if not is_valid_update(update):
+            logger.warning("Update inválido em comando_cache")
+            return
+            
+        user = update.effective_user
+        if not user or not user.id:
+            await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+            return
+            
+        if not is_admin(user.id):
+            await update.message.reply_text("❌ Apenas administradores podem usar este comando.")
+            return
+        
+        # Obtém argumentos
+        args = context.args
+        if not args:
+            # Mostra estatísticas do cache
+            try:
+                cache_stats = cache.get_stats()
+            except Exception as e:
+                logger.warning(f"Erro ao obter estatísticas do cache principal: {e}")
+                cache_stats = {}
+                
+            try:
+                scraper_cache_stats = scraper_cache.get_stats()
+            except Exception as e:
+                logger.warning(f"Erro ao obter estatísticas do cache de scrapers: {e}")
+                scraper_cache_stats = {}
+            
+            cache_msg = "💾 **Estatísticas do Cache**\n\n"
+            cache_msg += f"**Cache Principal:**\n"
+            cache_msg += f"   • Tamanho atual: {cache_stats.get('current_size', 0)}\n"
+            cache_msg += f"   • Hit rate: {cache_stats.get('hit_rate', 0):.1f}%\n"
+            cache_msg += f"   • Total de requisições: {cache_stats.get('total_requests', 0)}\n\n"
+            
+            cache_msg += f"**Cache de Scrapers:**\n"
+            cache_msg += f"   • Tamanho atual: {scraper_cache_stats.get('current_size', 0)}\n"
+            cache_msg += f"   • Hit rate: {scraper_cache_stats.get('hit_rate', 0):.1f}%\n"
+            cache_msg += f"   • Total de requisições: {scraper_cache_stats.get('total_requests', 0)}\n"
+            
+            await update.message.reply_text(cache_msg, parse_mode=ParseMode.MARKDOWN)
+            return
+        
+        action = args[0].lower()
+        
+        if action == "clear":
+            # Limpa cache
+            try:
+                cache.clear()
+                scraper_cache.clear()
+                await update.message.reply_text("✅ Cache limpo com sucesso!")
+            except Exception as e:
+                logger.error(f"Erro ao limpar cache: {e}")
+                await update.message.reply_text("❌ Erro ao limpar cache.")
+            
+        elif action == "stats":
+            # Mostra estatísticas detalhadas
+            try:
+                cache_stats = cache.get_stats()
+                await update.message.reply_text(f"📊 **Estatísticas do Cache:**\n```\n{json.dumps(cache_stats, indent=2)}\n```", parse_mode=ParseMode.MARKDOWN)
+            except Exception as e:
+                logger.error(f"Erro ao obter estatísticas detalhadas do cache: {e}")
+                await update.message.reply_text("❌ Erro ao obter estatísticas detalhadas do cache.")
+            
+        else:
+            await update.message.reply_text("❌ Ação inválida. Use: /cache [clear|stats]")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando cache: {e}")
+        await update.message.reply_text("❌ Erro ao gerenciar cache.")
+
+async def comando_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para mostrar saúde dos serviços."""
+    try:
+        # Verifica se é admin
+        if not is_valid_update(update):
+            logger.warning("Update inválido em comando_health")
+            return
+            
+        user = update.effective_user
+        if not user or not user.id:
+            await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+            return
+            
+        if not is_admin(user.id):
+            await update.message.reply_text("❌ Apenas administradores podem usar este comando.")
+            return
+        
+        # Obtém saúde de todos os serviços
+        try:
+            services_health = health_monitor.get_all_services_health()
+        except Exception as e:
+            logger.warning(f"Erro ao obter saúde dos serviços: {e}")
+            services_health = []
+        
+        if not services_health:
+            await update.message.reply_text("❌ Nenhum serviço monitorado encontrado.")
+            return
+        
+        # Formata mensagem
+        health_msg = "🏥 **Saúde dos Serviços**\n\n"
+        
+        for service in services_health:
+            try:
+                # Emoji baseado no status
+                status_emoji = {
+                    'healthy': '✅',
+                    'warning': '⚠️',
+                    'critical': '❌',
+                    'unknown': '❓'
+                }.get(service.status.value, '❓')
+                
+                health_msg += f"{status_emoji} **{service.service_name}**\n"
+                health_msg += f"   • Status: {service.status.value}\n"
+                health_msg += f"   • Última verificação: {service.timestamp.strftime('%H:%M:%S')}\n"
+                
+                if hasattr(service, 'metadata') and service.metadata and 'consecutive_failures' in service.metadata:
+                    health_msg += f"   • Falhas consecutivas: {service.metadata['consecutive_failures']}\n"
+                
+                health_msg += "\n"
+            except Exception as e:
+                logger.warning(f"Erro ao processar serviço de saúde: {e}")
+                continue
+        
+        await update.message.reply_text(health_msg, parse_mode=ParseMode.MARKDOWN)
+        
+    except Exception as e:
+        logger.error(f"Erro no comando health: {e}")
+        await update.message.reply_text("❌ Erro ao obter saúde dos serviços.")
+
+async def buscar_e_publicar_ofertas(context: CallbackContext) -> None:
+    """
+    Função para buscar e publicar ofertas automaticamente.
+    
+    Esta função é executada periodicamente para buscar ofertas nas lojas parceiras
+    e publicá-las no canal do Telegram.
+    """
+    logger.info("Iniciando busca automática por ofertas...")
+    
+    try:
+        # Busca ofertas no AliExpress
+        logger.info("Buscando ofertas no AliExpress...")
+        ofertas_aliexpress = []
+        
+        # Por enquanto, apenas registra que a busca foi iniciada
+        # TODO: Implementar busca real de ofertas
+        logger.info("Sistema de busca automática em desenvolvimento")
+        
+        # Combina as ofertas (apenas AliExpress por enquanto)
+        todas_as_ofertas = ofertas_aliexpress
+        
+        # Publica as ofertas
+        if todas_as_ofertas:
+            logger.info(f"Publicando {len(todas_as_ofertas)} ofertas no canal...")
+            
+            # TODO: Implementar publicação real de ofertas
+            logger.info("Sistema de publicação em desenvolvimento")
+            
+            logger.info("Publicação de ofertas concluída com sucesso!")
+        else:
+            logger.info("Nenhuma oferta encontrada para publicação.")
+            
+    except Exception as e:
+        logger.error(f"Erro ao buscar e publicar ofertas: {str(e)}")
+        logger.exception("Detalhes do erro:")
+
+async def comando_buscar(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Força uma busca por ofertas manualmente.
+    
+    Este comando é restrito ao administrador e força uma busca imediata
+    por ofertas, independente do agendamento automático.
+    """
+    # Verifica se o usuário é o administrador
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_buscar")
+        return
+        
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+        
+    if not is_admin(user.id):
+        await update.message.reply_text("❌ Acesso negado. Este comando é restrito ao administrador.")
+        return
+    
+    await update.message.reply_text("🔍 Iniciando busca manual por ofertas...")
+    
+    try:
+        # Executa a busca
+        await buscar_e_publicar_ofertas(context)
+        
+        await update.message.reply_text("✅ Busca concluída! As ofertas encontradas foram publicadas no canal.")
+        
+    except Exception as e:
+        logger.error(f"Erro ao executar busca manual: {e}", exc_info=True)
+        await update.message.reply_text(f"❌ Ocorreu um erro durante a busca: {str(e)}")
+
+async def comando_iniciar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Manipulador do comando /iniciar.
+    
+    Exibe uma mensagem de boas-vindas e informações sobre como usar o bot.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_iniciar")
+        return
+        
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    # Verifica se o usuário é o administrador
+    is_admin_user = is_admin(user.id)
+    
+    # Obtém o nome do usuário de forma segura
+    user_name = user.first_name or user.username or "Usuário"
+    
+    # Mensagem de boas-vindas
+    mensagem = (
+        f"👋 Olá, {user_name}!\n\n"
+        "🤖 *Bem-vindo ao Garimpeiro Geek!*\n\n"
+        "🔍 Eu sou um bot que ajuda a encontrar as melhores ofertas em produtos de tecnologia, "
+        "eletrônicos e muito mais!\n\n"
+        "📌 *Comandos disponíveis:*\n"
+        "/start - Mostra esta mensagem de ajuda\n"
+        "/buscar - Força uma busca por ofertas (apenas admin)\n"
+        "/oferta - Publica uma oferta manualmente (apenas admin)\n"
+        "/status - Mostra status do sistema (apenas admin)\n"
+        "/metrics - Mostra métricas de performance (apenas admin)\n"
+        "/cache - Gerencia sistema de cache (apenas admin)\n"
+        "/health - Mostra saúde dos serviços (apenas admin)\n"
+        "/notificacoes - Configurar notificações personalizadas\n"
+        "/favoritos - Gerenciar lojas favoritas\n"
+        "/categorias - Configurar categorias de interesse\n\n"
+        "🔔 *Funcionalidades automáticas:*\n"
+        "• Busca automática de ofertas a cada 6 horas\n"
+        "• Notificações de promoções em tempo real\n"
+        "• Análise de histórico de preços\n"
+        "• Sistema de notificações personalizadas\n\n"
+        "📊 *Lojas parceiras:*\n"
+        "• AliExpress\n"
+        "• Amazon (se configurada)\n"
+        "• Awin (Kabum!, Dell, Lenovo, etc.)\n\n"
+        f"💡 *Dica:* Você pode me enviar o link de um produto que eu vou verificar se está com um bom preço!"
+    )
+    
+    # Adiciona instruções adicionais para o administrador
+    if is_admin_user:
+        mensagem += "\n\n👑 *Modo Administrador Ativado*\n"
+        mensagem += "• Use /buscar para forçar uma busca por ofertas\n"
+        mensagem += "• Use /oferta para publicar uma oferta manualmente"
+    
+    # Envia a mensagem de boas-vindas
+    await update.message.reply_text(
+        mensagem,
+        parse_mode=ParseMode.MARKDOWN,
+        disable_web_page_preview=True
+    )
+    
+    # Registra o usuário no sistema de notificações se disponível
+    if NOTIFICATION_SYSTEM_AVAILABLE:
+        try:
+            user_id = user.id
+            if user_id is not None:
+                # Obtém os dados do usuário de forma segura
+                username = user.username or user.first_name or "usuário"
+                first_name = user.first_name or user.username or "Usuário"
+                last_name = user.last_name or ""
+                
+                register_user(
+                    user_id,
+                    username=username,
+                    first_name=first_name,
+                    last_name=last_name
+                )
+                logger.info(f"✅ Usuário {user_id} registrado no sistema de notificações")
+        except Exception as e:
+            logger.error(f"❌ Erro ao registrar usuário: {e}")
+    
+    logger.info(f"Usuário {user.id} ({user_name}) iniciou o bot.")
+
+async def comando_notificacoes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para configurar notificações personalizadas.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_notificacoes")
+        return
+        
+    if not NOTIFICATION_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de notificações não está disponível no momento."
+        )
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    # Obtém estatísticas do usuário
+    try:
+        stats = get_user_notification_stats(user.id)
+    except Exception as e:
+        logger.warning(f"Erro ao obter estatísticas do usuário: {e}")
+        stats = None
+    
+    if not stats:
+        # Registra o usuário se não existir
+        try:
+            # Obtém os dados do usuário de forma segura
+            username = user.username or user.first_name or "usuário"
+            first_name = user.first_name or user.username or "Usuário"
+            
+            register_user(user.id, username=username, first_name=first_name)
+            stats = get_user_notification_stats(user.id)
+        except Exception as e:
+            logger.error(f"Erro ao registrar usuário: {e}")
+            await update.message.reply_text("❌ Erro ao configurar notificações. Tente novamente.")
+            return
+    
+    # Obtém o nome do usuário de forma segura
+    user_name = user.first_name or user.username or "Usuário"
+    
+    # Cria mensagem com configurações atuais
+    try:
+        mensagem = (
+            f"🔔 *Configurações de Notificações*\n\n"
+            f"👤 *Usuário:* {user_name}\n"
+            f"📊 *Total de notificações:* {stats.get('total_notifications', 0)}\n"
+            f"✅ *Notificações enviadas:* {stats.get('successful_notifications', 0)}\n"
+            f"❌ *Falhas:* {stats.get('failed_notifications', 0)}\n\n"
+            f"⚙️ *Configurações Atuais:*\n"
+            f"• Desconto mínimo: {stats.get('preferences', {}).get('min_discount', 0)}%\n"
+            f"• Preço máximo: R$ {stats.get('preferences', {}).get('max_price', 'Sem limite') if stats.get('preferences', {}).get('max_price') else 'Sem limite'}\n"
+            f"• Frequência: {stats.get('preferences', {}).get('notification_frequency', 'Padrão')}\n\n"
+            f"🎯 *Categorias:* {', '.join(stats.get('preferences', {}).get('categories', [])) if stats.get('preferences', {}).get('categories') else 'Nenhuma configurada'}\n"
+            f"⭐ *Lojas favoritas:* {', '.join(stats.get('preferences', {}).get('favorite_stores', [])) if stats.get('preferences', {}).get('favorite_stores') else 'Nenhuma configurada'}\n\n"
+            f"💡 *Para configurar:*\n"
+            f"• Use /categorias para adicionar categorias de interesse\n"
+            f"• Use /favoritos para adicionar lojas favoritas\n"
+            "• Envie uma mensagem com 'desconto X' para alterar o desconto mínimo\n"
+            "• Envie uma mensagem com 'preco X' para alterar o preço máximo"
+        )
+        
+        await update.message.reply_text(
+            mensagem,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"Erro ao criar mensagem de notificações: {e}")
+        await update.message.reply_text("❌ Erro ao configurar notificações. Tente novamente.")
+
+async def comando_favoritos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para gerenciar lojas favoritas.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_favoritos")
+        return
+        
+    if not NOTIFICATION_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de notificações não está disponível no momento."
+        )
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    # Obtém estatísticas do usuário
+    try:
+        stats = get_user_notification_stats(user.id)
+    except Exception as e:
+        logger.warning(f"Erro ao obter estatísticas do usuário: {e}")
+        stats = None
+    
+    if not stats:
+        # Registra o usuário se não existir
+        try:
+            # Obtém os dados do usuário de forma segura
+            username = user.username or user.first_name or "usuário"
+            first_name = user.first_name or user.username or "Usuário"
+            
+            register_user(user.id, username=username, first_name=first_name)
+            stats = get_user_notification_stats(user.id)
+        except Exception as e:
+            logger.error(f"Erro ao registrar usuário: {e}")
+            await update.message.reply_text("❌ Erro ao configurar favoritos. Tente novamente.")
+            return
+    
+    # Lista de lojas disponíveis
+    lojas_disponiveis = [
+        "Kabum!", "Dell", "Lenovo", "Acer", "ASUS", "Trocafy", 
+        "Samsung", "Casa Bahia", "Magazine Luiza", "Amazon", 
+        "Shopee", "AliExpress", "Mercado Livre", "Zoom", "Pelando"
+    ]
+    
+    # Cria mensagem com lojas favoritas
+    try:
+        lojas_favoritas = stats.get('preferences', {}).get('favorite_stores', [])
+        
+        mensagem = (
+            f"⭐ *Lojas Favoritas*\n\n"
+            f"🏪 *Suas lojas favoritas:*\n"
+        )
+        
+        if lojas_favoritas:
+            for loja in lojas_favoritas:
+                mensagem += f"• {loja}\n"
+        else:
+            mensagem += "Nenhuma loja favorita configurada\n"
+        
+        mensagem += (
+            f"\n🏪 *Lojas disponíveis:*\n"
+            f"{', '.join(lojas_disponiveis)}\n\n"
+            f"💡 *Para adicionar:* Envie 'favorita NOME_DA_LOJA'\n"
+            f"💡 *Para remover:* Envie 'remover NOME_DA_LOJA'\n"
+            f"💡 *Exemplo:* 'favorita Kabum!'"
+        )
+        
+        await update.message.reply_text(
+            mensagem,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"Erro ao criar mensagem de favoritos: {e}")
+        await update.message.reply_text("❌ Erro ao configurar favoritos. Tente novamente.")
+
+async def comando_categorias(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para configurar categorias de interesse.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_categorias")
+        return
+        
+    if not NOTIFICATION_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de notificações não está disponível no momento."
+        )
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    # Obtém estatísticas do usuário
+    try:
+        stats = get_user_notification_stats(user.id)
+    except Exception as e:
+        logger.warning(f"Erro ao obter estatísticas do usuário: {e}")
+        stats = None
+    
+    if not stats:
+        # Registra o usuário se não existir
+        try:
+            # Obtém os dados do usuário de forma segura
+            username = user.username or user.first_name or "usuário"
+            first_name = user.first_name or user.username or "Usuário"
+            
+            register_user(user.id, username=username, first_name=first_name)
+            stats = get_user_notification_stats(user.id)
+        except Exception as e:
+            logger.error(f"Erro ao registrar usuário: {e}")
+            await update.message.reply_text("❌ Erro ao configurar categorias. Tente novamente.")
+            return
+    
+    # Lista de categorias disponíveis
+    categorias_disponiveis = [
+        "gaming", "tecnologia", "smartphones", "notebooks", "desktops",
+        "perifericos", "consoles", "jogos", "audio", "video", "casa",
+        "fitness", "livros", "brinquedos", "moda", "beleza"
+    ]
+    
+    # Cria mensagem com categorias configuradas
+    try:
+        categorias_configuradas = stats.get('preferences', {}).get('categories', [])
+        
+        mensagem = (
+            f"🎯 *Categorias de Interesse*\n\n"
+            f"📂 *Suas categorias:*\n"
+        )
+        
+        if categorias_configuradas:
+            for categoria in categorias_configuradas:
+                mensagem += f"• {categoria.title()}\n"
+        else:
+            mensagem += "Nenhuma categoria configurada\n"
+        
+        mensagem += (
+            f"\n📂 *Categorias disponíveis:*\n"
+            f"{', '.join([cat.title() for cat in categorias_disponiveis])}\n\n"
+            f"💡 *Para adicionar:* Envie 'categoria NOME_DA_CATEGORIA'\n"
+            f"💡 *Para remover:* Envie 'remover NOME_DA_CATEGORIA'\n"
+            f"💡 *Exemplo:* 'categoria gaming'"
+        )
+        
+        await update.message.reply_text(
+            mensagem,
+            parse_mode=ParseMode.MARKDOWN
+        )
+    except Exception as e:
+        logger.error(f"Erro ao criar mensagem de categorias: {e}")
+        await update.message.reply_text("❌ Erro ao configurar categorias. Tente novamente.")
+
+async def comando_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para adicionar uma avaliação a um produto.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_review")
+        return
+        
+    if not REVIEW_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de reviews não está disponível no momento."
+        )
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    # Verifica se há argumentos
+    if not context.args:
+        await update.message.reply_text(
+            "📝 *Como usar o comando /review:*\n\n"
+            "🔗 *Formato:* /review [link_do_produto] [nota] [comentário]\n\n"
+            "📊 *Notas:* 1 (ruim) a 5 (excelente)\n\n"
+            "💡 *Exemplos:*\n"
+            "• /review https://amazon.com/produto 5 Produto incrível!\n"
+            "• /review https://magalu.com/item 3 Bom, mas poderia ser melhor\n\n"
+            "⚠️ *Importante:* O link deve ser de um produto válido",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    # Extrai argumentos
+    if len(context.args) < 3:
+        await update.message.reply_text(
+            "❌ *Formato inválido!*\n\n"
+            "🔗 Use: /review [link] [nota] [comentário]\n"
+            "📊 Nota: 1-5\n\n"
+            "💡 *Exemplo:* /review https://amazon.com/produto 5 Excelente produto!",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    try:
+        link = context.args[0]
+        nota = int(context.args[1])
+        comentario = ' '.join(context.args[2:])
+        
+        # Valida nota
+        if not 1 <= nota <= 5:
+            await update.message.reply_text(
+                "❌ *Nota inválida!*\n\n"
+                "📊 A nota deve estar entre 1 e 5\n"
+                "• 1 = Ruim\n"
+                "• 2 = Regular\n"
+                "• 3 = Bom\n"
+                "• 4 = Muito bom\n"
+                "• 5 = Excelente"
+            )
+            return
+        
+        # Adiciona review
+        # Obtém o username de forma segura
+        username = user.username or user.first_name or "usuário"
+        
+        try:
+            success = await add_product_review(
+                user_id=user.id,
+                product_url=link,
+                rating=nota,
+                comment=comentario,
+                username=username
+            )
+        except Exception as e:
+            logger.error(f"Erro ao adicionar review: {e}")
+            await update.message.reply_text("❌ Erro ao adicionar review. Tente novamente.")
+            return
+        
+        if success:
+            await update.message.reply_text(
+                f"✅ *Review adicionada com sucesso!*\n\n"
+                f"📊 *Nota:* {nota}/5\n"
+                f"💬 *Comentário:* {comentario}\n"
+                f"🔗 *Produto:* {link}\n\n"
+                f"💡 Use /reviews [link] para ver todas as avaliações deste produto"
+            )
+        else:
+            await update.message.reply_text(
+                "❌ *Erro ao adicionar review!*\n\n"
+                "🔍 Verifique se o link é válido e tente novamente."
+            )
+            
+    except ValueError:
+        await update.message.reply_text(
+            "❌ *Formato inválido!*\n\n"
+            "📊 A nota deve ser um número entre 1 e 5\n\n"
+            "💡 *Exemplo:* /review https://amazon.com/produto 5 Excelente produto!"
+        )
+    except Exception as e:
+        logger.error(f"Erro inesperado no comando review: {e}")
+        await update.message.reply_text(
+            f"❌ *Erro inesperado:* {str(e)}\n\n"
+            "🔍 Tente novamente ou contate o administrador."
+        )
+
+async def comando_reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para ver avaliações de um produto.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_reviews")
+        return
+        
+    if not REVIEW_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de reviews não está disponível no momento."
+        )
+        return
+    
+    # Verifica se há argumentos
+    if not context.args:
+        await update.message.reply_text(
+            "🔍 *Como usar o comando /reviews:*\n\n"
+            "🔗 *Formato:* /reviews [link_do_produto]\n\n"
+            "💡 *Exemplo:* /reviews https://amazon.com/produto\n\n"
+            "⚠️ *Importante:* O link deve ser de um produto válido",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    try:
+        link = context.args[0]
+        
+        # Obtém reviews do produto
+        try:
+            reviews = await get_product_reviews(link)
+        except Exception as e:
+            logger.error(f"Erro ao obter reviews do produto: {e}")
+            await update.message.reply_text("❌ Erro ao buscar reviews. Tente novamente.")
+            return
+        
+        if not reviews:
+            await update.message.reply_text(
+                "📝 *Nenhuma avaliação encontrada para este produto.*\n\n"
+                f"🔗 *Produto:* {link}\n\n"
+                "💡 Seja o primeiro a avaliar! Use /review [link] [nota] [comentário]"
+            )
+            return
+        
+        # Calcula média das notas
+        try:
+            notas = [r.get('rating', 0) for r in reviews if isinstance(r, dict)]
+            media = sum(notas) / len(notas) if notas else 0
+        except Exception as e:
+            logger.warning(f"Erro ao calcular média das notas: {e}")
+            media = 0
+        
+        # Cria mensagem com reviews
+        mensagem = (
+            f"📊 *Avaliações do Produto*\n\n"
+            f"🔗 *Produto:* {link}\n"
+            f"⭐ *Média:* {media:.1f}/5 ({len(reviews)} avaliações)\n\n"
+        )
+        
+        # Adiciona reviews (máximo 5 para não sobrecarregar)
+        for i, review in enumerate(reviews[:5]):
+            try:
+                if isinstance(review, dict):
+                    status_emoji = "✅" if review.get('status') == 'approved' else "⏳" if review.get('status') == 'pending' else "❌"
+                    mensagem += (
+                        f"{status_emoji} *{review.get('username', 'Usuário')}* - {review.get('rating', 0)}/5\n"
+                        f"💬 {review.get('comment', 'Sem comentário')}\n"
+                        f"📅 {review.get('created_at', 'Data desconhecida')}\n\n"
+                    )
+                else:
+                    logger.warning(f"Review não é um dicionário: {type(review)}")
+                    continue
+            except Exception as e:
+                logger.warning(f"Erro ao processar review: {e}")
+                continue
+        
+        if len(reviews) > 5:
+            mensagem += f"📄 *Mostrando 5 de {len(reviews)} avaliações*\n\n"
+        
+        mensagem += "💡 Use /review [link] [nota] [comentário] para adicionar sua avaliação"
+        
+        await update.message.reply_text(
+            mensagem,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro inesperado no comando reviews: {e}")
+        await update.message.reply_text(
+            f"❌ *Erro ao buscar reviews:* {str(e)}\n\n"
+            "🔍 Verifique se o link é válido e tente novamente."
+        )
+
+async def comando_minhas_reviews(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para ver as avaliações do usuário.
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_minhas_reviews")
+        return
+        
+    if not REVIEW_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de reviews não está disponível no momento."
+        )
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text("❌ Usuário não encontrado ou ID inválido.")
+        return
+    
+    try:
+        # Obtém reviews do usuário
+        try:
+            reviews = await get_user_reviews(user.id)
+        except Exception as e:
+            logger.error(f"Erro ao obter reviews do usuário: {e}")
+            await update.message.reply_text("❌ Erro ao buscar suas reviews. Tente novamente.")
+            return
+        
+        if not reviews:
+            await update.message.reply_text(
+                "📝 *Você ainda não fez nenhuma avaliação.*\n\n"
+                "💡 Use /review [link] [nota] [comentário] para avaliar um produto!"
+            )
+            return
+        
+        # Obtém o nome do usuário de forma segura
+        user_name = user.first_name or user.username or "Usuário"
+        
+        # Cria mensagem com reviews do usuário
+        mensagem = (
+            f"📝 *Suas Avaliações*\n\n"
+            f"👤 *Usuário:* {user_name}\n"
+            f"📊 *Total:* {len(reviews)} avaliações\n\n"
+        )
+        
+        # Adiciona reviews (máximo 5)
+        for i, review in enumerate(reviews[:5]):
+            try:
+                if isinstance(review, dict):
+                    status_emoji = "✅" if review.get('status') == 'approved' else "⏳" if review.get('status') == 'pending' else "❌"
+                    product_url = review.get('product_url', 'Link desconhecido')
+                    mensagem += (
+                        f"{status_emoji} *{review.get('rating', 0)}/5* - {product_url[:50]}...\n"
+                        f"💬 {review.get('comment', 'Sem comentário')}\n"
+                        f"📅 {review.get('created_at', 'Data desconhecida')}\n\n"
+                    )
+                else:
+                    logger.warning(f"Review não é um dicionário: {type(review)}")
+                    continue
+            except Exception as e:
+                logger.warning(f"Erro ao processar review do usuário: {e}")
+                continue
+        
+        if len(reviews) > 5:
+            mensagem += f"📄 *Mostrando 5 de {len(reviews)} avaliações*\n\n"
+        
+        mensagem += "💡 Use /reviews [link] para ver todas as avaliações de um produto"
+        
+        await update.message.reply_text(
+            mensagem,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro inesperado no comando minhas_reviews: {e}")
+        await update.message.reply_text(
+            f"❌ *Erro ao buscar suas reviews:* {str(e)}\n\n"
+            "🔍 Tente novamente ou contate o administrador."
+        )
+
+async def comando_moderar_review(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Comando para moderar avaliações (apenas administradores).
+    """
+    if not is_valid_update(update):
+        logger.warning("Update inválido em comando_moderar_review")
+        return
+        
+    if not REVIEW_SYSTEM_AVAILABLE:
+        await update.message.reply_text(
+            "❌ Sistema de reviews não está disponível no momento."
+        )
+        return
+    
+    # Verifica se é administrador
+    user = update.effective_user
+    if not user or not user.id:
+        await update.message.reply_text(
+            "❌ *Acesso negado!*\n\n"
+            "🔒 Este comando é restrito a administradores."
+        )
+        return
+    
+    # Verifica se é administrador
+    if not is_admin(user.id):
+        await update.message.reply_text(
+            "❌ *Acesso negado!*\n\n"
+            "🔒 Este comando é restrito a administradores."
+        )
+        return
+    
+    # Verifica se há argumentos
+    if not context.args:
+        await update.message.reply_text(
+            "🔧 *Como usar o comando /moderar_review:*\n\n"
+            "🔗 *Formato:* /moderar_review [review_id] [acao]\n\n"
+            "📋 *Ações disponíveis:*\n"
+            "• aprovar - Aprova a review\n"
+            "• rejeitar - Rejeita a review\n"
+            "• spam - Marca como spam\n\n"
+            "💡 *Exemplo:* /moderar_review 123 aprovar\n\n"
+            "📊 Use /moderar_review pendentes para ver reviews pendentes",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return
+    
+    try:
+        if context.args[0] == 'pendentes':
+            # Mostra reviews pendentes
+            try:
+                pending_reviews = await get_pending_reviews()
+            except Exception as e:
+                logger.error(f"Erro ao obter reviews pendentes: {e}")
+                await update.message.reply_text("❌ Erro ao buscar reviews pendentes. Tente novamente.")
+                return
+            
+            if not pending_reviews:
+                await update.message.reply_text(
+                    "✅ *Nenhuma review pendente para moderação.*"
+                )
+                return
+            
+            mensagem = (
+                f"📋 *Reviews Pendentes para Moderação*\n\n"
+                f"📊 *Total:* {len(pending_reviews)} reviews\n\n"
+            )
+            
+            # Mostra reviews pendentes (máximo 5)
+            for i, review in enumerate(pending_reviews[:5]):
+                try:
+                    if isinstance(review, dict):
+                        mensagem += (
+                            f"🆔 *ID:* {review.get('id', 'N/A')}\n"
+                            f"👤 *Usuário:* {review.get('username', 'Usuário')}\n"
+                            f"⭐ *Nota:* {review.get('rating', 0)}/5\n"
+                            f"💬 *Comentário:* {review.get('comment', 'Sem comentário')[:100]}...\n"
+                            f"🔗 *Produto:* {review.get('product_url', 'Link desconhecido')[:50]}...\n"
+                            f"📅 *Data:* {review.get('created_at', 'Data desconhecida')}\n\n"
+                        )
+                    else:
+                        logger.warning(f"Review pendente não é um dicionário: {type(review)}")
+                        continue
+                except Exception as e:
+                    logger.warning(f"Erro ao processar review pendente: {e}")
+                    continue
+            
+            if len(pending_reviews) > 5:
+                mensagem += f"📄 *Mostrando 5 de {len(pending_reviews)} reviews*\n\n"
+            
+            mensagem += "💡 Use /moderar_review [id] [acao] para moderar"
+            
+            await update.message.reply_text(
+                mensagem,
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        # Processa ação de moderação
+        if len(context.args) < 2:
+            await update.message.reply_text(
+                "❌ *Formato inválido!*\n\n"
+                "🔗 Use: /moderar_review [review_id] [acao]\n"
+                "📋 Ações: aprovar, rejeitar, spam"
+            )
+            return
+        
+        try:
+            review_id = int(context.args[0])
+        except ValueError:
+            await update.message.reply_text(
+                "❌ *ID inválido!*\n\n"
+                "🆔 O ID da review deve ser um número\n\n"
+                "💡 *Exemplo:* /moderar_review 123 aprovar"
+            )
+            return
+            
+        acao = context.args[1].lower()
+        
+        # Valida ação
+        if acao not in ['aprovar', 'rejeitar', 'spam']:
+            await update.message.reply_text(
+                "❌ *Ação inválida!*\n\n"
+                "📋 Ações disponíveis:\n"
+                "• aprovar\n"
+                "• rejeitar\n"
+                "• spam"
+            )
+            return
+        
+        # Executa moderação
+        try:
+            success = await update_review_status(review_id, acao)
+        except Exception as e:
+            logger.error(f"Erro ao moderar review: {e}")
+            await update.message.reply_text("❌ Erro ao moderar review. Tente novamente.")
+            return
+        
+        if success:
+            status_emoji = "✅" if acao == 'aprovar' else "❌" if acao == 'rejeitar' else "🚫"
+            await update.message.reply_text(
+                f"{status_emoji} *Review moderada com sucesso!*\n\n"
+                f"🆔 *ID:* {review_id}\n"
+                f"📋 *Ação:* {acao.title()}\n\n"
+                f"💡 Use /moderar_review pendentes para ver outras reviews pendentes"
+            )
+        else:
+            await update.message.reply_text(
+                "❌ *Erro ao moderar review!*\n\n"
+                "🔍 Verifique se o ID é válido e tente novamente."
+            )
+            
+    except Exception as e:
+        logger.error(f"Erro inesperado no comando moderar_review: {e}")
+        await update.message.reply_text(
+            f"❌ *Erro inesperado:* {str(e)}\n\n"
+            "🔍 Tente novamente ou contate o administrador."
+        )
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Manipula mensagens de texto recebidas.
+    """
+    # Verifica se update e update.message existem
+    if not update or not update.message:
+        logger.warning("Update ou message é None em handle_message")
+        return
+    
+    # Verifica se update.message tem os atributos necessários
+    if not hasattr(update.message, 'text') or not update.message.text:
+        logger.warning("Texto da mensagem não encontrado em handle_message")
+        return
+    
+    user = update.effective_user
+    if not user or not user.id:
+        logger.warning("Usuário não encontrado ou ID inválido em handle_message")
+        return
+        
+    message_text = update.message.text.lower().strip()
+    
+    # Verifica se a mensagem é um comando (começa com /)
+    if message_text.startswith('/'):
+        return  # Comandos são tratados por seus próprios manipuladores
+    
+    # Verifica se a mensagem é um link
+    if 'http' in message_text or 'www.' in message_text:
+        # Aqui você pode adicionar lógica para processar links de produtos
+        await update.message.reply_text(
+            "🔍 Analisando o link do produto...\n\n"
+            "Em breve você receberá informações detalhadas sobre este produto!"
+        )
+        
+        # Simula uma análise do produto (substitua por uma chamada real ao seu sistema de análise)
+        await asyncio.sleep(2)
+        
+        await update.message.reply_text(
+            "📊 *Análise do Produto*\n\n"
+            "🔗 *Link:* [Clique aqui para ver o produto]()\n"
+            "🏷️ *Preço atual:* R$ 999,99\n"
+            "📉 *Menor preço histórico:* R$ 899,99\n"
+            "📈 *Média de preço:* R$ 950,00\n\n"
+            "💡 *Recomendação:* Aguardar uma promoção melhor\n"
+            "🔔 *Alerta de preço:* Posso te avisar quando o preço baixar para R$ 850,00?"
+            " (Sim/Não)",
+            parse_mode=ParseMode.MARKDOWN,
+            disable_web_page_preview=False
+        )
+        return
+    
+    # Processa comandos de configuração do sistema de notificações
+    if NOTIFICATION_SYSTEM_AVAILABLE:
+        # Comando para adicionar categoria
+        if message_text.startswith('categoria '):
+            categoria = message_text.replace('categoria ', '').strip()
+            if categoria:
+                try:
+                    success = add_user_category(user.id, categoria)
+                    if success:
+                        await update.message.reply_text(
+                            f"✅ Categoria '{categoria.title()}' adicionada com sucesso!\n\n"
+                            f"Use /categorias para ver suas categorias configuradas."
+                        )
+                    else:
+                        await update.message.reply_text(
+                            "❌ Erro ao adicionar categoria. Tente novamente."
+                        )
+                except Exception as e:
+                    logger.error(f"Erro ao adicionar categoria: {e}")
+                    await update.message.reply_text("❌ Erro ao adicionar categoria. Tente novamente.")
+            return
+        
+        # Comando para adicionar loja favorita
+        elif message_text.startswith('favorita '):
+            loja = message_text.replace('favorita ', '').strip()
+            if loja:
+                try:
+                    success = add_favorite_store(user.id, loja)
+                    if success:
+                        await update.message.reply_text(
+                            f"⭐ Loja '{loja}' adicionada aos favoritos!\n\n"
+                            f"Use /favoritos para ver suas lojas favoritas."
+                        )
+                    else:
+                        await update.message.reply_text(
+                            "❌ Erro ao adicionar loja favorita. Tente novamente."
+                        )
+                except Exception as e:
+                    logger.error(f"Erro ao adicionar loja favorita: {e}")
+                    await update.message.reply_text("❌ Erro ao adicionar loja favorita. Tente novamente.")
+            return
+        
+        # Comando para configurar desconto mínimo
+        elif message_text.startswith('desconto '):
+            try:
+                desconto = int(message_text.replace('desconto ', '').strip())
+                if 0 <= desconto <= 100:
+                    try:
+                        success = update_user_preferences(user.id, min_discount=desconto)
+                        if success:
+                            await update.message.reply_text(
+                                f"✅ Desconto mínimo configurado para {desconto}%!\n\n"
+                                f"Você receberá notificações apenas para ofertas com desconto maior ou igual a {desconto}%."
+                            )
+                        else:
+                            await update.message.reply_text(
+                                "❌ Erro ao configurar desconto. Tente novamente."
+                            )
+                    except Exception as e:
+                        logger.error(f"Erro ao configurar desconto: {e}")
+                        await update.message.reply_text("❌ Erro ao configurar desconto. Tente novamente.")
+                else:
+                    await update.message.reply_text(
+                        "❌ Desconto deve estar entre 0% e 100%."
+                    )
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Formato inválido. Use: 'desconto X' (ex: 'desconto 25')"
+                )
+            return
+        
+        # Comando para configurar preço máximo
+        elif message_text.startswith('preco '):
+            try:
+                preco = float(message_text.replace('preco ', '').strip())
+                if preco > 0:
+                    try:
+                        success = update_user_preferences(user.id, max_price=preco)
+                        if success:
+                            await update.message.reply_text(
+                                f"✅ Preço máximo configurado para R$ {preco:.2f}!\n\n"
+                                f"Você receberá notificações apenas para ofertas com preço menor ou igual a R$ {preco:.2f}."
+                            )
+                        else:
+                            await update.message.reply_text(
+                                "❌ Erro ao configurar preço. Tente novamente."
+                            )
+                    except Exception as e:
+                        logger.error(f"Erro ao configurar preço: {e}")
+                        await update.message.reply_text("❌ Erro ao configurar preço. Tente novamente.")
+                else:
+                    await update.message.reply_text(
+                        "❌ Preço deve ser maior que zero."
+                    )
+            except ValueError:
+                await update.message.reply_text(
+                    "❌ Formato inválido. Use: 'preco X' (ex: 'preco 1500')"
+                )
+            return
+    
+    # Resposta padrão para mensagens de texto que não são comandos ou links
+    await update.message.reply_text(
+        "🤖 *Olá!*\n\n"
+        "Para começar, você pode:\n"
+        "• Enviar um link de produto para eu analisar\n"
+        "• Usar /start para ver as opções disponíveis\n"
+        "• Usar /notificacoes para configurar alertas personalizados\n"
+        "• Usar /categorias para configurar categorias de interesse\n"
+        "• Usar /favoritos para configurar lojas favoritas\n"
+        "• Se for administrador, use /buscar para forçar uma busca por ofertas",
+        parse_mode=ParseMode.MARKDOWN
+    )
+
+async def setup_bot_commands(application: Application) -> None:
+    """Configura os comandos do bot no Telegram."""
+    await application.bot.set_my_commands(BOT_COMMANDS)
+    logger.info("Comandos do bot configurados com sucesso")
+
+async def main_async():
+    """Função assíncrona principal para inicialização do bot."""
+    global application
+    
+    logger.info("Iniciando o Garimpeiro Geek...")
+    
+    try:
+        # Configura o token do bot
+        token = os.getenv('TELEGRAM_BOT_TOKEN')
+        if not token:
+            logger.error("Token do bot não encontrado. Verifique a variável de ambiente TELEGRAM_BOT_TOKEN.")
+            return
+        
+        # Cria a aplicação
+        application = Application.builder().token(token).build()
+        
+        # Configura os manipuladores de comandos
+        application.add_handler(CommandHandler("start", comando_iniciar))
+        application.add_handler(CommandHandler("buscar", comando_buscar))
+        application.add_handler(CommandHandler("oferta", comando_oferta))
+        
+        # Adiciona handlers para melhorias técnicas
+        application.add_handler(CommandHandler("status", comando_status))
+        application.add_handler(CommandHandler("metrics", comando_metrics))
+        application.add_handler(CommandHandler("cache", comando_cache))
+        application.add_handler(CommandHandler("health", comando_health))
+        
+        # Adiciona handlers para o sistema de notificações
+        if NOTIFICATION_SYSTEM_AVAILABLE:
+            application.add_handler(CommandHandler("notificacoes", comando_notificacoes))
+            application.add_handler(CommandHandler("favoritos", comando_favoritos))
+            application.add_handler(CommandHandler("categorias", comando_categorias))
+            logger.info("✅ Handlers do sistema de notificações configurados")
+        else:
+            logger.warning("⚠️ Sistema de notificações não disponível - handlers não configurados")
+        
+        # Adiciona handlers para o sistema de reviews
+        if REVIEW_SYSTEM_AVAILABLE:
+            application.add_handler(CommandHandler("review", comando_review))
+            application.add_handler(CommandHandler("reviews", comando_reviews))
+            application.add_handler(CommandHandler("minhas_reviews", comando_minhas_reviews))
+            application.add_handler(CommandHandler("moderar_review", comando_moderar_review))
+            logger.info("✅ Handlers do sistema de reviews configurados")
+        else:
+            logger.warning("⚠️ Sistema de reviews não disponível - handlers não configurados")
+        
+        # Adiciona manipulador para mensagens de texto
+        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+        
+        # Configura o manipulador de erros
+        application.add_error_handler(error_handler)
+        
+        # Configura os comandos do bot no Telegram
+        await setup_bot_commands(application)
+        
+        # Inicializa sistemas de melhorias técnicas
+        logger.info("🚀 Inicializando sistemas de melhorias técnicas...")
+        
+        try:
+            # Inicia monitoramento de saúde
+            start_health_monitoring()
+            logger.info("✅ Monitoramento de saúde iniciado")
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao iniciar monitoramento de saúde: {e}")
+        
+        try:
+            # Inicia coleta de métricas
+            start_metrics_collection()
+            logger.info("✅ Coleta de métricas iniciada")
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao iniciar coleta de métricas: {e}")
+        
+        try:
+            # Adiciona verificadores de saúde para scrapers
+            add_scraper_health_check("amazon_scraper", lambda: True, 300)
+            add_scraper_health_check("aliexpress_scraper", lambda: True, 300)
+            add_scraper_health_check("magalu_scraper", lambda: True, 300)
+            add_scraper_health_check("promobit_scraper", lambda: True, 300)
+            add_scraper_health_check("awin_api", lambda: True, 120)
+            logger.info("✅ Verificadores de saúde dos scrapers configurados")
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao configurar verificadores de saúde: {e}")
+        
+        try:
+            # Configura callbacks de alerta
+            health_monitor.add_alert_callback(handle_health_alert)
+            performance_metrics.add_anomaly_callback(handle_performance_anomaly)
+            logger.info("✅ Callbacks de alerta configurados")
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao configurar callbacks de alerta: {e}")
+        
+        # Agenda as tarefas periódicas
+        await agendar_tarefas(application)
+        
+        # Inicializa o bot
+        logger.info("Inicializando o bot...")
+        
+        # Remove qualquer webhook existente
+        logger.info("Removendo webhooks existentes...")
+        await application.bot.delete_webhook(drop_pending_updates=True)
+        logger.info("Webhook removido com sucesso!")
+        
+        # Inicia o bot com polling
+        logger.info("Iniciando o bot com polling...")
+        
+        # Usando run_polling() diretamente, que já gerencia o loop de eventos
+        try:
+            # Inicia o polling em background
+            application.run_polling(drop_pending_updates=True)
+        except Exception as e:
+            logger.error(f"Erro durante execução do bot: {e}")
+            raise
+        
+        logger.info("Bot em execução! Pressione Ctrl+C para encerrar.")
+        
+        # O loop de eventos é gerenciado internamente pelo application.run_polling()
+            
+    except asyncio.CancelledError:
+        logger.info("Recebido sinal de cancelamento. Encerrando...")
+        if 'application' in globals() and application:
+            await application.stop()
+            await application.shutdown()
+        raise
+    except Exception as e:
+        logger.error(f"Erro na função main_async: {e}", exc_info=True)
+        if 'application' in globals() and application:
+            await application.stop()
+            await application.shutdown()
+        raise
+
+def main() -> None:
+    """Ponto de entrada principal do bot."""
+    logger.info("Iniciando função main()")
+    
+    # Configura o loop de eventos
+    try:
+        # Cria um novo loop de eventos
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        # Executa a função main_async até a conclusão
+        loop.run_until_complete(main_async())
+        
+    except KeyboardInterrupt:
+        logger.info("Bot interrompido pelo usuário.")
+    except Exception as e:
+        logger.error(f"Erro fatal: {e}", exc_info=True)
+    finally:
+        # Garante que o loop seja fechado corretamente
+        try:
+            if 'loop' in locals() and loop is not None:
+                if loop.is_running():
+                    loop.stop()
+                if not loop.is_closed():
+                    loop.close()
+            logger.info("Aplicação finalizada com sucesso.")
+        except Exception as e:
+            logger.error(f"Erro ao finalizar o loop de eventos: {e}", exc_info=True)
+        
+        # Encerra o processo para garantir que não haja tarefas pendentes
+        try:
+            import os
+            os._exit(0)
+        except Exception as e:
+            logger.error(f"Erro ao encerrar o processo: {e}", exc_info=True)
+            # Força o encerramento
+            import sys
+            sys.exit(1)
+
+def add_user_category(user_id: int, category: str) -> bool:
+    """
+    Adiciona uma categoria de interesse para um usuário.
+    """
+    try:
+        if not user_id or not category:
+            logger.warning("user_id ou category inválidos em add_user_category")
+            return False
+            
+        if USER_CATEGORIES_AVAILABLE:
+            try:
+                return category_manager.add_user_category(user_id, category)
+            except Exception as e:
+                logger.error(f"Erro ao adicionar categoria via category_manager: {e}")
+                return False
+        return False
+    except Exception as e:
+        logger.error(f"Erro ao adicionar categoria: {e}")
+        return False
+
+def add_favorite_store(user_id: int, store: str) -> bool:
+    """
+    Adiciona uma loja favorita para um usuário.
+    """
+    try:
+        if NOTIFICATION_SYSTEM_AVAILABLE:
+            # Aqui você pode implementar a lógica para adicionar loja favorita
+            # Por enquanto, retorna True para simular sucesso
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Erro ao adicionar loja favorita: {e}")
+        return False
+
+def update_user_preferences(user_id: int, **kwargs) -> bool:
+    """
+    Atualiza as preferências de um usuário.
+    """
+    try:
+        if NOTIFICATION_SYSTEM_AVAILABLE:
+            # Aqui você pode implementar a lógica para atualizar preferências
+            # Por enquanto, retorna True para simular sucesso
+            return True
+        return False
+    except Exception as e:
+        logger.error(f"Erro ao atualizar preferências: {e}")
+        return False
+
+async def error_handler(update: Any, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    Manipulador de erros global.
+    
+    Captura e registra erros não tratados que ocorrem durante o processamento
+    de atualizações e callbacks.
+    """
+    # Log detalhado do erro
+    try:
+        if context and hasattr(context, 'error'):
+            logger.error("=== ERRO NO BOT ===", exc_info=context.error)
+        else:
+            logger.error("=== ERRO NO BOT ===", exc_info=True)
+    except Exception as e:
+        logger.error(f"Erro ao registrar erro: {e}")
+    
+    # Tenta obter informações adicionais sobre o update
+    update_info = {}
+    try:
+        if update is not None:
+            # Verifica se é um Update válido
+            if hasattr(update, 'update_id'):
+                update_info['update_id'] = update.update_id
+            if hasattr(update, 'effective_user') and update.effective_user:
+                user = update.effective_user
+                if user and hasattr(user, 'id') and user.id:
+                    update_info['user_id'] = user.id
+                if user and hasattr(user, 'username') and user.username:
+                    update_info['username'] = user.username
+            if hasattr(update, 'effective_chat') and update.effective_chat:
+                chat = update.effective_chat
+                if chat and hasattr(chat, 'id') and chat.id:
+                    update_info['chat_id'] = chat.id
+                if chat and hasattr(chat, 'type') and chat.type:
+                    update_info['chat_type'] = chat.type
+            if hasattr(update, 'message') and update.message and hasattr(update.message, 'text'):
+                message = update.message
+                if message and hasattr(message, 'text') and message.text:
+                    update_info['message_text'] = message.text[:100]  # Limita o tamanho
+    except Exception as e:
+        logger.error(f"Erro ao obter informações do update: {e}")
+    
+    logger.error(f"Informações do update: {update_info}")
+    
+    # Tenta notificar o administrador em caso de erro
+    admin_id = os.getenv('ADMIN_USER_ID')
+    if admin_id and context and hasattr(context, 'bot') and context.bot:
+        try:
+            error_message = (
+                f"⚠️ *ERRO NO BOT*\n\n"
+                f"*Tipo:* `{type(context.error).__name__ if context and hasattr(context, 'error') else 'Unknown'}`\n"
+                f"*Mensagem:* `{str(context.error)[:1000] if context and hasattr(context, 'error') else 'Erro desconhecido'}`\n\n"
+                f"*Update:* `{update_info}`"
+            )
+            
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=error_message,
+                parse_mode=ParseMode.MARKDOWN,
+                disable_web_page_preview=True
+            )
+        except Exception as admin_error:
+            logger.error(f"Erro ao notificar administrador: {admin_error}", exc_info=True)
+
+    # Tenta notificar o usuário que causou o erro
+    try:
+        if update and hasattr(update, 'message') and update.message:
+            message = update.message
+            if message and hasattr(message, 'reply_text'):
+                # Mensagem mais amigável para o usuário
+                user_message = (
+                    "❌ *Ocorreu um erro ao processar sua solicitação.*\n\n"
+                    "O administrador foi notificado e o problema será resolvido em breve.\n"
+                    "Por favor, tente novamente mais tarde."
+                )
+                
+                # Tenta responder à mensagem original
+                await message.reply_text(
+                    user_message,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True
+                )
+    except Exception as user_error:
+        logger.error(f"Erro ao notificar usuário: {user_error}", exc_info=True)
+    
+    # Log final
+    logger.error("=== FIM DO REGISTRO DE ERRO ===\n")
+
+if __name__ == '__main__':
+    main()

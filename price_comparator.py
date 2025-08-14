@@ -1,0 +1,782 @@
+"""
+Sistema de Comparador de Preços entre Lojas
+
+Este módulo implementa:
+- Comparação de preços entre diferentes lojas
+- Análise de melhor oferta
+- Recomendações de compra
+- Histórico de comparações
+- Alertas de preços competitivos
+"""
+
+import sqlite3
+import json
+import logging
+import statistics
+from typing import Dict, List, Optional, Tuple, Any, Set
+from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
+from enum import Enum
+import asyncio
+import math
+
+logger = logging.getLogger(__name__)
+
+class StoreType(Enum):
+    """Tipos de lojas suportadas."""
+    AMAZON = "amazon"
+    ALIEXPRESS = "aliexpress"
+    MAGAZINE_LUIZA = "magazine_luiza"
+    PROMOBIT = "promobit"
+    MERCADO_LIVRE = "mercado_livre"
+    SHOPEE = "shopee"
+    ZOOM = "zoom"
+    OUTROS = "outros"
+
+class ComparisonType(Enum):
+    """Tipos de comparação."""
+    EXACT_MATCH = "exact_match"           # Produto idêntico
+    SIMILAR_PRODUCT = "similar_product"   # Produto similar
+    CATEGORY_MATCH = "category_match"     # Mesma categoria
+    PRICE_RANGE = "price_range"           # Faixa de preço similar
+
+@dataclass
+class ProductOffer:
+    """Oferta de produto em uma loja."""
+    product_id: str
+    store: str
+    product_name: str
+    price: float
+    original_price: Optional[float]
+    discount_percent: Optional[float]
+    currency: str
+    availability: bool
+    shipping_cost: Optional[float]
+    total_cost: float  # preço + frete
+    rating: Optional[float]
+    review_count: Optional[int]
+    url: str
+    last_updated: datetime
+    source: str  # scraper, api, manual
+    
+    def to_dict(self) -> Dict:
+        """Converte para dicionário."""
+        data = asdict(self)
+        data['last_updated'] = self.last_updated.isoformat()
+        return data
+
+@dataclass
+class PriceComparison:
+    """Comparação de preços entre lojas."""
+    comparison_id: str
+    product_name: str
+    category: str
+    offers: List[ProductOffer]
+    best_offer: ProductOffer
+    price_range: Dict[str, float]
+    savings_potential: float
+    store_count: int
+    comparison_date: datetime
+    confidence_score: float  # 0-1, confiança na comparação
+    
+    def to_dict(self) -> Dict:
+        """Converte para dicionário."""
+        data = asdict(self)
+        data['comparison_date'] = self.comparison_date.isoformat()
+        data['offers'] = [offer.to_dict() for offer in self.offers]
+        data['best_offer'] = self.best_offer.to_dict()
+        return data
+
+@dataclass
+class ComparisonRecommendation:
+    """Recomendação de compra baseada na comparação."""
+    product_name: str
+    recommended_store: str
+    recommended_price: float
+    total_savings: float
+    savings_percent: float
+    confidence: float
+    reasoning: str
+    alternatives: List[str]
+    created_at: datetime
+    
+    def to_dict(self) -> Dict:
+        """Converte para dicionário."""
+        data = asdict(self)
+        data['created_at'] = self.created_at.isoformat()
+        return data
+
+class PriceComparator:
+    """Comparador de preços entre lojas."""
+    
+    def __init__(self, db_path: str = "price_comparisons.db"):
+        self.db_path = db_path
+        self._init_database()
+        self.similarity_thresholds = {
+            'exact_match': 0.95,      # 95% de similaridade
+            'similar_product': 0.80,   # 80% de similaridade
+            'category_match': 0.60,    # 60% de similaridade
+            'price_range': 0.40        # 40% de similaridade
+        }
+    
+    def _init_database(self):
+        """Inicializa banco de dados."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Tabela de ofertas de produtos
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS product_offers (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_id TEXT NOT NULL,
+                        store TEXT NOT NULL,
+                        product_name TEXT NOT NULL,
+                        price REAL NOT NULL,
+                        original_price REAL,
+                        discount_percent REAL,
+                        currency TEXT DEFAULT 'BRL',
+                        availability BOOLEAN DEFAULT 1,
+                        shipping_cost REAL,
+                        total_cost REAL NOT NULL,
+                        rating REAL,
+                        review_count INTEGER,
+                        url TEXT,
+                        last_updated TEXT NOT NULL,
+                        source TEXT NOT NULL,
+                        UNIQUE(product_id, store)
+                    )
+                """)
+                
+                # Tabela de comparações
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS price_comparisons (
+                        comparison_id TEXT PRIMARY KEY,
+                        product_name TEXT NOT NULL,
+                        category TEXT NOT NULL,
+                        offers_count INTEGER NOT NULL,
+                        best_price REAL NOT NULL,
+                        worst_price REAL NOT NULL,
+                        avg_price REAL NOT NULL,
+                        price_variance REAL NOT NULL,
+                        comparison_date TEXT NOT NULL,
+                        confidence_score REAL NOT NULL
+                    )
+                """)
+                
+                # Tabela de detalhes de comparação
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS comparison_details (
+                        comparison_id TEXT NOT NULL,
+                        store TEXT NOT NULL,
+                        product_id TEXT NOT NULL,
+                        price REAL NOT NULL,
+                        total_cost REAL NOT NULL,
+                        ranking INTEGER NOT NULL,
+                        savings_vs_worst REAL NOT NULL,
+                        savings_percent REAL NOT NULL,
+                        PRIMARY KEY (comparison_id, store)
+                    )
+                """)
+                
+                # Tabela de recomendações
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS comparison_recommendations (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        product_name TEXT NOT NULL,
+                        recommended_store TEXT NOT NULL,
+                        recommended_price REAL NOT NULL,
+                        total_savings REAL NOT NULL,
+                        savings_percent REAL NOT NULL,
+                        confidence REAL NOT NULL,
+                        reasoning TEXT NOT NULL,
+                        alternatives TEXT,
+                        created_at TEXT NOT NULL
+                    )
+                """)
+                
+                # Tabela de histórico de comparações
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS comparison_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        comparison_id TEXT NOT NULL,
+                        action TEXT NOT NULL,
+                        old_value TEXT,
+                        new_value TEXT,
+                        timestamp TEXT NOT NULL
+                    )
+                """)
+                
+                # Índices para performance
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_product_offers_product ON product_offers(product_id)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_product_offers_store ON product_offers(store)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_product_offers_price ON product_offers(price)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_comparisons_date ON price_comparisons(comparison_date)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_comparison_details_id ON comparison_details(comparison_id)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_recommendations_product ON comparison_recommendations(product_name)")
+                
+                conn.commit()
+                logger.info("Banco de dados de comparação de preços inicializado")
+        except Exception as e:
+            logger.error(f"Erro ao inicializar banco de dados: {e}")
+    
+    def add_product_offer(self, product_id: str, store: str, product_name: str, price: float,
+                         original_price: Optional[float] = None, discount_percent: Optional[float] = None,
+                         currency: str = "BRL", availability: bool = True, shipping_cost: Optional[float] = None,
+                         rating: Optional[float] = None, review_count: Optional[int] = None, url: str = "",
+                         source: str = "scraper") -> bool:
+        """Adiciona ou atualiza oferta de produto."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                now = datetime.now()
+                total_cost = price + (shipping_cost or 0)
+                
+                # Insere ou atualiza oferta
+                conn.execute("""
+                    INSERT OR REPLACE INTO product_offers 
+                    (product_id, store, product_name, price, original_price, discount_percent, currency,
+                     availability, shipping_cost, total_cost, rating, review_count, url, last_updated, source)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    product_id, store, product_name, price, original_price, discount_percent, currency,
+                    availability, shipping_cost, total_cost, rating, review_count, url, now.isoformat(), source
+                ))
+                
+                conn.commit()
+                logger.info(f"Oferta adicionada: {product_name} em {store} - R$ {total_cost}")
+                return True
+                
+        except Exception as e:
+            logger.error(f"Erro ao adicionar oferta: {e}")
+            return False
+    
+    def find_similar_products(self, product_name: str, category: str, price_range: Tuple[float, float],
+                            limit: int = 10) -> List[ProductOffer]:
+        """Encontra produtos similares para comparação."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Busca por nome similar e faixa de preço
+                cursor = conn.execute("""
+                    SELECT product_id, store, product_name, price, original_price, discount_percent, currency,
+                           availability, shipping_cost, total_cost, rating, review_count, url, last_updated, source
+                    FROM product_offers 
+                    WHERE product_name LIKE ? 
+                    AND total_cost BETWEEN ? AND ?
+                    AND availability = 1
+                    ORDER BY 
+                        CASE 
+                            WHEN product_name LIKE ? THEN 1
+                            WHEN product_name LIKE ? THEN 2
+                            ELSE 3
+                        END,
+                        total_cost ASC
+                    LIMIT ?
+                """, (
+                    f"%{product_name}%", 
+                    price_range[0] * 0.7,  # 30% abaixo do preço mínimo
+                    price_range[1] * 1.3,  # 30% acima do preço máximo
+                    product_name,           # Nome exato
+                    f"%{product_name}%",   # Nome contido
+                    limit
+                ))
+                
+                offers = []
+                for row in cursor.fetchall():
+                    offer = ProductOffer(
+                        product_id=row[0],
+                        store=row[1],
+                        product_name=row[2],
+                        price=row[3],
+                        original_price=row[4],
+                        discount_percent=row[5],
+                        currency=row[6],
+                        availability=bool(row[7]),
+                        shipping_cost=row[8],
+                        total_cost=row[9],
+                        rating=row[10],
+                        review_count=row[11],
+                        url=row[12],
+                        last_updated=datetime.fromisoformat(row[13]),
+                        source=row[14]
+                    )
+                    offers.append(offer)
+                
+                return offers
+                
+        except Exception as e:
+            logger.error(f"Erro ao encontrar produtos similares: {e}")
+            return []
+    
+    def compare_prices(self, product_name: str, category: str, offers: List[ProductOffer]) -> Optional[PriceComparison]:
+        """Compara preços entre ofertas de produtos."""
+        try:
+            if not offers or len(offers) < 2:
+                return None
+            
+            # Ordena por preço total (incluindo frete)
+            sorted_offers = sorted(offers, key=lambda x: x.total_cost)
+            
+            # Calcula estatísticas
+            prices = [offer.total_cost for offer in offers]
+            best_offer = sorted_offers[0]
+            worst_offer = sorted_offers[-1]
+            
+            price_range = {
+                'min': min(prices),
+                'max': max(prices),
+                'avg': statistics.mean(prices),
+                'median': statistics.median(prices)
+            }
+            
+            # Calcula potencial de economia
+            savings_potential = worst_offer.total_cost - best_offer.total_cost
+            savings_percent = (savings_potential / worst_offer.total_cost) * 100 if worst_offer.total_cost > 0 else 0
+            
+            # Calcula score de confiança
+            confidence_score = self._calculate_comparison_confidence(offers, product_name)
+            
+            # Cria ID único para comparação
+            comparison_id = f"comp_{int(datetime.now().timestamp())}_{hash(product_name) % 10000}"
+            
+            # Salva comparação no banco
+            self._save_comparison(comparison_id, product_name, category, offers, price_range, confidence_score)
+            
+            comparison = PriceComparison(
+                comparison_id=comparison_id,
+                product_name=product_name,
+                category=category,
+                offers=offers,
+                best_offer=best_offer,
+                price_range=price_range,
+                savings_potential=savings_potential,
+                store_count=len(offers),
+                comparison_date=datetime.now(),
+                confidence_score=confidence_score
+            )
+            
+            logger.info(f"Comparação criada: {product_name} - {len(offers)} ofertas, economia: R$ {savings_potential:.2f}")
+            return comparison
+            
+        except Exception as e:
+            logger.error(f"Erro ao comparar preços: {e}")
+            return None
+    
+    def _calculate_comparison_confidence(self, offers: List[ProductOffer], product_name: str) -> float:
+        """Calcula score de confiança da comparação."""
+        try:
+            confidence_factors = []
+            
+            # Fator 1: Quantidade de ofertas
+            offer_count_score = min(1.0, len(offers) / 5.0)  # Máximo 5 ofertas
+            confidence_factors.append(offer_count_score * 0.3)
+            
+            # Fator 2: Similaridade dos nomes
+            name_similarity_scores = []
+            for offer in offers:
+                similarity = self._calculate_name_similarity(product_name, offer.product_name)
+                name_similarity_scores.append(similarity)
+            
+            avg_name_similarity = statistics.mean(name_similarity_scores) if name_similarity_scores else 0
+            confidence_factors.append(avg_name_similarity * 0.4)
+            
+            # Fator 3: Variedade de lojas
+            stores = set(offer.store for offer in offers)
+            store_variety_score = min(1.0, len(stores) / 4.0)  # Máximo 4 lojas diferentes
+            confidence_factors.append(store_variety_score * 0.2)
+            
+            # Fator 4: Recência das ofertas
+            now = datetime.now()
+            recency_scores = []
+            for offer in offers:
+                days_old = (now - offer.last_updated).days
+                recency_score = max(0, 1 - (days_old / 30))  # Máximo 30 dias
+                recency_scores.append(recency_score)
+            
+            avg_recency = statistics.mean(recency_scores) if recency_scores else 0
+            confidence_factors.append(avg_recency * 0.1)
+            
+            # Calcula score final
+            final_confidence = sum(confidence_factors)
+            return min(1.0, max(0.0, final_confidence))
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular confiança: {e}")
+            return 0.5
+    
+    def _calculate_name_similarity(self, name1: str, name2: str) -> float:
+        """Calcula similaridade entre dois nomes de produtos."""
+        try:
+            # Normaliza nomes
+            name1_norm = name1.lower().strip()
+            name2_norm = name2.lower().strip()
+            
+            # Remove palavras comuns
+            common_words = {'o', 'a', 'de', 'da', 'do', 'das', 'dos', 'em', 'para', 'com', 'sem'}
+            words1 = set(name1_norm.split()) - common_words
+            words2 = set(name2_norm.split()) - common_words
+            
+            if not words1 or not words2:
+                return 0.0
+            
+            # Calcula similaridade Jaccard
+            intersection = len(words1.intersection(words2))
+            union = len(words1.union(words2))
+            
+            if union == 0:
+                return 0.0
+            
+            jaccard_similarity = intersection / union
+            
+            # Ajusta por comprimento dos nomes
+            length_factor = min(len(name1_norm), len(name2_norm)) / max(len(name1_norm), len(name2_norm))
+            
+            # Score final
+            final_score = (jaccard_similarity * 0.7) + (length_factor * 0.3)
+            return min(1.0, max(0.0, final_score))
+            
+        except Exception as e:
+            logger.error(f"Erro ao calcular similaridade de nomes: {e}")
+            return 0.0
+    
+    def _save_comparison(self, comparison_id: str, product_name: str, category: str, 
+                        offers: List[ProductOffer], price_range: Dict[str, float], confidence_score: float):
+        """Salva comparação no banco de dados."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Salva comparação principal
+                conn.execute("""
+                    INSERT INTO price_comparisons 
+                    (comparison_id, product_name, category, offers_count, best_price, worst_price, avg_price, price_variance, comparison_date, confidence_score)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    comparison_id, product_name, category, len(offers), 
+                    price_range['min'], price_range['max'], price_range['avg'],
+                    price_range.get('variance', 0), datetime.now().isoformat(), confidence_score
+                ))
+                
+                # Salva detalhes de cada oferta
+                sorted_offers = sorted(offers, key=lambda x: x.total_cost)
+                for i, offer in enumerate(sorted_offers):
+                    worst_price = sorted_offers[-1].total_cost
+                    savings_vs_worst = worst_price - offer.total_cost
+                    savings_percent = (savings_vs_worst / worst_price) * 100 if worst_price > 0 else 0
+                    
+                    conn.execute("""
+                        INSERT INTO comparison_details 
+                        (comparison_id, store, product_id, price, total_cost, ranking, savings_vs_worst, savings_percent)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        comparison_id, offer.store, offer.product_id, offer.price, offer.total_cost,
+                        i + 1, savings_vs_worst, savings_percent
+                    ))
+                
+                conn.commit()
+                
+        except Exception as e:
+            logger.error(f"Erro ao salvar comparação: {e}")
+    
+    def get_comparison(self, comparison_id: str) -> Optional[PriceComparison]:
+        """Obtém uma comparação específica."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Obtém dados da comparação
+                cursor = conn.execute("""
+                    SELECT comparison_id, product_name, category, offers_count, best_price, worst_price, 
+                           avg_price, price_variance, comparison_date, confidence_score
+                    FROM price_comparisons 
+                    WHERE comparison_id = ?
+                """, (comparison_id,))
+                
+                comp_row = cursor.fetchone()
+                if not comp_row:
+                    return None
+                
+                # Obtém ofertas da comparação
+                cursor = conn.execute("""
+                    SELECT cd.store, cd.product_id, cd.price, cd.total_cost, cd.ranking,
+                           po.product_name, po.original_price, po.discount_percent, po.currency,
+                           po.availability, po.shipping_cost, po.rating, po.review_count, po.url, po.last_updated, po.source
+                    FROM comparison_details cd
+                    JOIN product_offers po ON cd.product_id = po.product_id AND cd.store = po.store
+                    WHERE cd.comparison_id = ?
+                    ORDER BY cd.ranking
+                """, (comparison_id,))
+                
+                offers = []
+                for row in cursor.fetchall():
+                    offer = ProductOffer(
+                        product_id=row[1],
+                        store=row[0],
+                        product_name=row[5],
+                        price=row[2],
+                        original_price=row[6],
+                        discount_percent=row[7],
+                        currency=row[8],
+                        availability=bool(row[9]),
+                        shipping_cost=row[10],
+                        total_cost=row[3],
+                        rating=row[11],
+                        review_count=row[12],
+                        url=row[13],
+                        last_updated=datetime.fromisoformat(row[14]),
+                        source=row[15]
+                    )
+                    offers.append(offer)
+                
+                if not offers:
+                    return None
+                
+                # Reconstrói comparação
+                comparison = PriceComparison(
+                    comparison_id=comp_row[0],
+                    product_name=comp_row[1],
+                    category=comp_row[2],
+                    offers=offers,
+                    best_offer=offers[0],  # Primeiro é o mais barato
+                    price_range={
+                        'min': comp_row[4],
+                        'max': comp_row[5],
+                        'avg': comp_row[6],
+                        'variance': comp_row[7]
+                    },
+                    savings_potential=comp_row[5] - comp_row[4],
+                    store_count=comp_row[3],
+                    comparison_date=datetime.fromisoformat(comp_row[8]),
+                    confidence_score=comp_row[9]
+                )
+                
+                return comparison
+                
+        except Exception as e:
+            logger.error(f"Erro ao obter comparação: {e}")
+            return None
+    
+    def get_recent_comparisons(self, limit: int = 20) -> List[PriceComparison]:
+        """Obtém comparações recentes."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("""
+                    SELECT comparison_id FROM price_comparisons 
+                    ORDER BY comparison_date DESC 
+                    LIMIT ?
+                """, (limit,))
+                
+                comparisons = []
+                for row in cursor.fetchall():
+                    comparison = self.get_comparison(row[0])
+                    if comparison:
+                        comparisons.append(comparison)
+                
+                return comparisons
+                
+        except Exception as e:
+            logger.error(f"Erro ao obter comparações recentes: {e}")
+            return []
+    
+    def generate_recommendation(self, comparison: PriceComparison) -> ComparisonRecommendation:
+        """Gera recomendação de compra baseada na comparação."""
+        try:
+            best_offer = comparison.best_offer
+            worst_offer = comparison.offers[-1]  # Último é o mais caro
+            
+            total_savings = worst_offer.total_cost - best_offer.total_cost
+            savings_percent = (total_savings / worst_offer.total_cost) * 100 if worst_offer.total_cost > 0 else 0
+            
+            # Determina confiança da recomendação
+            confidence = comparison.confidence_score
+            
+            # Gera raciocínio
+            reasoning_parts = []
+            
+            if savings_percent > 20:
+                reasoning_parts.append(f"Economia significativa de {savings_percent:.1f}%")
+            elif savings_percent > 10:
+                reasoning_parts.append(f"Economia de {savings_percent:.1f}%")
+            else:
+                reasoning_parts.append("Preço competitivo")
+            
+            if best_offer.rating and best_offer.rating >= 4.0:
+                reasoning_parts.append("Avaliação alta")
+            elif best_offer.rating and best_offer.rating >= 3.0:
+                reasoning_parts.append("Avaliação boa")
+            
+            if best_offer.discount_percent and best_offer.discount_percent > 15:
+                reasoning_parts.append(f"Desconto de {best_offer.discount_percent:.1f}%")
+            
+            reasoning = ". ".join(reasoning_parts)
+            
+            # Alternativas (outras lojas com preços similares)
+            alternatives = []
+            for offer in comparison.offers[1:4]:  # Próximas 3 opções
+                if offer.total_cost <= best_offer.total_cost * 1.1:  # Até 10% mais caro
+                    alternatives.append(offer.store)
+            
+            recommendation = ComparisonRecommendation(
+                product_name=comparison.product_name,
+                recommended_store=best_offer.store,
+                recommended_price=best_offer.total_cost,
+                total_savings=total_savings,
+                savings_percent=savings_percent,
+                confidence=confidence,
+                reasoning=reasoning,
+                alternatives=alternatives,
+                created_at=datetime.now()
+            )
+            
+            # Salva recomendação
+            self._save_recommendation(recommendation)
+            
+            return recommendation
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar recomendação: {e}")
+            return None
+    
+    def _save_recommendation(self, recommendation: ComparisonRecommendation):
+        """Salva recomendação no banco de dados."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                conn.execute("""
+                    INSERT INTO comparison_recommendations 
+                    (product_name, recommended_store, recommended_price, total_savings, savings_percent, 
+                     confidence, reasoning, alternatives, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    recommendation.product_name, recommendation.recommended_store, recommendation.recommended_price,
+                    recommendation.total_savings, recommendation.savings_percent, recommendation.confidence,
+                    recommendation.reasoning, json.dumps(recommendation.alternatives), recommendation.created_at.isoformat()
+                ))
+                
+                conn.commit()
+                
+        except Exception as e:
+            logger.error(f"Erro ao salvar recomendação: {e}")
+    
+    def get_recommendations(self, limit: int = 20) -> List[ComparisonRecommendation]:
+        """Obtém recomendações recentes."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute("""
+                    SELECT product_name, recommended_store, recommended_price, total_savings, savings_percent,
+                           confidence, reasoning, alternatives, created_at
+                    FROM comparison_recommendations 
+                    ORDER BY created_at DESC 
+                    LIMIT ?
+                """, (limit,))
+                
+                recommendations = []
+                for row in cursor.fetchall():
+                    recommendation = ComparisonRecommendation(
+                        product_name=row[0],
+                        recommended_store=row[1],
+                        recommended_price=row[2],
+                        total_savings=row[3],
+                        savings_percent=row[4],
+                        confidence=row[5],
+                        reasoning=row[6],
+                        alternatives=json.loads(row[7]) if row[7] else [],
+                        created_at=datetime.fromisoformat(row[8])
+                    )
+                    recommendations.append(recommendation)
+                
+                return recommendations
+                
+        except Exception as e:
+            logger.error(f"Erro ao obter recomendações: {e}")
+            return []
+    
+    def get_comparison_stats(self) -> Dict[str, Any]:
+        """Obtém estatísticas gerais das comparações."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Estatísticas básicas
+                cursor = conn.execute("SELECT COUNT(*) FROM price_comparisons")
+                total_comparisons = cursor.fetchone()[0]
+                
+                cursor = conn.execute("SELECT COUNT(*) FROM product_offers")
+                total_offers = cursor.fetchone()[0]
+                
+                cursor = conn.execute("SELECT COUNT(DISTINCT store) FROM product_offers")
+                total_stores = cursor.fetchone()[0]
+                
+                # Média de economia
+                cursor = conn.execute("""
+                    SELECT AVG((worst_price - best_price) / worst_price * 100) 
+                    FROM price_comparisons 
+                    WHERE worst_price > 0
+                """)
+                avg_savings_percent = cursor.fetchone()[0] or 0
+                
+                # Confiança média
+                cursor = conn.execute("SELECT AVG(confidence_score) FROM price_comparisons")
+                avg_confidence = cursor.fetchone()[0] or 0
+                
+                # Lojas mais comparadas
+                cursor = conn.execute("""
+                    SELECT store, COUNT(*) as count
+                    FROM comparison_details 
+                    GROUP BY store 
+                    ORDER BY count DESC 
+                    LIMIT 5
+                """)
+                top_stores = [{'store': row[0], 'count': row[1]} for row in cursor.fetchall()]
+                
+                return {
+                    'total_comparisons': total_comparisons,
+                    'total_offers': total_offers,
+                    'total_stores': total_stores,
+                    'avg_savings_percent': round(avg_savings_percent, 1),
+                    'avg_confidence': round(avg_confidence, 2),
+                    'top_stores': top_stores,
+                    'last_updated': datetime.now().isoformat()
+                }
+                
+        except Exception as e:
+            logger.error(f"Erro ao obter estatísticas: {e}")
+            return {}
+
+# Instância global do comparador
+price_comparator = PriceComparator()
+
+# Funções de conveniência
+def add_product_offer(product_id: str, store: str, product_name: str, price: float, **kwargs) -> bool:
+    """Adiciona oferta de produto."""
+    return price_comparator.add_product_offer(product_id, store, product_name, price, **kwargs)
+
+def compare_prices(product_name: str, category: str, offers: List[ProductOffer]) -> Optional[PriceComparison]:
+    """Compara preços entre ofertas."""
+    return price_comparator.compare_prices(product_name, category, offers)
+
+def get_comparison(comparison_id: str) -> Optional[PriceComparison]:
+    """Obtém uma comparação específica."""
+    return price_comparator.get_comparison(comparison_id)
+
+def generate_recommendation(comparison: PriceComparison) -> ComparisonRecommendation:
+    """Gera recomendação de compra."""
+    return price_comparator.generate_recommendation(comparison)
+
+if __name__ == "__main__":
+    # Teste do sistema de comparação de preços
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    
+    print("Testando Sistema de Comparação de Preços...")
+    
+    # Cria ofertas de teste
+    offers = [
+        ProductOffer("prod1", "amazon", "Smartphone Samsung Galaxy", 1200.0, 1500.0, 20.0, "BRL", True, 0.0, 1200.0, 4.5, 150, "http://amazon.com", datetime.now(), "test"),
+        ProductOffer("prod2", "magalu", "Smartphone Samsung Galaxy", 1250.0, 1400.0, 10.7, "BRL", True, 15.0, 1265.0, 4.2, 89, "http://magalu.com", datetime.now(), "test"),
+        ProductOffer("prod3", "promobit", "Smartphone Samsung Galaxy", 1180.0, 1600.0, 26.3, "BRL", True, 0.0, 1180.0, 4.8, 234, "http://promobit.com", datetime.now(), "test")
+    ]
+    
+    # Compara preços
+    comparison = compare_prices("Smartphone Samsung Galaxy", "eletronicos", offers)
+    if comparison:
+        print(f"Comparação criada: {comparison.product_name}")
+        print(f"Melhor preço: {comparison.best_offer.store} - R$ {comparison.best_offer.total_cost}")
+        print(f"Economia potencial: R$ {comparison.savings_potential:.2f}")
+        
+        # Gera recomendação
+        recommendation = generate_recommendation(comparison)
+        if recommendation:
+            print(f"Recomendação: {recommendation.recommended_store} - {recommendation.reasoning}")
+    
+    print("Teste concluído!")

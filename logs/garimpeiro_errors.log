@@ -1,0 +1,4 @@
+2025-08-12 11:54:55 - garimpeiro_geek.magalu_advanced - ERROR - ❌ Erro ao processar página 2: Page.goto: Timeout 30000ms exceeded.
+Call log:
+  - navigating to "https://www.magazinevoce.com.br/magazinegarimpeirogeek/notebook/informatica/s/in/note/?page=2", waiting until "networkidle"
+

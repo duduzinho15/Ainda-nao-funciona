@@ -1,0 +1,31 @@
+2025-08-09 15:40:25,914 - __main__ - INFO - ============================================================
+2025-08-09 15:40:26,003 - magalu_scraper - INFO - Buscando ofertas na página 1...
+2025-08-09 15:40:28,019 - magalu_scraper - WARNING - Nenhum produto encontrado na página 1
+2025-08-09 15:40:28,032 - magalu_scraper - WARNING - Nenhum produto encontrado com o seletor alternativo
+2025-08-09 15:40:28,032 - magalu_scraper - INFO - Busca concluída. Total de 0 ofertas encontradas.
+2025-08-09 15:40:28,690 - __main__ - INFO - ============================================================
+2025-08-09 15:40:43,938 - __main__ - INFO - ============================================================
+2025-08-09 15:40:44,047 - magalu_scraper - INFO - Buscando ofertas na página 1...
+2025-08-09 15:40:45,926 - magalu_scraper - WARNING - Nenhum produto encontrado na página 1
+2025-08-09 15:40:45,939 - magalu_scraper - WARNING - Nenhum produto encontrado com o seletor alternativo
+2025-08-09 15:40:45,941 - magalu_scraper - INFO - Busca concluída. Total de 0 ofertas encontradas.
+2025-08-09 15:40:46,597 - __main__ - INFO - ============================================================
+2025-08-10 18:58:41,500 - __main__ - INFO - ============================================================
+2025-08-10 18:58:41,508 - __main__ - INFO -    • Apple iPhone 13 (256 GB) - Luz das estrelas - 3.329,10 (Amzn.to) - 2025-08-10 16:36:22
+2025-08-10 18:58:41,508 - __main__ - INFO -    • soundcore Select 4 Go da Anker, Alto-Falante Bluetooth Portátil, 20H de Bateria, IP67 à Prova d'Água e Poeira, Flutuante, Som Potente, Ideal para Ambientes Internos, Externos e Passeios - 206,50 (Amzn.to) - 2025-08-10 13:04:50
+2025-08-10 18:58:43,698 - magalu_scraper - INFO - Encontrados 792 itens na página 1
+2025-08-10 18:58:43,741 - magalu_scraper - INFO - Página 1 processada: 56 ofertas válidas
+2025-08-10 18:58:47,493 - magalu_scraper - ERROR - Erro na requisição HTTP: 404 Client Error: Not Found for url: https://www.magazineluiza.com.br/mais-vendidos/informatica/?page=1&results_per_page=48&sort_by=discount&filters=price_under_10000:true
+2025-08-10 18:58:47,497 - __main__ - INFO -    Título: Ferro de Passar Roupa a Seco Mondial FSN-55-B
+2025-08-10 18:58:47,497 - __main__ - INFO -    Preço: R$ 62,61
+2025-08-10 18:58:47,497 - __main__ - INFO -    URL: https://www.magazineluiza.com.br/ferro-de-passar-roupa-a-seco-mondial-fsn-55-b-branco/p/227604300/ep/elfs/
+2025-08-10 18:58:47,498 - __main__ - INFO -    Loja: Magazine Luiza
+2025-08-10 18:58:47,499 - __main__ - INFO -    Título: Kit Bermuda Básicos 3 Peças Masculina
+2025-08-10 18:58:47,499 - __main__ - INFO -    Preço: R$ 66,49
+2025-08-10 18:58:47,499 - __main__ - INFO -    URL: https://www.magazineluiza.com.br/kit-bermuda-basicos-3-pecas-masculina/p/bf55h53hbc/md/bema/
+2025-08-10 18:58:47,499 - __main__ - INFO -    Loja: Magazine Luiza
+2025-08-10 18:58:47,501 - __main__ - INFO -    Título: Lavadora de Roupas Consul 12kg 16 Programas de Lavagem Branca CWH12
+2025-08-10 18:58:47,501 - __main__ - INFO -    Preço: ouR$ 1.699,00
+2025-08-10 18:58:47,501 - __main__ - INFO -    URL: https://www.magazineluiza.com.br/lavadora-de-roupas-consul-12kg-16-programas-de-lavagem-branca-cwh12/p/236161000/ed/lava/
+2025-08-10 18:58:47,501 - __main__ - INFO -    Loja: Magazine Luiza
+2025-08-10 18:58:48,149 - __main__ - INFO - ============================================================
