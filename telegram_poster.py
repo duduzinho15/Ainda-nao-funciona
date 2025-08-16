@@ -52,7 +52,7 @@ async def _send_card(bot, chat_id: int, offer: dict):
             logger.info(f"🔗 AWIN: store={store}, merchant_id={merchant_id}, publisher_id={publisher_id}")
         
         if img_url:
-            buf = fetch_bytes(img_url)
+            buf = await fetch_bytes(img_url)
             try:
                 if buf:
                     image_source = "offer" if offer.get("image_url") or offer.get("imagem_url") else "og:image"
