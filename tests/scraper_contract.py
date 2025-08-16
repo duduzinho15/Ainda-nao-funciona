@@ -74,7 +74,7 @@ class Offer:
             "desconto": self.desconto,
             "imagem_url": self.imagem_url,
             "url_afiliado": self.url_afiliado,
-            "categoria": self.categoria,
+            "categoria": self.loja,
             "offer_hash": self.offer_hash,
         }
         return {k: v for k, v in d.items() if v is not None}

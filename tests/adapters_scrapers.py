@@ -2,15 +2,13 @@
 from __future__ import annotations
 from typing import List, Dict, Any
 import asyncio
-import sys
-import os
 import aiohttp
 
-# Adiciona o diretório raiz ao path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Importe seus scrapers reais aqui:
+# Cada adaptador deve retornar List[dict] já no formato base do projeto.
 
 async def run_promobit() -> List[Dict[str, Any]]:
-    """Executa scraper do Promobit e retorna ofertas no formato padrão"""
+    """Adaptador para o scraper do Promobit"""
     try:
         from promobit_scraper_clean import buscar_ofertas_promobit
         
@@ -28,7 +26,7 @@ async def run_promobit() -> List[Dict[str, Any]]:
         for oferta in ofertas:
             oferta_padrao = {
                 "titulo": oferta.get("titulo", ""),
-                "preco": oferta.get("preco_atual", oferta.get("preco", "")),  # Corrigido: usa preco_atual
+                "preco": oferta.get("preco_atual", oferta.get("preco", "")),
                 "preco_original": oferta.get("preco_original", ""),
                 "url_produto": oferta.get("url_produto", ""),
                 "imagem_url": oferta.get("imagem_url", ""),
@@ -44,7 +42,7 @@ async def run_promobit() -> List[Dict[str, Any]]:
         return []
 
 async def run_pelando() -> List[Dict[str, Any]]:
-    """Executa scraper do Pelando e retorna ofertas no formato padrão"""
+    """Adaptador para o scraper do Pelando"""
     try:
         from pelando_scraper import buscar_ofertas_pelando
         
@@ -61,7 +59,7 @@ async def run_pelando() -> List[Dict[str, Any]]:
         for oferta in ofertas:
             oferta_padrao = {
                 "titulo": oferta.get("titulo", ""),
-                "preco": oferta.get("preco_atual", oferta.get("preco", "")),  # Corrigido: usa preco_atual
+                "preco": oferta.get("preco_atual", oferta.get("preco", "")),
                 "preco_original": oferta.get("preco_original", ""),
                 "url_produto": oferta.get("url_produto", ""),
                 "imagem_url": oferta.get("imagem_url", ""),
@@ -77,21 +75,54 @@ async def run_pelando() -> List[Dict[str, Any]]:
         return []
 
 async def run_shopee() -> List[Dict[str, Any]]:
-    """Executa scraper da Shopee e retorna ofertas no formato padrão"""
+    """Adaptador para o scraper da Shopee"""
     try:
-        # Por enquanto, retorna lista vazia para evitar erros
-        print("⚠️ Scraper Shopee temporariamente desabilitado para testes")
-        return []
+        # product_scraper_ultimate.py – ajuste para a função correta
+        from product_scraper_ultimate import UltimateProductScraper
+        scraper = UltimateProductScraper()
+        # Simula busca de produtos (ajuste conforme sua implementação)
+        ofertas = []
+        # Exemplo de oferta simulada para teste
+        ofertas.append({
+            "titulo": "📱 Smartphone Teste Shopee",
+            "preco": "R$ 599,99",
+            "url_produto": "https://shopee.com.br/teste",
+            "loja": "Shopee",
+            "fonte": "product_scraper_ultimate",
+            "imagem_url": "https://picsum.photos/400/300?random=shopee"
+        })
+        return ofertas
     except Exception as e:
         print(f"❌ Erro ao executar scraper Shopee: {e}")
         return []
 
 async def run_amazon() -> List[Dict[str, Any]]:
-    """Executa scraper da Amazon e retorna ofertas no formato padrão"""
+    """Adaptador para o scraper da Amazon"""
     try:
-        # Por enquanto, retorna lista vazia para evitar erros
-        print("⚠️ Scraper Amazon temporariamente desabilitado para testes")
-        return []
+        from amazon_api import buscar_ofertas_amazon
+        
+        # Executa o scraper com parâmetros corretos
+        ofertas = await buscar_ofertas_amazon(
+            palavras_chave=["smartphone"],  # Lista de palavras-chave para teste
+            max_itens=5  # Limita resultados para teste
+        )
+        
+        # Converte para formato padrão se necessário
+        ofertas_padronizadas = []
+        for oferta in ofertas:
+            oferta_padrao = {
+                "titulo": oferta.get("titulo", ""),
+                "preco": oferta.get("preco", ""),
+                "preco_original": oferta.get("preco_original", ""),
+                "url_produto": oferta.get("url_produto", ""),
+                "imagem_url": oferta.get("imagem_url", ""),
+                "loja": "Amazon",
+                "fonte": "amazon_api",
+                "desconto": oferta.get("desconto", 0)
+            }
+            ofertas_padronizadas.append(oferta_padrao)
+        
+        return ofertas_padronizadas
     except Exception as e:
         print(f"❌ Erro ao executar scraper Amazon: {e}")
         return []

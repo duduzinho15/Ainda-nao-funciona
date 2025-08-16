@@ -5,16 +5,18 @@ import sys
 import os
 from typing import List, Dict, Any, Set
 
-# Adiciona o diretório raiz ao path
+# Adiciona o diretório raiz ao path para importar módulos
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+# Imports relativos para funcionar quando executado diretamente
 from scraper_contract import (
     Offer, validate_offer_structure, ensure_offer_hash, write_report
 )
 from adapters_scrapers import SCRAPER_ADAPTERS
+from affiliate import AffiliateLinkConverter
 
 def _guess_store_kind(loja: str) -> str:
-    """Identifica o tipo de loja para validação de afiliados"""
+    """Identifica o tipo de loja para geração de links de afiliado"""
     l = (loja or "").lower()
     if any(x in l for x in ["comfy", "trocafy", "lg", "kabum", "samsung"]):
         return "awin"
@@ -32,14 +34,13 @@ def _guess_store_kind(loja: str) -> str:
 
 async def _generate_affiliate(o: Offer) -> Offer:
     """Gera link de afiliado se não existir"""
-    # Só gera se não existir
     if not o.url_afiliado and o.url_produto:
         try:
-            from affiliate import gerar_link_afiliado
-            o.url_afiliado = gerar_link_afiliado(o.url_produto, o.loja)
+            converter = AffiliateLinkConverter()
+            o.url_afiliado = converter.gerar_link_afiliado(o.url_produto, o.loja)
+            print(f"🔗 Link de afiliado gerado para {o.loja}: {o.url_afiliado[:50]}...")
         except Exception as e:
             print(f"⚠️ Erro ao gerar link de afiliado para {o.loja}: {e}")
-            o.url_afiliado = o.url_produto  # Fallback para URL original
     return o
 
 async def _run_one(adapter_name: str) -> List[Offer]:
@@ -76,17 +77,16 @@ async def _run_one(adapter_name: str) -> List[Offer]:
 
         except Exception as e:
             print(f"❌ [{adapter_name}] Erro ao processar oferta {i+1}: {e}")
-            continue
     
-    print(f"✅ [{adapter_name}] {len(offers)} ofertas válidas processadas")
+    print(f"✅ [{adapter_name}] {len(offers)} ofertas válidas após validação")
     return offers
 
 async def main():
     """Função principal que executa todos os scrapers e gera relatório"""
-    print("🚀 EXECUÇÃO COMPLETA DOS SCRAPERS - GARIMPEIRO GEEK")
+    print("🚀 EXECUTOR DE TESTES DE SCRAPERS - GARIMPEIRO GEEK")
     print("=" * 70)
-    print("🎯 Objetivo: Validar estrutura, deduplicar e gerar relatórios")
-    print("📝 Nenhuma oferta será postada no Telegram (modo teste)")
+    print("🎯 Objetivo: Validar scrapers, estrutura de dados e geração de afiliados")
+    print("📊 Saída: Relatórios CSV/JSON na pasta reports/")
     print("=" * 70)
     
     all_offers: List[Offer] = []
@@ -96,58 +96,44 @@ async def main():
     # Executa cada scraper
     for name in SCRAPER_ADAPTERS.keys():
         print(f"\n{'='*20} SCRAPER: {name.upper()} {'='*20}")
+        
         try:
             res = await _run_one(name)
             all_offers.extend(res)
             total_valid += len(res)
             
-            # Estatísticas por scraper
-            print(f"📊 {name}: {len(res)} ofertas válidas")
-            
         except Exception as e:
-            print(f"❌ Erro fatal no scraper {name}: {e}")
+            print(f"❌ Erro crítico no scraper {name}: {e}")
             continue
     
     # Resumo final
     print(f"\n{'='*70}")
     print("📊 RESUMO FINAL")
-    print(f"{'='*70}")
-    print(f"🔍 Scrapers executados: {len(SCRAPER_ADAPTERS)}")
-    print(f"✅ Ofertas válidas: {total_valid}")
-    print(f"🔄 Total de ofertas processadas: {len(all_offers)}")
+    print("=" * 70)
+    print(f"🎯 Total de ofertas válidas: {total_valid}")
+    print(f"🏪 Scrapers executados: {len(SCRAPER_ADAPTERS)}")
     
-    # Estatísticas por loja
-    lojas = {}
-    for o in all_offers:
-        loja = o.loja
-        lojas[loja] = lojas.get(loja, 0) + 1
-    
-    print(f"\n🏪 OFERTAS POR LOJA:")
-    for loja, count in sorted(lojas.items(), key=lambda x: x[1], reverse=True):
-        print(f"  {loja}: {count} ofertas")
-    
-    # Estatísticas de imagens e afiliados (com proteção contra divisão por zero)
+    # Gera relatório
     if all_offers:
+        report_path = write_report(all_offers, total_valid, 0)
+        print(f"📄 Relatório gerado: {report_path}")
+        
+        # Mostra algumas estatísticas
+        lojas = set(o.loja for o in all_offers)
+        fontes = set(o.fonte for o in all_offers)
         com_imagem = sum(1 for o in all_offers if o.imagem_url)
         com_afiliado = sum(1 for o in all_offers if o.url_afiliado)
         
-        print(f"\n📸 ESTATÍSTICAS:")
-        print(f"  Com imagem: {com_imagem}/{len(all_offers)} ({com_imagem/len(all_offers)*100:.1f}%)")
-        print(f"  Com afiliado: {com_afiliado}/{len(all_offers)} ({com_afiliado/len(all_offers)*100:.1f}%)")
+        print(f"\n📈 ESTATÍSTICAS:")
+        print(f"  🏪 Lojas encontradas: {', '.join(lojas)}")
+        print(f"  📊 Fontes de dados: {', '.join(fontes)}")
+        print(f"  🖼️ Ofertas com imagem: {com_imagem}/{total_valid} ({com_imagem/total_valid*100:.1f}%)")
+        print(f"  🔗 Ofertas com afiliado: {com_afiliado}/{total_valid} ({com_afiliado/total_valid*100:.1f}%)")
         
-        # Gera relatório
-        report_path = write_report(all_offers, total_valid, 0)
-        print(f"\n📄 Relatório gerado: {report_path}")
-        
-        # Mostra algumas ofertas de exemplo
-        print(f"\n🎯 EXEMPLOS DE OFERTAS VALIDADAS:")
-        for i, o in enumerate(all_offers[:3]):
-            print(f"  {i+1}. {o.titulo[:60]}...")
-            print(f"     💰 {o.preco} | 🏪 {o.loja} | 📸 {'Sim' if o.imagem_url else 'Não'}")
     else:
-        print(f"\n⚠️ Nenhuma oferta válida foi coletada. Verifique os logs acima.")
+        print("❌ Nenhuma oferta válida foi coletada!")
     
-    print(f"\n🎯 Execução concluída! Nenhuma oferta foi postada no Telegram.")
+    print(f"\n🎯 Execução concluída! Verifique os relatórios na pasta reports/")
 
 if __name__ == "__main__":
     asyncio.run(main())
