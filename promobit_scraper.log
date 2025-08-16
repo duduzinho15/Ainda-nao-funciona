@@ -1,35 +1,35 @@
-2025-08-16 20:34:41,082 - promobit_scraper - DEBUG - URLs base configuradas: {'informatica': '', 'eletronicos': '', 'games': '', 'celulares': ''}
-2025-08-16 20:34:42,780 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/
-2025-08-16 20:34:42,781 - promobit_scraper - INFO - Fazendo requisição para: https://www.promobit.com.br/
-2025-08-16 20:34:42,781 - promobit_scraper - DEBUG - Headers da requisição: {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'DNT': '1', 'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Cache-Control': 'max-age=0', 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Safari/605.1.15'}
-2025-08-16 20:34:43,079 - promobit_scraper - INFO - Status da resposta: 200
-2025-08-16 20:34:43,079 - promobit_scraper - DEBUG - Headers da resposta: {'Date': 'Sat, 16 Aug 2025 23:34:44 GMT', 'Content-Type': 'text/html; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=15', 'Set-Cookie': '__goc_session__=lwvdwbknbblkqiceymgapsgxurftjxtj; expires=Sat, 23-Aug-25 23:34:44 GMT; SameSite=Lax; path=/; secure; HttpOnly', 'X-Powered-By': 'Next.js', 'Etag': 'W/"o26xh8y3lw6is6"', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 23cb48a8499223e93bb69a51b9fbac9a.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'GRU3-P12', 'Alt-Svc': 'h3=":443"; ma=86400', 'X-Amz-Cf-Id': 'kA62dYRvlKNI_wkvXUcHrqRthd8lSdyyPuOmkK-x2O0Na-ldim3n-A==', 'X-GoCache-CacheStatus': 'HIT', 'Server': 'gocache', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload', 'Content-Encoding': 'br'}
-2025-08-16 20:34:43,085 - promobit_scraper - INFO - Tamanho do conteúdo bruto: 304963 bytes
-2025-08-16 20:34:43,085 - promobit_scraper - DEBUG - Content-Encoding: br
-2025-08-16 20:34:43,085 - promobit_scraper - DEBUG - Descomprimindo conteúdo com Brotli...
-2025-08-16 20:34:43,085 - promobit_scraper - WARNING - Falha ao descompactar conteúdo com Brotli: BrotliDecompress failed
-2025-08-16 20:34:43,086 - promobit_scraper - INFO - Tamanho do HTML decodificado: 304278 caracteres
-2025-08-16 20:34:43,087 - promobit_scraper - INFO - HTML salvo em 'promobit_page_1.html' para análise
-2025-08-16 20:34:43,091 - promobit_scraper - DEBUG - HTML salvo em promobit_page_1.html
-2025-08-16 20:34:43,091 - promobit_scraper - DEBUG - Primeiros 500 caracteres do HTML: <!DOCTYPE html><html lang="pt-BR"><head><meta charSet="utf-8"/><title>As Melhores Ofertas | Promoções e Cupons é no Promobit</title><meta name="description" content="Encontre as Melhores Ofertas e Cupons no Promobit. Reunimos promoções de Smartphones, TVs, Moda e muito mais. O menor preço nas melhores lojas."/><meta name="twitter:card" content="summary"/><meta name="twitter:site" content="@promobitoficial"/><meta name="twitter:creator" content="@promobitoficial"/><meta property="fb:app_id" conte
-2025-08-16 20:34:43,134 - promobit_scraper - DEBUG - HTML parseado com sucesso
-2025-08-16 20:34:43,135 - promobit_scraper - INFO - Encontrados 21 cards de oferta na página 1
-2025-08-16 20:34:43,136 - promobit_scraper - DEBUG - Oferta extraída: Geladeira Electrolux Frost Free 310L Duplex Cor In... - R$2.384,10
-2025-08-16 20:34:43,137 - promobit_scraper - DEBUG - Oferta extraída: Relógio inteligente Amazfit Active 2 44mm Mapas GP... - R$535,12
-2025-08-16 20:34:43,137 - promobit_scraper - DEBUG - Oferta extraída: Desktop HP Pro SFF 280 G9 Intel Core i3 Windows 11... - R$2.599,05
-2025-08-16 20:34:43,138 - promobit_scraper - DEBUG - Oferta extraída: Smart TV Samsung 50" Neo Qled 4K 2024 - 50QN90D... - R$3.365,10
-2025-08-16 20:34:43,139 - promobit_scraper - DEBUG - Oferta extraída: Descubra as nossas melhores ofertas e cupons exclu... - R$15,19
-2025-08-16 20:34:43,140 - promobit_scraper - DEBUG - Oferta extraída: Kit 3 Pares de Meias Light Não Atoalhado Cano Invi... - R$15,19
-2025-08-16 20:34:43,140 - promobit_scraper - DEBUG - Oferta extraída: Planos de Internet Móvel a Partir de R$58,99. Comp... - R$58,99
-2025-08-16 20:34:43,140 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 512GB 12GB Gal... - R$6.002,10
-2025-08-16 20:34:43,141 - promobit_scraper - DEBUG - Oferta extraída: Smartwatch HUAWEI WATCH FIT 3 Tela AMOLED de 1,82"... - R$744,00
-2025-08-16 20:34:43,141 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 256GB 12GB Gal... - R$5.759,10
-2025-08-16 20:34:43,142 - promobit_scraper - DEBUG - Oferta extraída: Smart TV Samsung Vision AI TV 55" QLED 4K Q7F 2025... - R$2.899,00
-2025-08-16 20:34:43,142 - promobit_scraper - DEBUG - Oferta extraída: Original SAMSUNG 35W Carregador Super Rápido para ... - R$107,10
-2025-08-16 20:34:43,143 - promobit_scraper - DEBUG - Oferta extraída: Tênis Olympikus Corre Supra - Unissex... - R$683,99
-2025-08-16 20:34:43,143 - promobit_scraper - DEBUG - Oferta extraída: Bala de Café Florestal Brazilian Coffee Pacote 500... - R$10,75
-2025-08-16 20:34:43,144 - promobit_scraper - DEBUG - Oferta extraída: Tênis Olympikus Sonoro 3 - Masculino Tam 39... - R$126,64
-2025-08-16 20:34:43,144 - promobit_scraper - DEBUG - Oferta extraída: Café Solúvel Liofilizado 100% Arábica Vidro 100g 3... - R$24,70
-2025-08-16 20:34:43,145 - promobit_scraper - DEBUG - Oferta extraída: Kit 10 Toalhinhas De Algodão Mão Boca Rosto Escola... - R$58,94
-2025-08-16 20:34:43,145 - promobit_scraper - INFO - Página 1: 17 ofertas passaram nos filtros
-2025-08-16 20:34:43,145 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 34
+2025-08-16 20:47:40,656 - promobit_scraper - DEBUG - URLs base configuradas: {'informatica': '', 'eletronicos': '', 'games': '', 'celulares': ''}
+2025-08-16 20:47:42,004 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/
+2025-08-16 20:47:42,004 - promobit_scraper - INFO - Fazendo requisição para: https://www.promobit.com.br/
+2025-08-16 20:47:42,004 - promobit_scraper - DEBUG - Headers da requisição: {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'DNT': '1', 'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Cache-Control': 'max-age=0', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
+2025-08-16 20:47:42,055 - promobit_scraper - INFO - Status da resposta: 200
+2025-08-16 20:47:42,056 - promobit_scraper - DEBUG - Headers da resposta: {'Date': 'Sat, 16 Aug 2025 23:47:43 GMT', 'Content-Type': 'text/html; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=15', 'Set-Cookie': '__goc_session__=ievvtgxkvsotsqiojdnwjchxwjbhctqw; expires=Sat, 23-Aug-25 23:47:43 GMT; SameSite=Lax; path=/; secure; HttpOnly', 'X-Powered-By': 'Next.js', 'Etag': 'W/"1088162cbv46ibn"', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 494e8aec457a1160f230a27e9932bd82.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'GRU3-P12', 'Alt-Svc': 'h3=":443"; ma=86400', 'X-Amz-Cf-Id': '9ugQQ5zLulbi_L-5Goj2QuWmqfvCRwhB2KZ6NZu8nhagb2J_LUrRtQ==', 'X-GoCache-CacheStatus': 'HIT', 'Server': 'gocache', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload', 'Content-Encoding': 'br'}
+2025-08-16 20:47:42,056 - promobit_scraper - INFO - Tamanho do conteúdo bruto: 304345 bytes
+2025-08-16 20:47:42,056 - promobit_scraper - DEBUG - Content-Encoding: br
+2025-08-16 20:47:42,056 - promobit_scraper - DEBUG - Descomprimindo conteúdo com Brotli...
+2025-08-16 20:47:42,056 - promobit_scraper - WARNING - Falha ao descompactar conteúdo com Brotli: BrotliDecompress failed
+2025-08-16 20:47:42,057 - promobit_scraper - INFO - Tamanho do HTML decodificado: 303683 caracteres
+2025-08-16 20:47:42,058 - promobit_scraper - INFO - HTML salvo em 'promobit_page_1.html' para análise
+2025-08-16 20:47:42,062 - promobit_scraper - DEBUG - HTML salvo em promobit_page_1.html
+2025-08-16 20:47:42,062 - promobit_scraper - DEBUG - Primeiros 500 caracteres do HTML: <!DOCTYPE html><html lang="pt-BR"><head><meta charSet="utf-8"/><title>As Melhores Ofertas | Promoções e Cupons é no Promobit</title><meta name="description" content="Encontre as Melhores Ofertas e Cupons no Promobit. Reunimos promoções de Smartphones, TVs, Moda e muito mais. O menor preço nas melhores lojas."/><meta name="twitter:card" content="summary"/><meta name="twitter:site" content="@promobitoficial"/><meta name="twitter:creator" content="@promobitoficial"/><meta property="fb:app_id" conte
+2025-08-16 20:47:42,105 - promobit_scraper - DEBUG - HTML parseado com sucesso
+2025-08-16 20:47:42,106 - promobit_scraper - INFO - Encontrados 21 cards de oferta na página 1
+2025-08-16 20:47:42,107 - promobit_scraper - DEBUG - Oferta extraída: Geladeira Electrolux Frost Free 310L Duplex Cor In... - R$2.384,10
+2025-08-16 20:47:42,108 - promobit_scraper - DEBUG - Oferta extraída: Relógio inteligente Amazfit Active 2 44mm Mapas GP... - R$535,12
+2025-08-16 20:47:42,108 - promobit_scraper - DEBUG - Oferta extraída: Desktop HP Pro SFF 280 G9 Intel Core i3 Windows 11... - R$2.599,05
+2025-08-16 20:47:42,109 - promobit_scraper - DEBUG - Oferta extraída: Smart TV Samsung 50" Neo Qled 4K 2024 - 50QN90D... - R$3.365,10
+2025-08-16 20:47:42,110 - promobit_scraper - DEBUG - Oferta extraída: Descubra as nossas melhores ofertas e cupons exclu... - R$6.002,10
+2025-08-16 20:47:42,111 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 512GB 12GB Gal... - R$6.002,10
+2025-08-16 20:47:42,111 - promobit_scraper - DEBUG - Oferta extraída: Planos de Internet Móvel a Partir de R$58,99. Comp... - R$58,99
+2025-08-16 20:47:42,112 - promobit_scraper - DEBUG - Oferta extraída: Kit 3 Pares de Meias Light Não Atoalhado Cano Invi... - R$15,19
+2025-08-16 20:47:42,112 - promobit_scraper - DEBUG - Oferta extraída: Tênis Couro Democrata Bold Masculino... - R$179,99
+2025-08-16 20:47:42,113 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 256GB 12GB Gal... - R$5.759,10
+2025-08-16 20:47:42,113 - promobit_scraper - DEBUG - Oferta extraída: Tênis Olympikus Corre Supra - Unissex... - R$683,99
+2025-08-16 20:47:42,114 - promobit_scraper - DEBUG - Oferta extraída: Churrasqueira Bafinho Pequena Ideal Para Pesca Cam... - R$75,59
+2025-08-16 20:47:42,114 - promobit_scraper - DEBUG - Oferta extraída: Smart TV Samsung Vision AI TV 55" QLED 4K Q7F 2025... - R$2.899,00
+2025-08-16 20:47:42,115 - promobit_scraper - DEBUG - Oferta extraída: Apple iPhone 15 verde 256 GB - Distribuidor Autori... - R$4.633,92
+2025-08-16 20:47:42,115 - promobit_scraper - DEBUG - Oferta extraída: Tênis Olympikus Sonoro 3 - Masculino Tam 39... - R$126,64
+2025-08-16 20:47:42,116 - promobit_scraper - DEBUG - Oferta extraída: Smartwatch HUAWEI WATCH FIT 3 Tela AMOLED de 1,82"... - R$744,00
+2025-08-16 20:47:42,116 - promobit_scraper - DEBUG - Oferta extraída: Original SAMSUNG 35W Carregador Super Rápido para ... - R$107,10
+2025-08-16 20:47:42,117 - promobit_scraper - INFO - Página 1: 17 ofertas passaram nos filtros
+2025-08-16 20:47:42,117 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 34
