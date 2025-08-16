@@ -6,14 +6,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Chaves do Telegram
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "-1002853967960")  # Channel ID must be negative
 ADMIN_USER_ID = os.getenv("ADMIN_USER_ID", "1980848673")
 
 # Chaves da Amazon PA-API
 AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY", "SUA_ACCESS_KEY_AQUI")
 AMAZON_SECRET_KEY = os.getenv("AMAZON_SECRET_KEY", "SUA_SECRET_KEY_AQUI")
-AMAZON_ASSOCIATE_TAG = os.getenv("AMAZON_ASSOCIATE_TAG", "garimpeirogee-20")
+AMAZON_ASSOCIATE_TAG = os.getenv("AMAZON_ASSOCIATE_TAG", "")
 AMAZON_REGION = os.getenv("AMAZON_REGION", "us-east-1")
 
 # Configurações do Banco de Dados
@@ -37,10 +37,10 @@ else:
     AMAZON_ASSOCIATE_TAG = ""
 
 # Chaves da API da Shopee
-SHOPEE_API_KEY = os.getenv("SHOPEE_API_KEY", "18330800803")
-SHOPEE_API_SECRET = os.getenv("SHOPEE_API_SECRET", "ZWOPZOLVZZISXF5J6RIXTHGISP4RZMG6")
-SHOPEE_PARTNER_ID = os.getenv("SHOPEE_PARTNER_ID", "18330800803")
-SHOPEE_SHOP_ID = os.getenv("SHOPEE_SHOP_ID", "18330800803")
+SHOPEE_API_KEY = os.getenv("SHOPEE_API_KEY", "")
+SHOPEE_API_SECRET = os.getenv("SHOPEE_API_SECRET", "")
+SHOPEE_PARTNER_ID = os.getenv("SHOPEE_PARTNER_ID", "")
+SHOPEE_SHOP_ID = os.getenv("SHOPEE_SHOP_ID", "")
 
 # Validação das credenciais Shopee
 SHOPEE_API_AVAILABLE = False
@@ -60,12 +60,12 @@ else:
     SHOPEE_PARTNER_ID = ""
 
 # Chaves da API de Afiliados do AliExpress
-ALIEXPRESS_APP_KEY = "517956"
-ALIEXPRESS_APP_SECRET = "okv8nzEGIvWqV0XxONcN9loPNrYwWDsm"
+ALIEXPRESS_APP_KEY = os.getenv("ALIEXPRESS_APP_KEY", "")
+ALIEXPRESS_APP_SECRET = os.getenv("ALIEXPRESS_APP_SECRET", "")
 ALIEXPRESS_TRACKING_ID = "telegram"
 
 # Configurações da API da Awin
-AWIN_API_TOKEN = os.getenv("AWIN_API_TOKEN", "f647c7b9-e8de-44a4-80fe-e9572ef35c10")
+AWIN_API_TOKEN = os.getenv("AWIN_API_TOKEN", "")
 
 # Publisher IDs corretos do Eduardo:
 AWIN_PUBLISHER_IDS = {
