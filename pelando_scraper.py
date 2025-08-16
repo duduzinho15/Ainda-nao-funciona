@@ -216,26 +216,159 @@ async def buscar_ofertas_pelando(
         logger.error(f"Erro inesperado ao buscar ofertas: {e}", exc_info=True)
         return []
 
-async def main():
-    """Função de teste para o módulo."""
-    async with aiohttp.ClientSession() as session:
-        ofertas = await buscar_ofertas_pelando(session, max_paginas=1)  # Apenas 1 página para teste
+async def _fetch_requests(url: str) -> str:
+    """Busca HTML usando requests/aiohttp"""
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                if response.status == 200:
+                    return await response.text()
+                else:
+                    logger.error(f"❌ Status {response.status} para {url}")
+                    return ""
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar {url}: {e}")
+        return ""
+
+def _parse(html: str) -> list[dict]:
+    """Parse HTML para extrair ofertas"""
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+        items = []
         
-        print(f"\n=== OFERTAS ENCONTRADAS ({len(ofertas)}) ===\n")
+        # Seletores para cards de oferta
+        selectors = [
+            '[data-test-id="threadBox"]',
+            'article',
+            '.threadCard',
+            '.thread-box',
+            '.offer-card'
+        ]
         
-        for i, oferta in enumerate(ofertas[:5], 1):  # Mostra apenas as 5 primeiras para teste
-            print(f"\n--- Oferta {i} ---")
-            print(f"Título: {oferta['titulo']}")
-            print(f"Loja: {oferta['loja']}")
-            print(f"Preço: R$ {oferta['preco']}")
-            if oferta['preco_original']:
-                print(f"Preço original: R$ {oferta['preco_original']}")
-            print(f"Desconto: {oferta['desconto']}%")
-            print(f"URL: {oferta['url_produto']}")
-            print(f"Fonte: {oferta['fonte']}")
-            if oferta['imagem_url']:
-                print(f"Imagem: {oferta['imagem_url']}")
-            print("-" * 50)
+        cards = []
+        for selector in selectors:
+            cards.extend(soup.select(selector))
+            if cards:
+                break
+        
+        logger.info(f"🔍 Encontrados {len(cards)} cards com selector: {selector}")
+        
+        for card in cards:
+            try:
+                # Extrai título
+                titulo_elem = card.find('h3') or card.find('h2') or card.find('h1') or card.find('a')
+                titulo = (titulo_elem.get_text(" ", strip=True) if titulo_elem else "")[:120]
+                
+                if not titulo:
+                    continue
+                
+                # Extrai preço
+                price_text = card.get_text(" ", strip=True)
+                m = re.search(r"(R\$\s?\d{1,3}(?:\.\d{3})*,\d{2})", price_text)
+                if not m:
+                    continue
+                
+                preco = m.group(1)
+                
+                # Extrai outros campos
+                url_produto = ""
+                link_elem = card.find('a', href=True)
+                if link_elem:
+                    url_produto = link_elem['href']
+                    if not url_produto.startswith('http'):
+                        url_produto = f"https://www.pelando.com.br{url_produto}"
+                
+                # Extrai imagem
+                imagem_url = ""
+                img_elem = card.find('img')
+                if img_elem and img_elem.get('src'):
+                    imagem_url = img_elem['src']
+                    if not imagem_url.startswith('http'):
+                        imagem_url = f"https://www.pelando.com.br{imagem_url}"
+                
+                # Determina loja
+                loja = "Pelando"
+                if url_produto:
+                    if "amazon" in url_produto.lower():
+                        loja = "Amazon"
+                    elif "shopee" in url_produto.lower():
+                        loja = "Shopee"
+                    elif "aliexpress" in url_produto.lower():
+                        loja = "AliExpress"
+                
+                items.append({
+                    "titulo": titulo,
+                    "preco": preco,
+                    "url_produto": url_produto,
+                    "imagem_url": imagem_url,
+                    "loja": loja,
+                    "fonte": "Pelando"
+                })
+                
+            except Exception as e:
+                logger.debug(f"Erro ao processar card: {e}")
+                continue
+        
+        logger.info(f"✅ {len(items)} ofertas extraídas com sucesso")
+        return items
+        
+    except Exception as e:
+        logger.error(f"❌ Erro ao fazer parse do HTML: {e}")
+        return []
+
+async def main(limit: int = 20) -> list[dict]:
+    """Função principal com fallback Playwright"""
+    url = "https://www.pelando.com.br/"
+    
+    # Primeira tentativa: scraping normal
+    logger.info("🔄 Tentativa 1: Scraping normal com requests")
+    html = await _fetch_requests(url)
+    cards = _parse(html)
+    
+    # Se não encontrou cards, tenta com Playwright
+    if not cards:
+        logger.info("⚠️ Nenhum card encontrado, tentando com Playwright...")
+        try:
+            html = await _fetch_playwright(url)  # carregando JS
+            cards = _parse(html)
+            if cards:
+                logger.info(f"✅ Playwright encontrou {len(cards)} cards")
+            else:
+                logger.warning("❌ Playwright também não encontrou cards")
+        except Exception as e:
+            logger.error(f"❌ Erro no fallback Playwright: {e}")
+    
+    logger.info(f"📊 Total de cards encontrados: {len(cards)}")
+    return cards[:limit]
+
+async def _fetch_playwright(url: str) -> str:
+    """Fallback usando Playwright para carregar JavaScript"""
+    try:
+        from base_playwright_scraper import BasePlaywrightScraper
+        
+        scraper = BasePlaywrightScraper("https://www.pelando.com.br", "pelando")
+        await scraper.setup_browser()
+        
+        page = scraper.page
+        if not page:
+            logger.error("❌ Falha ao configurar Playwright")
+            return ""
+        
+        # Navega para a página
+        await page.goto(url, wait_until='networkidle', timeout=30000)
+        
+        # Aguarda carregamento dos cards
+        await page.wait_for_selector('[data-test-id="threadBox"], article, .threadCard', timeout=10000)
+        
+        # Extrai HTML
+        html = await page.content()
+        logger.info(f"✅ Playwright carregou {len(html)} caracteres")
+        
+        return html
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no Playwright: {e}")
+        return ""
 
 if __name__ == "__main__":
     # Configura logging para debug

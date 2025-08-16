@@ -1,30 +1,18 @@
-# Configurações do Telegram
+# Configurações do Bot Telegram
 TELEGRAM_BOT_TOKEN=seu_token_aqui
-TELEGRAM_CHAT_ID=-1002853967960
-ADMIN_USER_ID=seu_admin_id_aqui
-
-# Configurações da Amazon PA-API
-AMAZON_ACCESS_KEY=sua_access_key_aqui
-AMAZON_SECRET_KEY=sua_secret_key_aqui
-AMAZON_ASSOCIATE_TAG=garimpeirogee-20
-AMAZON_REGION=us-east-1
-
-# Configurações da API da Shopee
-SHOPEE_API_KEY=sua_api_key_aqui
-SHOPEE_API_SECRET=sua_api_secret_aqui
-SHOPEE_PARTNER_ID=seu_partner_id_aqui
-SHOPEE_SHOP_ID=seu_shop_id_aqui
-
-# Configurações da API de Afiliados do AliExpress
-ALIEXPRESS_APP_KEY=sua_app_key_aqui
-ALIEXPRESS_APP_SECRET=sua_app_secret_aqui
-ALIEXPRESS_TRACKING_ID=telegram
-
-# Configurações da API da Awin
-AWIN_API_TOKEN=seu_token_aqui
+TELEGRAM_CHAT_ID=seu_chat_id_aqui
 
 # Configurações de Rate Limiting
 POST_RATE_DELAY_MS=250
+
+# Modo de Teste (DRY_RUN=1 para não publicar)
+DRY_RUN=1
+
+# APIs de Afiliados
+AMAZON_ASSOCIATE_TAG=garimpeirogee-20
+AWIN_API_TOKEN=seu_token_awin_aqui
+SHOPEE_API_KEY=sua_chave_shopee_aqui
+ALIEXPRESS_APP_KEY=sua_chave_aliexpress_aqui
 
 # Configurações do Banco de Dados
 DB_NAME=ofertas.db

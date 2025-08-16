@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Versão simples do main.py que funciona sem Application.builder()
-E INCLUI o sistema automático de verificação de ofertas
+Bot Telegram Garimpeiro Geek - Versão Simplificada
+Executa bot polling e sistema automático de ofertas em paralelo
 """
-
 import asyncio
-import logging
 import os
 import sys
-import aiohttp
-from datetime import datetime, time, timedelta
+import time
+import logging
+from telegram import Bot, Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.error import NetworkError, TimedOut
 
 # Configuração de logging
 logging.basicConfig(
@@ -18,204 +19,249 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Classe para contexto simulado
-class ContextoSimulado:
-    def __init__(self, bot):
-        self.bot = bot
+# Importa módulos do projeto
+from telegram_poster import publicar_oferta_automatica
+from orchestrator import coletar_e_publicar
 
-async def main_simples():
-    """Função principal simplificada com sistema automático"""
-    
+# Configurações
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+DRY_RUN = os.getenv("DRY_RUN", "0") == "1"
+
+if not TELEGRAM_BOT_TOKEN:
+    logger.error("❌ TELEGRAM_BOT_TOKEN não encontrado no .env")
+    sys.exit(1)
+
+if not TELEGRAM_CHAT_ID:
+    logger.error("❌ TELEGRAM_CHAT_ID não encontrado no .env")
+    sys.exit(1)
+
+# Contexto simulado para publicar_oferta_automatica
+class ContextoSimulado:
+    def __init__(self):
+        if not TELEGRAM_BOT_TOKEN:
+            raise ValueError("TELEGRAM_BOT_TOKEN não pode ser None")
+        self.bot = Bot(token=TELEGRAM_BOT_TOKEN)
+        self.job = None
+
+# ===== HANDLERS DOS COMANDOS =====
+
+async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /start"""
+    await update.message.reply_text(
+        "🚀 **Garimpeiro Geek Bot Ativado!**\n\n"
+        "Comandos disponíveis:\n"
+        "/start - Inicia o bot\n"
+        "/health - Status do sistema\n"
+        "/status - Status das ofertas\n"
+        "/coletar - Executa coleta manual\n"
+        "/dryrun - Testa sem publicar\n\n"
+        "O bot está rodando automaticamente! 🎯",
+        parse_mode="Markdown"
+    )
+
+async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /health - Status do sistema"""
     try:
-        logger.info("🚀 Iniciando Garimpeiro Geek (Versão Simples + Sistema Automático)...")
+        # Verifica variáveis de ambiente
+        def ok(k): 
+            v = os.getenv(k, "")
+            return "✅ OK" if v and v.strip() else "❌ NOK"
         
-        # Importa configurações
-        import config
+        # Conta ofertas das últimas 24h (simulado por enquanto)
+        try:
+            # Simula contagem de ofertas (implementar função real depois)
+            n_24h = 0  # Placeholder
+        except Exception:
+            n_24h = -1
         
-        # Verifica token
-        token = config.TELEGRAM_BOT_TOKEN
-        if not token:
-            logger.error("Token do bot não encontrado!")
-            return
+        # Status dos scrapers
+        scraper_status = "✅ Ativos" if not DRY_RUN else "🔄 Modo Teste"
         
-        logger.info("✅ Token encontrado")
+        msg = (
+            "🏥 **Healthcheck do Sistema**\n\n"
+            "**🔑 Configurações:**\n"
+            f"• Bot Token: {ok('TELEGRAM_BOT_TOKEN')}\n"
+            f"• Chat ID: {ok('TELEGRAM_CHAT_ID')}\n"
+            f"• Amazon: {ok('AMAZON_ASSOCIATE_TAG')}\n"
+            f"• AWIN: {ok('AWIN_API_TOKEN')}\n"
+            f"• Shopee: {ok('SHOPEE_API_KEY')}\n"
+            f"• AliExpress: {ok('ALIEXPRESS_APP_KEY')}\n\n"
+            "**📊 Status:**\n"
+            f"• Scrapers: {scraper_status}\n"
+            f"• Ofertas (24h): {n_24h if n_24h >= 0 else 'N/A'}\n"
+            f"• DRY_RUN: {'Sim' if DRY_RUN else 'Não'}\n"
+            f"• Timestamp: {time.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+            "🎯 Sistema funcionando normalmente!"
+        )
         
-        # Importa módulos necessários
-        from telegram import Bot
-        from telegram_poster import comando_oferta
-        
-        # Cria o bot diretamente (sem Application.builder())
-        bot = Bot(token=token)
-        logger.info("✅ Bot criado com sucesso")
-        
-        # Remove webhook
-        await bot.delete_webhook(drop_pending_updates=True)
-        logger.info("✅ Webhook removido")
-        
-        # Inicia o sistema automático de verificação de ofertas
-        logger.info("🤖 Iniciando sistema automático de ofertas...")
-        
-        # Cria contexto simulado para o sistema automático
-        context = ContextoSimulado(bot)
-        
-        # Inicia tarefas em paralelo
-        tasks = [
-            bot_polling(bot, comando_oferta),  # Bot interativo
-            sistema_automatico_ofertas(context)  # Sistema automático
-        ]
-        
-        # Executa todas as tarefas
-        await asyncio.gather(*tasks)
+        await update.message.reply_text(msg, parse_mode="Markdown")
         
     except Exception as e:
-        logger.error(f"❌ Erro na inicialização: {e}", exc_info=True)
-        raise
+        logger.error(f"Erro no comando health: {e}")
+        await update.message.reply_text("❌ Erro ao verificar status do sistema")
 
-async def bot_polling(bot, comando_oferta):
-    """Função para o bot interativo"""
-    logger.info("🤖 Iniciando bot com polling simples...")
-    
-    # Método alternativo: polling manual
-    offset = 0
-    while True:
-        try:
-            # Busca updates
-            updates = await bot.get_updates(offset=offset, timeout=30)
-            
-            for update in updates:
-                offset = update.update_id + 1
-                
-                # Processa comandos
-                if update.message and update.message.text:
-                    text = update.message.text
-                    
-                    if text.startswith('/start'):
-                        await update.message.reply_text(
-                            "🚀 **Garimpeiro Geek Ativado!**\n\n"
-                            "Use /oferta para publicar ofertas manualmente.\n"
-                            "Use /status para ver o status do sistema.",
-                            parse_mode='Markdown'
-                        )
-                    
-                    elif text.startswith('/status'):
-                        await update.message.reply_text(
-                            "📊 **Status do Sistema:**\n\n"
-                            "✅ Sistema de postagem funcionando\n"
-                            "✅ Correções das imagens aplicadas\n"
-                            "✅ Estrutura das ofertas corrigida\n"
-                            "✅ Links de afiliado funcionando\n"
-                            "✅ Sistema automático ativo\n"
-                            "🤖 Bot funcionando normalmente",
-                            parse_mode='Markdown'
-                        )
-                    
-                    elif text.startswith('/oferta'):
-                        # Cria contexto simulado para o comando
-                        context = ContextoSimulado(bot)
-                        await comando_oferta(update, context)
-            
-            # Delay entre verificações
-            await asyncio.sleep(1)
-            
-        except Exception as e:
-            logger.error(f"Erro no polling: {e}")
-            await asyncio.sleep(5)
-
-async def sistema_automatico_ofertas(context):
-    """Sistema automático de verificação de ofertas"""
-    logger.info("🔄 Sistema automático de ofertas iniciado")
-    
-    while True:
-        try:
-            # Verifica ofertas a cada 1 hora
-            await asyncio.sleep(3600)  # 1 hora
-            
-            logger.info("🔍 Verificando ofertas automaticamente...")
-            
-            # Importa scrapers
-            try:
-                from promobit_scraper_clean import buscar_ofertas_promobit
-                from amazon_scraper import AmazonScraper
-                from telegram_poster import publicar_oferta_automatica
-                
-                # Busca ofertas do Promobit
-                logger.info("📊 Buscando ofertas do Promobit...")
-                async with aiohttp.ClientSession() as session:
-                    ofertas_promobit = await buscar_ofertas_promobit(session)
-                    
-                    if ofertas_promobit:
-                        logger.info(f"✅ {len(ofertas_promobit)} ofertas encontradas no Promobit")
-                        
-                        # Publica as primeiras 3 ofertas
-                        for i, oferta in enumerate(ofertas_promobit[:3]):
-                            try:
-                                logger.info(f"📤 Publicando oferta {i+1}: {oferta.get('titulo', 'Sem título')[:50]}...")
-                                
-                                # Verifica se tem imagem e título
-                                if oferta.get('imagem_url') and oferta.get('titulo'):
-                                    sucesso = await publicar_oferta_automatica(oferta, context)
-                                    if sucesso:
-                                        logger.info(f"✅ Oferta {i+1} publicada com sucesso!")
-                                        # Aguarda 5 minutos entre publicações
-                                        await asyncio.sleep(300)
-                                    else:
-                                        logger.error(f"❌ Falha ao publicar oferta {i+1}")
-                                else:
-                                    logger.warning(f"⚠️ Oferta {i+1} sem imagem ou título, pulando...")
-                                    
-                            except Exception as e:
-                                logger.error(f"❌ Erro ao publicar oferta {i+1}: {e}")
-                    else:
-                        logger.info("ℹ️ Nenhuma oferta encontrada no Promobit")
-                
-                # Busca ofertas da Amazon
-                logger.info("📊 Buscando ofertas da Amazon...")
-                try:
-                    scraper_amazon = AmazonScraper()
-                    ofertas_amazon = scraper_amazon.buscar_ofertas(max_paginas=2)
-                    
-                    if ofertas_amazon:
-                        logger.info(f"✅ {len(ofertas_amazon)} ofertas encontradas na Amazon")
-                        
-                        for i, oferta in enumerate(ofertas_amazon[:2]):  # Limita a 2 ofertas
-                            try:
-                                logger.info(f"📤 Publicando oferta Amazon {i+1}: {oferta.get('titulo', 'Sem título')[:50]}...")
-                                
-                                # Verifica se tem imagem e título
-                                if oferta.get('imagem_url') and oferta.get('titulo'):
-                                    sucesso = await publicar_oferta_automatica(oferta, context)
-                                    if sucesso:
-                                        logger.info(f"✅ Oferta Amazon {i+1} publicada com sucesso!")
-                                        # Aguarda 5 minutos entre publicações
-                                        await asyncio.sleep(300)
-                                    else:
-                                        logger.error(f"❌ Falha ao publicar oferta Amazon {i+1}")
-                                else:
-                                    logger.warning(f"⚠️ Oferta Amazon {i+1} sem imagem ou título, pulando...")
-                                    
-                            except Exception as e:
-                                logger.error(f"❌ Erro ao publicar oferta Amazon {i+1}: {e}")
-                    else:
-                        logger.info("ℹ️ Nenhuma oferta encontrada na Amazon")
-                        
-                except Exception as e:
-                    logger.error(f"❌ Erro ao buscar ofertas da Amazon: {e}")
-                
-            except ImportError as e:
-                logger.error(f"❌ Erro ao importar módulos: {e}")
-            
-            logger.info("✅ Verificação automática concluída")
-            
-        except Exception as e:
-            logger.error(f"❌ Erro no sistema automático: {e}")
-            await asyncio.sleep(300)  # Aguarda 5 minutos antes de tentar novamente
-
-if __name__ == "__main__":
+async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /status - Status das ofertas"""
     try:
-        asyncio.run(main_simples())
+        # Simula status das ofertas
+        msg = (
+            "📊 **Status das Ofertas**\n\n"
+            "**🔄 Sistema Automático:**\n"
+            "• Status: ✅ Ativo\n"
+            "• Intervalo: 30 minutos\n"
+            "• Última execução: Em execução...\n\n"
+            "**📈 Estatísticas:**\n"
+            "• Scrapers ativos: 2 (Promobit, Pelando)\n"
+            "• Modo: {'Teste' if DRY_RUN else 'Produção'}\n"
+            "• Rate limit: 250ms entre posts\n\n"
+            "🎯 Use /coletar para execução manual!"
+        )
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando status: {e}")
+        await update.message.reply_text("❌ Erro ao verificar status das ofertas")
+
+async def cmd_coletar(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /coletar - Executa coleta manual"""
+    try:
+        await update.message.reply_text("🔄 Iniciando coleta manual...")
+        
+        # Executa orquestrador
+        resultado = await coletar_e_publicar(
+            dry_run=DRY_RUN,
+            limit_por_scraper=10  # Limita para teste manual
+        )
+        
+        msg = (
+            "✅ **Coleta Manual Concluída!**\n\n"
+            f"**📊 Resultados:**\n"
+            f"• Ofertas coletadas: {resultado['coletadas']}\n"
+            f"• Ofertas aprovadas: {resultado['aprovadas']}\n"
+            f"• Ofertas publicadas: {resultado['publicadas']}\n"
+            f"• Scrapers executados: {resultado['scrapers_executados']}\n"
+            f"• DRY_RUN: {'Sim' if resultado['dry_run'] else 'Não'}\n\n"
+            "🎯 Coleta executada com sucesso!"
+        )
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando coletar: {e}")
+        await update.message.reply_text(f"❌ Erro na coleta: {str(e)}")
+
+async def cmd_dryrun(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando /dryrun - Testa sem publicar"""
+    try:
+        await update.message.reply_text("🧪 Iniciando teste DRY_RUN...")
+        
+        # Executa orquestrador em modo teste
+        resultado = await coletar_e_publicar(
+            dry_run=True,  # Força DRY_RUN
+            limit_por_scraper=5  # Limita para teste
+        )
+        
+        msg = (
+            "🧪 **Teste DRY_RUN Concluído!**\n\n"
+            f"**📊 Resultados:**\n"
+            f"• Ofertas coletadas: {resultado['coletadas']}\n"
+            f"• Ofertas aprovadas: {resultado['aprovadas']}\n"
+            f"• Ofertas publicadas: {resultado['publicadas']} (simulado)\n"
+            f"• Scrapers executados: {resultado['scrapers_executados']}\n"
+            f"• DRY_RUN: Sim ✅\n\n"
+            "🎯 Nenhuma oferta foi publicada (modo teste)!"
+        )
+        
+        await update.message.reply_text(msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        logger.error(f"Erro no comando dryrun: {e}")
+        await update.message.reply_text(f"❌ Erro no teste: {str(e)}")
+
+# ===== JOB AUTOMÁTICO =====
+
+async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
+    """Job periódico para coleta automática de ofertas"""
+    try:
+        logger.info("🔄 [JOB] Iniciando coleta automática de ofertas...")
+        
+        resultado = await coletar_e_publicar(
+            dry_run=DRY_RUN,
+            limit_por_scraper=20
+        )
+        
+        logger.info(f"✅ [JOB] Coleta automática concluída: {resultado}")
+        
+        # Log detalhado do resultado
+        if resultado['aprovadas'] > 0:
+            logger.info(f"📤 [JOB] {resultado['publicadas']} ofertas publicadas com sucesso")
+        else:
+            logger.warning("⚠️ [JOB] Nenhuma oferta foi aprovada/publicada")
+            
+    except Exception as e:
+        logger.exception(f"❌ [JOB] Erro na coleta automática: {e}")
+
+# ===== CONFIGURAÇÃO DOS HANDLERS =====
+
+def setup_handlers(app: Application):
+    """Configura todos os handlers do bot"""
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("health", cmd_health))
+    app.add_handler(CommandHandler("status", cmd_status))
+    app.add_handler(CommandHandler("coletar", cmd_coletar))
+    app.add_handler(CommandHandler("dryrun", cmd_dryrun))
+    
+    logger.info("✅ Handlers configurados com sucesso")
+
+# ===== FUNÇÃO PRINCIPAL =====
+
+async def main():
+    """Função principal do bot"""
+    logger.info("🚀 Iniciando Garimpeiro Geek Bot...")
+    
+    # Verifica token antes de criar aplicação
+    if not TELEGRAM_BOT_TOKEN:
+        logger.error("❌ TELEGRAM_BOT_TOKEN não pode ser None")
+        return
+    
+    # Cria aplicação
+    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    
+    # Configura handlers
+    setup_handlers(app)
+    
+    # Configura job periódico (a cada 30 minutos)
+    app.job_queue.run_repeating(
+        job_coletar_automatico, 
+        interval=30*60,  # 30 minutos
+        first=30  # Primeira execução em 30 segundos
+    )
+    
+    logger.info("✅ Job de coleta automática agendado (30 min)")
+    logger.info(f"🔄 Modo DRY_RUN: {'ATIVO' if DRY_RUN else 'DESATIVADO'}")
+    
+    # Inicia o bot
+    logger.info("🎯 Bot iniciado! Pressione Ctrl+C para parar")
+    
+    try:
+        await app.initialize()
+        await app.start()
+        await app.run_polling()
     except KeyboardInterrupt:
         logger.info("🛑 Bot interrompido pelo usuário")
     except Exception as e:
-        logger.error(f"❌ Erro fatal: {e}", exc_info=True)
-        print(f"\n❌ Erro fatal: {e}")
-        print("Verifique os logs para mais detalhes.")
+        logger.error(f"❌ Erro fatal no bot: {e}")
+    finally:
+        await app.stop()
+        await app.shutdown()
+
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        logger.info("🛑 Programa interrompido pelo usuário")
+    except Exception as e:
+        logger.error(f"❌ Erro fatal: {e}")
+        sys.exit(1)

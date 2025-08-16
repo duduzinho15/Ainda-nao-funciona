@@ -110,8 +110,9 @@ def oferta_ja_existe(id_produto: str, loja: str) -> bool:
         conn = sqlite3.connect(config.DB_NAME)
         cursor = conn.cursor()
         
+        # Usa a coluna correta do banco (url_produto em vez de id_produto)
         cursor.execute(
-            'SELECT 1 FROM ofertas WHERE id_produto = ? AND loja = ?',
+            'SELECT 1 FROM ofertas WHERE url_produto = ? AND loja = ?',
             (id_produto, loja)
         )
         
@@ -148,91 +149,6 @@ def oferta_ja_existe_por_hash(offer_hash: str) -> bool:
         
     except sqlite3.Error as e:
         print(f"❌ Erro ao verificar oferta por hash: {e}")
-        return False
-        
-    finally:
-        if 'conn' in locals():
-            conn.close()
-
-def adicionar_oferta(oferta: dict) -> bool:
-    """
-    Adiciona uma nova oferta ao banco de dados.
-    
-    Args:
-        oferta: Dicionário contendo os dados da oferta com as seguintes chaves:
-            - id_produto: ID único do produto na loja (obrigatório)
-            - loja: Nome da loja (ex: 'Magazine Luiza') (obrigatório)
-            - titulo: Título do produto (obrigatório)
-            - preco: Preço atual formatado como string (obrigatório)
-            - url_produto: URL canônica do produto (obrigatório)
-            - url_afiliado: URL de afiliado (opcional)
-            - url_imagem: URL da imagem do produto (opcional)
-            - preco_original: Preço original (antes do desconto) - opcional
-            - fonte: Fonte da oferta (padrão: 'Scraper')
-    
-    Returns:
-        bool: True se a oferta foi adicionada com sucesso, False caso contrário
-    """
-    # Validação dos campos obrigatórios
-    campos_obrigatorios = ['id_produto', 'loja', 'titulo', 'preco', 'url_produto']
-    for campo in campos_obrigatorios:
-        if campo not in oferta or not oferta[campo]:
-            print(f"Erro: Campo obrigatório '{campo}' não fornecido.")
-            return False
-    
-    try:
-        conn = sqlite3.connect(config.DB_NAME)
-        cursor = conn.cursor()
-        
-        # Verifica se a oferta já existe
-        if oferta_ja_existe(oferta['id_produto'], oferta['loja']):
-            print(f"Oferta já existe para o produto {oferta['id_produto']} na loja {oferta['loja']}")
-            return False
-        
-        # Gera hash da oferta para deduplicação
-        from utils.offer_hash import offer_hash
-        offer_hash_value = offer_hash(oferta)
-        
-        # Verifica se já existe oferta com o mesmo hash
-        if oferta_ja_existe_por_hash(offer_hash_value):
-            print(f"Oferta duplicada detectada por hash: {offer_hash_value[:16]}...")
-            return False
-        
-        # Prepara os valores para inserção
-        campos = [
-            'id_produto', 'loja', 'titulo', 'preco', 'preco_original',
-            'url_produto', 'url_afiliado', 'url_imagem', 'fonte', 'offer_hash'
-        ]
-        
-        # Define valores padrão
-        valores = {
-            'preco_original': oferta.get('preco_original', ''),
-            'url_afiliado': oferta.get('url_afiliado', ''),
-            'url_imagem': oferta.get('url_imagem', ''),
-            'fonte': oferta.get('fonte', 'Scraper'),
-            'offer_hash': offer_hash_value
-        }
-        
-        # Adiciona os valores fornecidos
-        for campo in campos:
-            if campo in oferta and oferta[campo]:
-                valores[campo] = oferta[campo]
-        
-        # Monta a query de inserção
-        placeholders = ', '.join(['?'] * len(campos))
-        campos_str = ', '.join(campos)
-        
-        cursor.execute(
-            f'INSERT INTO ofertas ({campos_str}, data_atualizacao) VALUES ({placeholders}, CURRENT_TIMESTAMP)',
-            [valores.get(campo, '') for campo in campos]
-        )
-        
-        conn.commit()
-        print(f"Oferta adicionada com sucesso: {oferta['titulo']}")
-        return True
-        
-    except sqlite3.Error as e:
-        print(f"Erro ao adicionar oferta: {e}")
         return False
         
     finally:
@@ -366,7 +282,7 @@ def adicionar_oferta(oferta: Dict[str, Any]) -> bool:
         cursor = conn.cursor()
         
         # Verifica se a oferta já existe
-        if oferta_ja_existe(oferta['url_produto']):
+        if oferta_ja_existe(oferta['url_produto'], oferta['loja']):
             print(f"Oferta já existe: {oferta['titulo']}")
             return False
             

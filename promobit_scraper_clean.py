@@ -386,22 +386,34 @@ async def buscar_ofertas_promobit(
                     
                     logger.info(f"Encontrados {len(cards_oferta)} cards de oferta na página {page_num}")
                     
-                    ofertas = []
                     for card in cards_oferta:
                         try:
-                            # Verifica se é um card de oferta válido (deve ter link e imagem)
-                            link_oferta = card.find('a')
-                            if not link_oferta or not link_oferta.get('href'):
-                                continue
+                            # Inicializa o dicionário da oferta
+                            oferta = {}
                             
-                            # Extrai informações da oferta
-                            url_produto = link_oferta.get('href')
-                            if not url_produto.startswith('http'):
-                                url_produto = f"https://www.promobit.com.br{url_produto}"
+                            # URL do produto
+                            url_produto = ""
+                            link_elem = card.find('a', href=True)
+                            if link_elem:
+                                url_produto = link_elem['href']
+                                if not url_produto.startswith('http'):
+                                    url_produto = f"https://www.promobit.com.br{url_produto}"
                             
                             # Título da oferta
                             titulo_elem = card.find('span', class_=lambda x: x and 'line-clamp-2' in x)
                             titulo = titulo_elem.get_text(strip=True) if titulo_elem else "Título não encontrado"
+                            
+                            # Extrai preço com validação rigorosa
+                            price_text = card.get_text(" ", strip=True) or ""
+                            m = re.search(r"(R\$\s?\d{1,3}(?:\.\d{3})*,\d{2})", price_text)
+                            if not m:
+                                continue  # Pula ofertas sem preço válido
+                            
+                            preco_atual = m.group(1)
+                            
+                            # Valida se o preço é realmente válido
+                            if not re.match(r"^R\$\s?\d{1,3}(?:\.\d{3})*,\d{2}$", preco_atual):
+                                continue  # Pula se o preço não estiver no formato correto
                             
                             # Preço atual - corrigindo para pegar o valor correto
                             preco_container = card.find('div', class_=lambda x: x and 'lg:order-0' in x and 'items-center' in x)
@@ -455,6 +467,7 @@ async def buscar_ofertas_promobit(
                             # Cria objeto da oferta
                             oferta = {
                                 'titulo': titulo,
+                                'preco': preco_atual,  # Campo principal para compatibilidade
                                 'preco_atual': preco_atual,
                                 'preco_original': preco_original,
                                 'desconto': desconto,
