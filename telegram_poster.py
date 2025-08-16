@@ -10,7 +10,7 @@ from telegram.ext import ContextTypes, Application
 from telegram.constants import ParseMode
 
 import config
-from database import adicionar_oferta_manual, adicionar_oferta, oferta_ja_existe, oferta_ja_existe_por_url, extrair_dominio_loja
+from database import adicionar_oferta_manual, adicionar_oferta, oferta_ja_existe, oferta_ja_existe_por_url, oferta_ja_existe_por_hash, extrair_dominio_loja
 from utils.images import fetch_bytes, fetch_og_image
 from posting.message_templates import render_caption_and_buttons
 
@@ -36,7 +36,7 @@ async def _send_card(bot, chat_id: int, offer: dict):
         if not img_url:
             base_url = offer.get("affiliate_url") or offer.get("product_url")
             if base_url:
-                img_url = fetch_og_image(base_url)
+                img_url = await fetch_og_image(base_url)
 
         # Loga informações da oferta
         store = offer.get("store", "unknown")
@@ -175,6 +175,20 @@ async def comando_oferta(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # Verifica se a oferta já existe
         if oferta_ja_existe_por_url(link):
             await update.message.reply_text("⚠️ Esta oferta já foi publicada anteriormente.")
+            return
+        
+        # Gera hash da oferta para verificação de duplicatas
+        from utils.offer_hash import offer_hash
+        offer_hash_value = offer_hash({
+            'url_produto': link,
+            'titulo': titulo,
+            'preco_atual': preco,
+            'loja': extrair_dominio_loja(link)
+        })
+        
+        # Verifica se já existe oferta com o mesmo hash
+        if oferta_ja_existe_por_hash(offer_hash_value):
+            await update.message.reply_text("⚠️ Esta oferta já foi publicada anteriormente (detectada por hash).")
             return
         
         # Cria oferta no novo formato

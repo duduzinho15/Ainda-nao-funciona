@@ -28,6 +28,7 @@ def setup_database():
             url_afiliado TEXT,                 -- URL de afiliado (quando aplicável)
             url_imagem TEXT,                   -- URL da imagem do produto
             fonte TEXT NOT NULL,               -- Fonte da oferta (ex: 'Scraper', 'Manual')
+            offer_hash TEXT,                   -- Hash único da oferta para deduplicação
             data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id_produto, loja)     -- Chave primária composta
@@ -39,6 +40,9 @@ def setup_database():
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_fonte ON ofertas(fonte)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_data_postagem ON ofertas(data_postagem)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_asin ON ofertas(asin)')  # Índice para buscas por ASIN
+        
+        # Índice único para offer_hash (deduplicação)
+        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_offer_hash ON ofertas(offer_hash)')
         
         # Tabela de configurações
         cursor.execute('''
@@ -114,7 +118,36 @@ def oferta_ja_existe(id_produto: str, loja: str) -> bool:
         return cursor.fetchone() is not None
         
     except sqlite3.Error as e:
-        print(f"Erro ao verificar oferta existente: {e}")
+        print(f"❌ Erro ao verificar oferta existente: {e}")
+        return False
+        
+    finally:
+        if 'conn' in locals():
+            conn.close()
+
+def oferta_ja_existe_por_hash(offer_hash: str) -> bool:
+    """
+    Verifica se uma oferta já existe no banco de dados com base no hash da oferta.
+    
+    Args:
+        offer_hash: Hash único da oferta
+        
+    Returns:
+        bool: True se a oferta já existe, False caso contrário
+    """
+    try:
+        conn = sqlite3.connect(config.DB_NAME)
+        cursor = conn.cursor()
+        
+        cursor.execute(
+            'SELECT 1 FROM ofertas WHERE offer_hash = ?',
+            (offer_hash,)
+        )
+        
+        return cursor.fetchone() is not None
+        
+    except sqlite3.Error as e:
+        print(f"❌ Erro ao verificar oferta por hash: {e}")
         return False
         
     finally:
@@ -156,10 +189,19 @@ def adicionar_oferta(oferta: dict) -> bool:
             print(f"Oferta já existe para o produto {oferta['id_produto']} na loja {oferta['loja']}")
             return False
         
+        # Gera hash da oferta para deduplicação
+        from utils.offer_hash import offer_hash
+        offer_hash_value = offer_hash(oferta)
+        
+        # Verifica se já existe oferta com o mesmo hash
+        if oferta_ja_existe_por_hash(offer_hash_value):
+            print(f"Oferta duplicada detectada por hash: {offer_hash_value[:16]}...")
+            return False
+        
         # Prepara os valores para inserção
         campos = [
             'id_produto', 'loja', 'titulo', 'preco', 'preco_original',
-            'url_produto', 'url_afiliado', 'url_imagem', 'fonte'
+            'url_produto', 'url_afiliado', 'url_imagem', 'fonte', 'offer_hash'
         ]
         
         # Define valores padrão
@@ -167,7 +209,8 @@ def adicionar_oferta(oferta: dict) -> bool:
             'preco_original': oferta.get('preco_original', ''),
             'url_afiliado': oferta.get('url_afiliado', ''),
             'url_imagem': oferta.get('url_imagem', ''),
-            'fonte': oferta.get('fonte', 'Scraper')
+            'fonte': oferta.get('fonte', 'Scraper'),
+            'offer_hash': offer_hash_value
         }
         
         # Adiciona os valores fornecidos
