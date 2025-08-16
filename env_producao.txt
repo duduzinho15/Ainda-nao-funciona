@@ -13,6 +13,13 @@ DRY_RUN=1
 # Configurações de Rate Limiting
 POST_RATE_DELAY_MS=250
 
+# ===== FLAGS DE CONTROLE PARA SCRAPERS =====
+ENABLE_PROMOBIT=1
+ENABLE_PELANDO=1
+ENABLE_SHOPEE=0
+ENABLE_AMAZON=0
+ENABLE_ALIEXPRESS=0
+
 # APIs de Afiliados
 AMAZON_ASSOCIATE_TAG=garimpeirogee-20
 AWIN_API_TOKEN=seu_token_awin_real_aqui
@@ -34,3 +41,14 @@ METRICS_PORT=9308
 # 4. Se tudo OK, mude DRY_RUN=0
 # 5. Execute: .\go-live.ps1
 # ==========================================
+
+# ===== ATIVAÇÃO GRADUAL DE SCRAPERS =====
+# Para ativar Shopee: ENABLE_SHOPEE=1
+# Para ativar Amazon: ENABLE_AMAZON=1
+# Para ativar AliExpress: ENABLE_ALIEXPRESS=1
+
+# ===== CONFIGURAÇÕES AVANÇADAS =====
+# BACKUP_AUTO=1  # Backup automático antes de cada execução
+# LOG_LEVEL=INFO  # Nível de log (DEBUG, INFO, WARNING, ERROR)
+# MAX_RETRIES=3   # Máximo de tentativas para scrapers
+# TIMEOUT_SECONDS=30  # Timeout para requisições

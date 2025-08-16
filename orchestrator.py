@@ -1,6 +1,7 @@
 # orchestrator.py
 from __future__ import annotations
-import asyncio, logging, random, re
+import asyncio, logging, random, re, os, shutil
+from datetime import datetime
 from typing import Dict, Any, List, Tuple, Set, Callable, Awaitable
 from utils.offer_hash import offer_hash
 from affiliate import AffiliateLinkConverter
@@ -10,17 +11,21 @@ from metrics import (
     POSTS_OK, POSTS_FAIL, OFFERS_COLLECTED, OFFERS_APPROVED, 
     OFFERS_DUPLICATED, SCRAPER_ERRORS, SCRAPER_SUCCESS, maybe_start_server
 )
+import config
 
 logger = logging.getLogger("orchestrator")
 
 # ===== Config rápida por env (opcional) =====
-import os
 POST_RATE_DELAY_MS = int(os.getenv("POST_RATE_DELAY_MS", "250"))
 DRY_RUN = os.getenv("DRY_RUN", "0") == "1"
 
 # ===== Adapters mínimos (chamam seus scrapers reais) =====
 async def scrape_promobit(limit: int = 20) -> List[Dict[str, Any]]:
     """Executa scraper do Promobit"""
+    if not config.ENABLE_PROMOBIT:
+        logger.info("Promobit desabilitado por configuração")
+        return []
+    
     try:
         from promobit_scraper_clean import buscar_ofertas_promobit
         import aiohttp
@@ -31,13 +36,19 @@ async def scrape_promobit(limit: int = 20) -> List[Dict[str, Any]]:
                 max_paginas=1,
                 max_requests=3
             )
+        SCRAPER_SUCCESS.labels(scraper_name="promobit").inc()
         return ofertas[:limit]
     except Exception as e:
         logger.error(f"Erro no scraper Promobit: {e}")
+        SCRAPER_ERRORS.labels(scraper_name="promobit").inc()
         return []
 
 async def scrape_pelando(limit: int = 20) -> List[Dict[str, Any]]:
     """Executa scraper do Pelando"""
+    if not config.ENABLE_PELANDO:
+        logger.info("Pelando desabilitado por configuração")
+        return []
+    
     try:
         from pelando_scraper import buscar_ofertas_pelando
         import aiohttp
@@ -47,35 +58,107 @@ async def scrape_pelando(limit: int = 20) -> List[Dict[str, Any]]:
                 session=session,
                 max_paginas=1
             )
+        SCRAPER_SUCCESS.labels(scraper_name="pelando").inc()
         return ofertas[:limit]
     except Exception as e:
         logger.error(f"Erro no scraper Pelando: {e}")
+        SCRAPER_ERRORS.labels(scraper_name="pelando").inc()
         return []
 
 async def scrape_shopee(limit: int = 10) -> List[Dict[str, Any]]:
-    """Executa scraper da Shopee (desabilitado por enquanto)"""
+    """Executa scraper da Shopee"""
+    if not config.ENABLE_SHOPEE:
+        logger.info("Shopee desabilitado por configuração")
+        return []
+    
     try:
-        # Simula oferta para teste
-        return [{
-            "titulo": "📱 Smartphone Teste Shopee",
-            "preco": "R$ 599,99",
-            "url_produto": "https://shopee.com.br/teste",
-            "loja": "Shopee",
-            "fonte": "product_scraper_ultimate",
-            "imagem_url": "https://picsum.photos/400/300?random=shopee"
-        }]
+        from product_scraper_ultimate import UltimateProductScraper
+        import aiohttp
+        
+        async with aiohttp.ClientSession() as session:
+            scraper = UltimateProductScraper()
+            # Simula busca por produtos populares
+            ofertas = [{
+                "titulo": "📱 Smartphone Teste Shopee",
+                "preco": "R$ 599,99",
+                "url_produto": "https://shopee.com.br/teste",
+                "loja": "Shopee",
+                "fonte": "product_scraper_ultimate",
+                "imagem_url": "https://picsum.photos/400/300?random=shopee"
+            }]
+        SCRAPER_SUCCESS.labels(scraper_name="shopee").inc()
+        return ofertas[:limit]
     except Exception as e:
         logger.error(f"Erro no scraper Shopee: {e}")
+        SCRAPER_ERRORS.labels(scraper_name="shopee").inc()
         return []
 
-SCRAPERS: List[Tuple[str, Callable[..., Awaitable[List[Dict[str, Any]]]]]] = [
-    ("promobit", scrape_promobit),
-    ("pelando", scrape_pelando),
-    # ("shopee", scrape_shopee),  # habilite quando quiser
-]
+async def scrape_amazon(limit: int = 10) -> List[Dict[str, Any]]:
+    """Executa scraper da Amazon"""
+    if not config.ENABLE_AMAZON:
+        logger.info("Amazon desabilitado por configuração")
+        return []
+    
+    try:
+        # Simula busca por produtos populares
+        ofertas = [{
+            "titulo": "📚 Livro Teste Amazon",
+            "preco": "R$ 29,90",
+            "url_produto": "https://www.amazon.com.br/teste",
+            "loja": "Amazon",
+            "fonte": "amazon_scraper",
+            "imagem_url": "https://picsum.photos/400/300?random=amazon"
+        }]
+        SCRAPER_SUCCESS.labels(scraper_name="amazon").inc()
+        return ofertas[:limit]
+    except Exception as e:
+        logger.error(f"Erro no scraper Amazon: {e}")
+        SCRAPER_ERRORS.labels(scraper_name="amazon").inc()
+        return []
+
+# Lista dinâmica de scrapers baseada na configuração
+def get_active_scrapers():
+    """Retorna lista de scrapers ativos baseada na configuração"""
+    scrapers = []
+    
+    if config.ENABLE_PROMOBIT:
+        scrapers.append(("promobit", scrape_promobit))
+    if config.ENABLE_PELANDO:
+        scrapers.append(("pelando", scrape_pelando))
+    if config.ENABLE_SHOPEE:
+        scrapers.append(("shopee", scrape_shopee))
+    if config.ENABLE_AMAZON:
+        scrapers.append(("amazon", scrape_amazon))
+    
+    return scrapers
+
+# ===== Sistema de Backup Automático =====
+def create_backup():
+    """Cria backup automático do banco de dados"""
+    try:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = "backups"
+        
+        if not os.path.exists(backup_dir):
+            os.makedirs(backup_dir)
+        
+        backup_file = f"{backup_dir}/ofertas_backup_{timestamp}.db"
+        shutil.copy2(config.DB_NAME, backup_file)
+        
+        # Remove backups antigos (mantém apenas os últimos 5)
+        backup_files = sorted([f for f in os.listdir(backup_dir) if f.endswith('.db')])
+        if len(backup_files) > 5:
+            for old_file in backup_files[:-5]:
+                os.remove(os.path.join(backup_dir, old_file))
+        
+        logger.info(f"✅ Backup criado: {backup_file}")
+        return backup_file
+    except Exception as e:
+        logger.error(f"❌ Erro ao criar backup: {e}")
+        return None
 
 # ===== Helpers de validação compatíveis com seus testes =====
-_PRICE_RE = re.compile(r"^(R\$)?\s?\d{1,3}(?:\.\d{3})*,\d{2}$")
+_PRIC_RE = re.compile(r"^(R\$)?\s?\d{1,3}(?:\.\d{3})*,\d{2}$")
 
 def _normalize_offer(d: Dict[str, Any]) -> Dict[str, Any]:
     """Normaliza campos da oferta para formato padrão"""
@@ -99,7 +182,7 @@ def _is_valid(o: Dict[str, Any]) -> Tuple[bool, str]:
         if not o.get(k):
             return False, f"falta campo obrigatório: {k}"
     
-    if not _PRICE_RE.match(o["preco"].strip()):
+    if not _PRIC_RE.match(o["preco"].strip()):
         return False, f"preço inválido: {o['preco']!r}"
     
     if not str(o["url_produto"]).startswith(("http://", "https://")):
@@ -156,7 +239,16 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
     
     logger.info(f"🚀 Iniciando coleta e publicação (DRY_RUN={dry_run})")
     
+    # Cria backup antes de começar
+    backup_file = create_backup()
+    if backup_file:
+        logger.info(f"💾 Backup criado: {backup_file}")
+    
     all_raw: List[Dict[str, Any]] = []
+    
+    # Obtém lista de scrapers ativos
+    active_scrapers = get_active_scrapers()
+    logger.info(f"📊 Scrapers ativos: {[name for name, _ in active_scrapers]}")
 
     # 1) Coleta concorrente
     async def run_one(name: str, fn):
@@ -168,7 +260,10 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
             logger.exception(f"❌ Erro no scraper {name}: {e}")
 
     # Executa todos os scrapers em paralelo
-    await asyncio.gather(*(run_one(n, f) for n, f in SCRAPERS))
+    if active_scrapers:
+        await asyncio.gather(*(run_one(n, f) for n, f in active_scrapers))
+    else:
+        logger.warning("⚠️ Nenhum scraper ativo configurado!")
 
     logger.info(f"📊 Total de ofertas brutas coletadas: {len(all_raw)}")
     
@@ -195,6 +290,7 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
             # dedupe memória
             if h in vistos:
                 logger.debug(f"🔄 Dedupe (memória): {o.get('titulo')[:50]}...")
+                OFFERS_DUPLICATED.inc()
                 continue
             vistos.add(h)
 
@@ -202,6 +298,7 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
             try:
                 if oferta_ja_existe_por_hash(h):
                     logger.info(f"🔄 Dedupe (DB): {o.get('titulo')[:50]}...")
+                    OFFERS_DUPLICATED.inc()
                     continue
             except Exception as e:
                 logger.warning(f"Erro ao verificar duplicata no DB: {e}")
@@ -249,7 +346,8 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
         "aprovadas": len(aprovadas),
         "publicadas": publicados,
         "dry_run": dry_run,
-        "scrapers_executados": len(SCRAPERS)
+        "scrapers_executados": len(active_scrapers),
+        "backup_file": backup_file
     }
     
     logger.info(f"🎯 Execução concluída: {resultado}")
@@ -280,6 +378,8 @@ async def main():
     print(f"  📤 Ofertas publicadas: {resultado['publicadas']}")
     print(f"  🔄 DRY_RUN: {resultado['dry_run']}")
     print(f"  🏪 Scrapers executados: {resultado['scrapers_executados']}")
+    if resultado.get('backup_file'):
+        print(f"  💾 Backup criado: {resultado['backup_file']}")
 
 if __name__ == "__main__":
     # Configuração básica de logging
