@@ -1,0 +1,36 @@
+# .env de PRODUÇÃO - GARIMPEIRO GEEK
+# ⚠️ ATENÇÃO: Este arquivo contém configurações de PRODUÇÃO
+# Copie para .env e ajuste os valores conforme necessário
+
+# Configurações do Bot Telegram
+TELEGRAM_BOT_TOKEN=8478680741:AAHguaQAL1bTDTqr3AQke1BqAqLeiv1TXnQ
+TELEGRAM_CHAT_ID=-1002853967960
+ADMIN_USER_ID=seu_admin_id_aqui
+
+# Modo de Produção (MUDAR PARA 0 APÓS SANITY CHECK)
+DRY_RUN=1
+
+# Configurações de Rate Limiting
+POST_RATE_DELAY_MS=250
+
+# APIs de Afiliados
+AMAZON_ASSOCIATE_TAG=garimpeirogee-20
+AWIN_API_TOKEN=seu_token_awin_real_aqui
+SHOPEE_API_KEY=sua_chave_shopee_real_aqui
+ALIEXPRESS_APP_KEY=sua_chave_aliexpress_real_aqui
+
+# Configurações do Banco de Dados
+DB_NAME=ofertas.db
+
+# Métricas Prometheus (ATIVAR EM PRODUÇÃO)
+METRICS=1
+METRICS_PORT=9308
+
+# ==========================================
+# INSTRUÇÕES PARA ATIVAÇÃO:
+# 1. Copie este arquivo para .env
+# 2. Ajuste os valores conforme necessário
+# 3. Execute: .\sanity-check.ps1
+# 4. Se tudo OK, mude DRY_RUN=0
+# 5. Execute: .\go-live.ps1
+# ==========================================

@@ -6,6 +6,10 @@ from utils.offer_hash import offer_hash
 from affiliate import AffiliateLinkConverter
 from database import adicionar_oferta, oferta_ja_existe_por_hash
 from telegram_poster import publicar_oferta_automatica
+from metrics import (
+    POSTS_OK, POSTS_FAIL, OFFERS_COLLECTED, OFFERS_APPROVED, 
+    OFFERS_DUPLICATED, SCRAPER_ERRORS, SCRAPER_SUCCESS, maybe_start_server
+)
 
 logger = logging.getLogger("orchestrator")
 
@@ -145,6 +149,8 @@ async def _post_one(o: Dict[str, Any], dry_run: bool) -> bool:
 
 async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int = 20) -> Dict[str, Any]:
     """Função principal: coleta, normaliza, valida, deduplica e publica"""
+    maybe_start_server()  # Inicia servidor de métricas se METRICS=1
+    
     if dry_run is None:
         dry_run = DRY_RUN
     
@@ -165,6 +171,9 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
     await asyncio.gather(*(run_one(n, f) for n, f in SCRAPERS))
 
     logger.info(f"📊 Total de ofertas brutas coletadas: {len(all_raw)}")
+    
+    # Atualiza métricas
+    OFFERS_COLLECTED.set(len(all_raw))
 
     # 2) Normaliza, valida, afilia, dedup (memória + DB)
     vistos: Set[str] = set()
@@ -207,6 +216,9 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
             logger.error(f"❌ Erro ao processar oferta {i+1}: {e}")
 
     logger.info(f"📋 Ofertas aprovadas após validação: {len(aprovadas)}")
+    
+    # Atualiza métricas
+    OFFERS_APPROVED.set(len(aprovadas))
 
     # 3) Persistência + Postagem
     publicados = 0
@@ -221,9 +233,12 @@ async def coletar_e_publicar(dry_run: bool | None = None, limit_por_scraper: int
             ok = await _post_one(o, dry_run=dry_run)
             publicados += int(bool(ok))
             
+            # Atualiza métricas
             if ok:
+                POSTS_OK.inc()
                 logger.info(f"📤 Oferta {i+1} publicada com sucesso: {o.get('titulo')[:50]}...")
             else:
+                POSTS_FAIL.inc()
                 logger.warning(f"⚠️ Falha ao publicar oferta {i+1}: {o.get('titulo')[:50]}...")
                 
         except Exception as e:

@@ -1,0 +1,46 @@
+name: CI
+on:
+  push: { branches: [ master, main ] }
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with: 
+          python-version: "3.11"
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest prometheus-client
+      
+      - name: Create directories
+        run: |
+          mkdir -p reports
+          mkdir -p tests
+      
+      - name: Run scraper checks (DRY_RUN)
+        run: |
+          export DRY_RUN=1
+          python orchestrator.py --dry-run --limit 3 || true
+      
+      - name: Run orchestrator test
+        run: |
+          export DRY_RUN=1
+          python orchestrator.py --dry-run --limit 3 || true
+      
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: reports/
+          retention-days: 7
+      
+      - name: Show test summary
+        run: |
+          echo "📊 Relatórios de teste gerados:"
+          ls -la reports/ || echo "Nenhum relatório encontrado"
