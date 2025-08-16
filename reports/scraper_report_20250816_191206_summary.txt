@@ -1,0 +1,3 @@
+Ofertas OK: 17
+Ofertas com erro: 0
+Itens totais: 17
