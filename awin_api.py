@@ -31,54 +31,66 @@ DEFAULT_HEADERS = {
 
 # Lojas parceiras da Awin (serão expandidas conforme aprovação)
 LOJAS_AWIN = {
-    "kabum": {
-        "name": "Kabum!",
-        "awin_id": None,  # Será preenchido dinamicamente
+    "comfy": {
+        "name": "Comfy",
+        "awin_id": 23377,
         "enabled": True,
         "priority": 1
+    },
+    "trocafy": {
+        "name": "Trocafy",
+        "awin_id": 51277,
+        "enabled": True,
+        "priority": 2
+    },
+    "lg": {
+        "name": "LG",
+        "awin_id": 33061,
+        "enabled": True,
+        "priority": 3
+    },
+    "kabum": {
+        "name": "Kabum!",
+        "awin_id": 17729,
+        "enabled": True,
+        "priority": 4
+    },
+    "samsung": {
+        "name": "Samsung",
+        "awin_id": 58389,  # Conferir o ID exato no painel
+        "enabled": True,
+        "priority": 5,
+        "publisher_id": "2510157"  # Samsung usa Publisher ID específico
     },
     "dell": {
         "name": "Dell",
         "awin_id": None,
         "enabled": True,
-        "priority": 2
+        "priority": 6
     },
     "lenovo": {
         "name": "Lenovo",
         "awin_id": None,
         "enabled": True,
-        "priority": 3
+        "priority": 7
     },
     "acer": {
         "name": "Acer",
         "awin_id": None,
         "enabled": True,
-        "priority": 4
+        "priority": 8
     },
     "asus": {
         "name": "ASUS",
         "awin_id": None,
         "enabled": True,
-        "priority": 5
-    },
-    "trocafy": {
-        "name": "Trocafy",
-        "awin_id": None,
-        "enabled": True,
-        "priority": 6
-    },
-    "samsung": {
-        "name": "Samsung",
-        "awin_id": None,
-        "enabled": True,
-        "priority": 7,
-        "publisher_id": "2510157"  # Samsung usa Publisher ID específico
+        "priority": 9
     },
     "casa bahia": {
         "name": "Casa Bahia",
         "awin_id": None,
         "enabled": True,
-        "priority": 8
+        "priority": 10
     },
 }
 

@@ -44,6 +44,13 @@ async def _send_card(bot, chat_id: int, offer: dict):
         image_source = "none"
         affiliate_kind = "none"
         
+        # Log adicional para AWIN
+        if "awin" in store.lower():
+            from awin_api import get_awin_merchant_id
+            merchant_id = get_awin_merchant_id(store.lower())
+            publisher_id = config.AWIN_PUBLISHER_IDS["samsung"] if "samsung" in store.lower() else config.AWIN_PUBLISHER_IDS["default"]
+            logger.info(f"🔗 AWIN: store={store}, merchant_id={merchant_id}, publisher_id={publisher_id}")
+        
         if img_url:
             buf = fetch_bytes(img_url)
             try:
@@ -93,7 +100,7 @@ async def _send_card(bot, chat_id: int, offer: dict):
             disable_web_page_preview=True
         )
 
-async def publicar_oferta(bot, chat_id: int, mensagem: str, url_afiliado: str = None, reply_markup=None):
+async def publicar_oferta(bot, chat_id: int, mensagem: str, url_afiliado: Optional[str] = None, reply_markup=None):
     """
     Publica uma oferta no chat especificado
     
@@ -112,13 +119,21 @@ async def publicar_oferta(bot, chat_id: int, mensagem: str, url_afiliado: str = 
                 "title": mensagem.get("titulo", "Oferta"),
                 "price_formatted": mensagem.get("preco_atual", "—"),
                 "store": mensagem.get("loja", "Loja"),
-                "affiliate_url": url_afiliado or mensagem.get("url_afiliado") or "",
+                "affiliate_url": (url_afiliado or mensagem.get("url_afiliado") or ""),
                 "origin": "Garimpeiro Geek"
             }
             await _send_card(bot, chat_id, offer)
         else:
             # Formato novo, usa diretamente
-            await _send_card(bot, chat_id, mensagem)
+            offer = {
+                "title": "Oferta",
+                "price_formatted": "—",
+                "store": "Loja",
+                "affiliate_url": url_afiliado or "",
+                "origin": "Garimpeiro Geek",
+                "types": []
+            }
+            await _send_card(bot, chat_id, offer)
             
         logger.info(f"✅ Oferta publicada no chat {chat_id}")
         
