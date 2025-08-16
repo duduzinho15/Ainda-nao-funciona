@@ -389,7 +389,7 @@ class AmazonPAAPI:
             - list_price: Preço de listagem (string formatada)
             - discount_percent: Percentual de desconto
             - url: URL do produto
-            - image_url: URL da imagem principal
+            - imagem_url: URL da imagem principal
             - is_prime: Se o produto é elegível para Prime
             - merchant: Nome do vendedor
             - features: Lista de características do produto
@@ -699,7 +699,7 @@ class AmazonPAAPI:
             - discount_percent: Percentual de desconto (pode ser None)
             - discount_amount: Valor do desconto formatado (pode ser None)
             - url: URL do produto com o código de afiliado
-            - image_url: URL da imagem principal do produto
+            - imagem_url: URL da imagem principal do produto
             - is_prime: Booleano indicando se o produto é elegível para Prime
             - merchant: Nome do vendedor
             - features: Lista de características do produto
@@ -753,7 +753,7 @@ class AmazonPAAPI:
                     'asin': asin,
                     'title': title,
                     'url': url,
-                    'image_url': image_url,
+                    'imagem_url': image_url,  # Padronizado para imagem_url
                     'features': features,
                     'category': category,
                     **price_info,
@@ -890,8 +890,8 @@ async def testar_busca():
             print(f"Vendido por: {oferta.get('seller', 'Vendedor não especificado')}")
             print(f"URL: {oferta.get('url', 'URL não disponível')}")
             
-            if oferta.get('image_url'):
-                print(f"Imagem: {oferta['image_url']}")
+            if oferta.get('imagem_url'):
+                print(f"Imagem: {oferta['imagem_url']}")
                 
             print()
             

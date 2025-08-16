@@ -26,17 +26,39 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configuração de disponibilidade de módulos
+MAGALU_AVAILABLE = True
+PROMOBIT_AVAILABLE = True
+PELANDO_AVAILABLE = True
+ZOOM_AVAILABLE = True
+
+# Importações adicionais
+import aiohttp
+from zoom_scraper import ZoomScraper
+
 # Importações dos módulos personalizados
 try:
     import config
     import database
-    from magalu_scraper import buscar_ofertas_magalu
-    from promobit_scraper import buscar_ofertas_promobit
+    # Sistema Anti-Duplicidade
+    from duplicate_prevention_system import DuplicatePreventionSystem
+    # Scrapers
+    from magalu_scraper import MagazineLuizaScraper
+    from promobit_scraper_clean import buscar_ofertas_promobit
+    from pelando_scraper import buscar_ofertas_pelando
+    from amazon_scraper import AmazonScraper
+    from shopee_api_integration import ShopeeAPIIntegration
+    from aliexpress_api import AliExpressAPI
+    from mercadolivre_scraper import buscar_ofertas_mercadolivre
+    from buscape_scraper import buscar_ofertas_buscape
+    from meupc_scraper import buscar_ofertas_meupc
     from affiliate import gerar_link_afiliado
     from telegram_poster import publicar_oferta_automatica
     
     # Configuração de disponibilidade de módulos
+    MAGALU_AVAILABLE = True
     PROMOBIT_AVAILABLE = True
+    PELANDO_AVAILABLE = True
 except ImportError as e:
     logger.error(f"Erro ao importar módulos: {e}")
     raise
@@ -101,17 +123,18 @@ class ScraperOrchestrator:
         todas_as_ofertas = []
         
         try:
-            # 1. Busca ofertas do Magazine Luiza
-            logger.info("🔄 Buscando ofertas no Magazine Luiza...")
-            try:
-                ofertas_magalu = await asyncio.to_thread(buscar_ofertas_magalu, paginas=2)
-                stats['magalu'] = len(ofertas_magalu)
-                todas_as_ofertas.extend(ofertas_magalu)
-                logger.info(f"✅ Encontradas {len(ofertas_magalu)} ofertas no Magazine Luiza")
-                await asyncio.sleep(5)  # Delay para não sobrecarregar os servidores
-            except Exception as e:
-                logger.error(f"❌ Erro ao buscar ofertas do Magazine Luiza: {e}", exc_info=True)
-                stats['erros'] += 1
+            # 2. Busca ofertas do Magazine Luiza (se disponível)
+            if MAGALU_AVAILABLE:
+                logger.info("🔄 Buscando ofertas no Magazine Luiza...")
+                try:
+                    scraper = MagazineLuizaScraper(headless=True)
+                    ofertas_magalu = await asyncio.to_thread(scraper.buscar_ofertas, max_paginas=2)
+                    stats['magalu'] = len(ofertas_magalu)
+                    todas_as_ofertas.extend(ofertas_magalu)
+                    logger.info(f"✅ Encontradas {len(ofertas_magalu)} ofertas no Magazine Luiza")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao buscar no Magazine Luiza: {e}")
+                    stats['magalu'] = 0
             
             # 2. Busca ofertas do Promobit (se disponível)
             if PROMOBIT_AVAILABLE:
@@ -336,27 +359,153 @@ class ScraperOrchestrator:
             raise
 
 async def main():
-    """Função principal para execução direta do script."""
-    # Cria o orquestrador
-    orquestrador = ScraperOrchestrator()
+    """Função principal"""
+    print("🚀 SISTEMA DE SCRAPERS UNIFICADO COM ANTI-DUPLICIDADE")
+    print("=" * 60)
     
+    # Inicializa sistema anti-duplicidade
+    dps = DuplicatePreventionSystem()
+    print("✅ Sistema anti-duplicidade inicializado")
+    
+    # Mostra fila de processamento
+    print("\n🔄 Fila de Processamento:")
+    queue = dps.get_processing_queue()
+    for item in queue:
+        print(f"   {item['name']} ({item['domain']}) - Prioridade: {item['priority']:.2f}")
+    
+    # Executa scrapers com controle de duplicidade
+    await run_scrapers_with_duplicate_prevention(dps)
+    
+    # Mostra estatísticas finais
+    print("\n📊 Estatísticas Finais:")
+    stats = dps.get_site_statistics()
+    for key, value in stats.items():
+        if isinstance(value, dict):
+            print(f"   {key}:")
+            for sub_key, sub_value in value.items():
+                print(f"     {sub_key}: {sub_value}")
+        else:
+            print(f"   {key}: {value}")
+    
+    # Salva cache
+    dps.save_cache()
+    print("\n💾 Cache salvo com sucesso!")
+
+async def run_scrapers_with_duplicate_prevention(dps: DuplicatePreventionSystem):
+    """Executa scrapers com controle de duplicidade"""
+    print("\n🔍 Iniciando execução dos scrapers...")
+    
+    # Lista de scrapers disponíveis com seus domínios
+    scrapers = [
+        {
+            "name": "Promobit",
+            "domain": "promobit.com.br",
+            "function": "promobit",
+            "enabled": PROMOBIT_AVAILABLE
+        },
+        {
+            "name": "Zoom",
+            "domain": "zoom.com.br", 
+            "function": "zoom",
+            "enabled": ZOOM_AVAILABLE
+        },
+        {
+            "name": "Pelando",
+            "domain": "pelando.com.br",
+            "function": "pelando",
+            "enabled": PELANDO_AVAILABLE
+        },
+        {
+            "name": "MeuPC.net",
+            "domain": "meupc.net",
+            "function": "meupc",
+            "enabled": True
+        },
+        {
+            "name": "Buscapé",
+            "domain": "buscape.com.br",
+            "function": "buscape",
+            "enabled": True
+        }
+    ]
+    
+    for scraper in scrapers:
+        if not scraper["enabled"]:
+            print(f"⚠️ {scraper['name']} desabilitado")
+            continue
+        
+        domain = scraper["domain"]
+        print(f"\n🔍 Verificando {scraper['name']} ({domain})...")
+        
+        if dps.can_process_site(domain):
+            print(f"   ✅ Pode ser processado")
+            
+            try:
+                # Executa scraper específico
+                products = await execute_scraper(scraper["function"])
+                
+                if products:
+                    # Filtra produtos duplicados
+                    unique_products = dps.filter_duplicate_products(products, domain)
+                    print(f"   📦 Produtos únicos: {len(unique_products)}")
+                    
+                    # Marca site como processado
+                    dps.mark_site_processed(domain, len(unique_products))
+                    
+                    # Processa produtos únicos
+                    await process_unique_products(unique_products, scraper["name"])
+                else:
+                    print(f"   ❌ Nenhum produto encontrado")
+                    dps.mark_site_processed(domain, 0)
+                    
+            except Exception as e:
+                print(f"   ❌ Erro: {e}")
+                dps.mark_site_processed(domain, 0)
+        else:
+            next_time = dps.get_next_processing_time(domain)
+            print(f"   ⏰ Próximo processamento: {next_time.strftime('%H:%M:%S')}")
+
+async def execute_scraper(scraper_type: str) -> List[Dict[str, Any]]:
+    """Executa um scraper específico"""
     try:
-        # Inicializa o orquestrador
-        await orquestrador.inicializar()
-        
-        # Executa o orquestrador em modo contínuo
-        await orquestrador.executar()
-        
-    except KeyboardInterrupt:
-        logger.info("👋 Encerrando o orquestrador...")
+        if scraper_type == "promobit":
+            return await buscar_ofertas_promobit()
+        elif scraper_type == "zoom":
+            scraper = ZoomScraper()
+            return await scraper.buscar_ofertas_zoom()
+        elif scraper_type == "pelando":
+            async with aiohttp.ClientSession() as session:
+                return await buscar_ofertas_pelando(session)
+        elif scraper_type == "meupc":
+            async with aiohttp.ClientSession() as session:
+                return await buscar_ofertas_meupc(session)
+        elif scraper_type == "buscape":
+            async with aiohttp.ClientSession() as session:
+                return await buscar_ofertas_buscape(session)
+        else:
+            print(f"   ⚠️ Scraper {scraper_type} não implementado")
+            return []
     except Exception as e:
-        logger.error(f"❌ Erro fatal: {e}", exc_info=True)
-        return 1
-    finally:
-        # Finaliza o orquestrador
-        await orquestrador.finalizar()
+        print(f"   ❌ Erro ao executar {scraper_type}: {e}")
+        return []
+
+async def process_unique_products(products: List[Dict[str, Any]], scraper_name: str):
+    """Processa produtos únicos encontrados"""
+    print(f"   🔄 Processando {len(products)} produtos únicos...")
     
-    return 0
+    # Aqui você pode adicionar lógica para:
+    # - Salvar no banco de dados
+    # - Enviar para o Telegram
+    # - Gerar links de afiliado
+    # - etc.
+    
+    for i, product in enumerate(products[:5], 1):  # Mostra apenas os primeiros 5
+        print(f"     {i}. {product.get('titulo', 'N/A')[:50]}...")
+        print(f"        💰 R$ {product.get('preco_atual', 'N/A')}")
+        print(f"        🏪 {product.get('loja', 'N/A')}")
+    
+    if len(products) > 5:
+        print(f"     ... e mais {len(products) - 5} produtos")
 
 if __name__ == "__main__":
     # Configura o nível de log para DEBUG se executado diretamente
