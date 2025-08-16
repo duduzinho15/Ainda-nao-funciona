@@ -66,8 +66,13 @@ ALIEXPRESS_TRACKING_ID = "telegram"
 
 # Configurações da API da Awin
 AWIN_API_TOKEN = os.getenv("AWIN_API_TOKEN", "f647c7b9-e8de-44a4-80fe-e9572ef35c10")
-AWIN_PUBLISHER_ID = os.getenv("AWIN_PUBLISHER_ID", "2370719")
-AWIN_PUBLISHER_ID = "2510157"
+
+# Publisher IDs corretos do Eduardo:
+AWIN_PUBLISHER_IDS = {
+    "default": "2370719",   # COMFY BR, LG BR, Trocafy BR, Kabum BR
+    "samsung": "2510157"    # Samsung BR
+}
+AWIN_PUBLISHER_ID = AWIN_PUBLISHER_IDS["default"]
 
 # Validação das credenciais da Awin
 if AWIN_PUBLISHER_ID == "YOUR_PUBLISHER_ID":

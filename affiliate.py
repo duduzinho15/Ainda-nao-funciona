@@ -144,16 +144,41 @@ class AffiliateLinkConverter:
             parsed_url = urlparse(url)
             query_params = parse_qs(parsed_url.query)
             
+            # Extrai ASIN da URL se possível
+            asin = None
+            path_parts = parsed_url.path.split('/')
+            
+            # Procura por ASIN no path (formato /dp/ASIN ou /gp/product/ASIN)
+            for i, part in enumerate(path_parts):
+                if part in ['dp', 'gp', 'product'] and i + 1 < len(path_parts):
+                    potential_asin = path_parts[i + 1]
+                    if len(potential_asin) == 10 and potential_asin.isalnum():
+                        asin = potential_asin
+                        break
+            
+            # Se encontrou ASIN, canonicaliza para formato /dp/ASIN
+            if asin:
+                canonical_path = f"/dp/{asin}"
+                logger.info(f"ASIN extraído: {asin}")
+            else:
+                canonical_path = parsed_url.path
+                logger.info("ASIN não encontrado, mantendo path original")
+            
             # Adiciona ou atualiza o tag de afiliado
             affiliate_tag = self.affiliate_configs['Amazon']['tag']
             query_params['tag'] = [affiliate_tag]
             
-            # Reconstrói a URL com os novos parâmetros
-            new_query = urlencode(query_params, doseq=True)
+            # Mantém apenas parâmetros úteis
+            useful_params = ['ref', 'th', 'psc', 'qid', 'sr']
+            filtered_params = {k: v for k, v in query_params.items() 
+                             if k in useful_params or k == 'tag'}
+            
+            # Reconstrói a URL com path canonicalizado e parâmetros filtrados
+            new_query = urlencode(filtered_params, doseq=True)
             affiliate_url = urlunparse((
                 parsed_url.scheme,
                 parsed_url.netloc,
-                parsed_url.path,
+                canonical_path,
                 parsed_url.params,
                 new_query,
                 parsed_url.fragment
@@ -217,45 +242,46 @@ class AffiliateLinkConverter:
             
             # Detecta a loja se não fornecida
             if not loja:
-                loja = self.detect_store_from_url(url_original)
-                if not loja:
+                detected_loja = self.detect_store_from_url(url_original)
+                if not detected_loja:
                     logger.warning(f"Loja não reconhecida para a URL: {url_original}")
                     return url_original
+                loja = detected_loja
             
             # Verifica se a conversão está habilitada para esta loja
             if loja not in self.affiliate_configs:
                 logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
                 return url_original
             
+            # Obtém a configuração da loja
             config_loja = self.affiliate_configs[loja]
-            if not config_loja['enabled']:
+            
+            # Verifica se está habilitada
+            if not config_loja.get('enabled', False):
                 logger.info(f"Conversão de afiliado desabilitada para: {loja}")
                 return url_original
             
             # Aplica o método de conversão apropriado
-            method = config_loja['method']
+            method = config_loja.get('method', 'none')
             
             if method == 'replace_domain':
-                if loja == 'Magazine Luiza':
-                    return self._convert_magalu_url(url_original)
-            
+                return self._convert_magalu_url(url_original)
             elif method == 'add_tag':
-                if loja == 'Amazon':
-                    return self._convert_amazon_url(url_original)
-            
+                return self._convert_amazon_url(url_original)
             elif method == 'api':
-                if loja == 'AliExpress':
-                    return self._convert_aliexpress_url(url_original)
-                elif loja in ['Kabum!', 'Dell', 'Lenovo', 'Acer', 'ASUS']:
+                if loja == 'Awin':
                     return self._convert_awin_url(url_original, loja)
-            
+                elif loja == 'AliExpress':
+                    return self._convert_aliexpress_url(url_original)
+                else:
+                    logger.warning(f"Método API não implementado para: {loja}")
+                    return url_original
             elif method == 'none':
                 logger.info(f"Conversão não implementada para: {loja}")
                 return url_original
-            
-            # Se chegou aqui, não foi possível converter
-            logger.warning(f"Método de conversão não implementado para: {loja}")
-            return url_original
+            else:
+                logger.warning(f"Método de conversão desconhecido para {loja}: {method}")
+                return url_original
             
         except Exception as e:
             logger.error(f"Erro ao gerar link de afiliado: {e}")
@@ -307,13 +333,16 @@ class AffiliateLinkConverter:
             URL de afiliado da Awin ou URL original se falhar
         """
         try:
+            from urllib.parse import quote
+            from awin_api import get_awin_merchant_id
+            
             # Verifica se a API da Awin está configurada
-            if not config.AWIN_API_TOKEN or not config.AWIN_PUBLISHER_ID:
+            if not config.AWIN_API_TOKEN:
                 logger.warning("API da Awin não configurada")
                 return url_original
             
-            # Mapeia nomes de lojas para IDs da Awin
-            lojas_awin_ids = {
+            # Mapeia nomes de lojas para slugs da Awin
+            lojas_awin_slugs = {
                 'Kabum!': 'kabum',
                 'Dell': 'dell',
                 'Lenovo': 'lenovo',
@@ -324,22 +353,33 @@ class AffiliateLinkConverter:
                 'Casa Bahia': 'casa_bahia'
             }
             
-            # Obtém o ID da loja na Awin
-            loja_id = lojas_awin_ids.get(loja)
-            if not loja_id:
+            # Obtém o slug da loja na Awin
+            loja_slug = lojas_awin_slugs.get(loja)
+            if not loja_slug:
                 logger.warning(f"Loja {loja} não mapeada para Awin")
                 return url_original
             
+            # Obtém o merchant ID (awin_id) da loja
+            merchant_id = get_awin_merchant_id(loja_slug)
+            if not merchant_id:
+                logger.warning(f"Sem merchant_id AWIN para {loja} -> mantendo URL original")
+                return url_original
+            
+            # Escolhe o publisher ID baseado na loja
+            publisher_id = (config.AWIN_PUBLISHER_IDS["samsung"]
+                           if "samsung" in loja_slug else
+                           config.AWIN_PUBLISHER_IDS["default"])
+            
             # Constrói o link de afiliado da Awin
-            # Formato: https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={affiliate_id}&clicktracker=url&ued={url_encoded}
+            # Formato: https://www.awin1.com/cread.php?awinmid={merchant_id}&awinaffid={publisher_id}&ued={url_encoded}
             affiliate_url = (
                 f"https://www.awin1.com/cread.php?"
-                f"awinmid={config.AWIN_PUBLISHER_ID}&"
-                f"awinaffid={config.AWIN_PUBLISHER_ID}&"
-                f"clicktracker=url&"
-                f"ued={url_original}"
+                f"awinmid={merchant_id}&"
+                f"awinaffid={publisher_id}&"
+                f"ued={quote(url_original, safe='')}"
             )
             
+            logger.info(f"AWIN ok ({loja}): merchant_id={merchant_id}, publisher_id={publisher_id}")
             logger.info(f"✅ Link de afiliado Awin gerado para {loja}: {affiliate_url[:80]}...")
             return affiliate_url
             

@@ -71,7 +71,8 @@ LOJAS_AWIN = {
         "name": "Samsung",
         "awin_id": None,
         "enabled": True,
-        "priority": 7
+        "priority": 7,
+        "publisher_id": "2510157"  # Samsung usa Publisher ID específico
     },
     "casa bahia": {
         "name": "Casa Bahia",
@@ -92,53 +93,62 @@ async def atualizar_ids_lojas_awin(session: aiohttp.ClientSession) -> None:
         logger.error("AWIN_PUBLISHER_ID não está definido no arquivo de configuração.")
         return
 
-    url = f"{AWIN_API_BASE_URL}/{AWIN_API_VERSION}/publishers/{publisher_id}/programmes?relationship=joined"
-
     logger.info("Iniciando a atualização dos IDs das lojas parceiras da Awin...")
 
-    try:
-        async with session.get(url, headers=DEFAULT_HEADERS) as response:
-            response.raise_for_status()  # Lança um erro para status HTTP 4xx/5xx
-            programas_aprovados = await response.json()
+    # Processa cada loja individualmente com seu Publisher ID apropriado
+    for nome_loja_key, detalhes_loja in LOJAS_AWIN.items():
+        try:
+            # Usa Publisher ID específico para Samsung, padrão para outras
+            if nome_loja_key == "samsung" and "publisher_id" in detalhes_loja:
+                current_publisher_id = detalhes_loja["publisher_id"]
+            else:
+                current_publisher_id = publisher_id
+            
+            url = f"{AWIN_API_BASE_URL}/{AWIN_API_VERSION}/publishers/{current_publisher_id}/programmes?relationship=joined"
+            
+            logger.info(f"Consultando programas para {detalhes_loja['name']} com Publisher ID: {current_publisher_id}")
+            
+            async with session.get(url, headers=DEFAULT_HEADERS) as response:
+                response.raise_for_status()  # Lança um erro para status HTTP 4xx/5xx
+                programas_aprovados = await response.json()
 
-            if not programas_aprovados or 'data' not in programas_aprovados:
-                logger.warning("Nenhum programa de afiliado aprovado foi encontrado na Awin para este Publisher ID.")
-                # Desativa todas as lojas Awin se nenhuma for encontrada
-                for detalhes_loja in LOJAS_AWIN.values():
+                if not programas_aprovados or 'data' not in programas_aprovados:
+                    logger.warning(f"Nenhum programa de afiliado aprovado encontrado para {detalhes_loja['name']} com Publisher ID {current_publisher_id}")
                     detalhes_loja['enabled'] = False
-                return
-
-            # Cria um mapa de nomes (em minúsculas) para IDs para uma busca eficiente
-            mapa_nomes_api = {}
-            for programa in programas_aprovados.get('data', []):
-                advertiser_name = programa.get('advertiserName', programa.get('name', ''))
-                advertiser_id = programa.get('advertiserId', programa.get('id', ''))
-                if advertiser_name and advertiser_id:
-                    mapa_nomes_api[advertiser_name.lower().strip()] = advertiser_id
-
-            lojas_atualizadas = 0
-            for nome_loja_key, detalhes_loja in LOJAS_AWIN.items():
-                nome_loja_config = detalhes_loja['name'].lower().strip()
+                    continue
 
                 # Procura pelo nome da loja na resposta da API
-                if nome_loja_config in mapa_nomes_api:
-                    awin_id = mapa_nomes_api[nome_loja_config]
-                    detalhes_loja['awin_id'] = awin_id
-                    detalhes_loja['enabled'] = True  # Garante que a loja está ativa
-                    lojas_atualizadas += 1
-                    logger.info(f"ID da loja '{detalhes_loja['name']}' atualizado para: {awin_id}")
-                else:
-                    # Se a loja definida no nosso código não foi encontrada na lista de aprovados,
-                    # ela é desativada para este ciclo de busca.
+                nome_loja_config = detalhes_loja['name'].lower().strip()
+                loja_encontrada = False
+                
+                for programa in programas_aprovados.get('data', []):
+                    advertiser_name = programa.get('advertiserName', programa.get('name', ''))
+                    advertiser_id = programa.get('advertiserId', programa.get('id', ''))
+                    
+                    if advertiser_name and advertiser_id and nome_loja_config in advertiser_name.lower().strip():
+                        detalhes_loja['awin_id'] = advertiser_id
+                        detalhes_loja['enabled'] = True
+                        logger.info(f"✅ ID da loja '{detalhes_loja['name']}' atualizado para: {advertiser_id}")
+                        loja_encontrada = True
+                        break
+                
+                if not loja_encontrada:
                     detalhes_loja['enabled'] = False
-                    logger.warning(f"A loja '{detalhes_loja['name']}' não foi encontrada nos programas aprovados. A busca para esta loja será desativada.")
+                    logger.warning(f"⚠️ A loja '{detalhes_loja['name']}' não foi encontrada nos programas aprovados com Publisher ID {current_publisher_id}")
+                
+                # Aguarda um pouco entre as consultas para não sobrecarregar a API
+                await asyncio.sleep(1)
+                
+        except aiohttp.ClientError as e:
+            logger.error(f"❌ Erro de comunicação ao consultar {detalhes_loja['name']}: {e}")
+            detalhes_loja['enabled'] = False
+        except Exception as e:
+            logger.error(f"❌ Erro inesperado ao processar {detalhes_loja['name']}: {e}")
+            detalhes_loja['enabled'] = False
 
-            logger.info(f"{lojas_atualizadas} IDs de lojas Awin foram atualizados e ativados com sucesso.")
-
-    except aiohttp.ClientError as e:
-        logger.error(f"Erro de comunicação ao tentar atualizar IDs da Awin: {e}")
-    except Exception as e:
-        logger.error(f"Ocorreu um erro inesperado ao processar os IDs das lojas Awin: {e}")
+    # Conta lojas ativadas
+    lojas_ativadas = sum(1 for detalhes in LOJAS_AWIN.values() if detalhes['enabled'])
+    logger.info(f"✅ {lojas_ativadas} lojas Awin foram ativadas com sucesso")
 
 async def obter_programas_parceiros() -> Dict[str, Any]:
     """
@@ -476,3 +486,9 @@ async def testar_api_awin():
 if __name__ == "__main__":
     # Executa teste se chamado diretamente
     asyncio.run(testar_api_awin())
+
+# Helper para obter merchant ID de uma loja
+def get_awin_merchant_id(slug: str) -> int | None:
+    """Retorna o merchant ID (awin_id) de uma loja pelo slug"""
+    d = LOJAS_AWIN.get(slug)
+    return int(d["awin_id"]) if d and d.get("awin_id") else None

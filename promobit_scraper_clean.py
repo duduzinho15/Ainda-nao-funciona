@@ -73,10 +73,10 @@ BASE_HEADERS = {
 # URLs base para busca de ofertas
 BASE_URL = "https://www.promobit.com.br/"
 CATEGORIAS = {
-    'informatica': 'ofertas/informatica',
-    'eletronicos': 'ofertas/eletronicos',
-    'games': 'ofertas/games',
-    'celulares': 'ofertas/celulares'
+    'informatica': '',
+    'eletronicos': '',
+    'games': '',
+    'celulares': ''
 }
 
 # Adicionando logging para debug
@@ -377,165 +377,103 @@ async def buscar_ofertas_promobit(
                         logger.error(f"Erro ao fazer parse do HTML: {e}")
                         return []
                     
-                    # Encontra todos os cards de oferta
-                    cards = soup.select('article[data-testid="offer-card"]')
+                    # Procura por cards de ofertas
+                    cards_oferta = soup.find_all('section')
                     
-                    if not cards:
+                    if not cards_oferta:
                         logger.warning(f"Nenhum card de oferta encontrado na página {page_num}")
-                        # Log the first 500 characters of the HTML for debugging
-                        logger.debug(f"HTML da página {page_num} (primeiros 500 caracteres): {str(soup)[:500]}")
                         return []
                     
-                    logger.info(f"Encontrados {len(cards)} cards na página {page_num}")
+                    logger.info(f"Encontrados {len(cards_oferta)} cards de oferta na página {page_num}")
                     
-                    # Contador para ofertas que passaram nos filtros
-                    ofertas_filtradas = 0
-                    
-                    for card in cards:
+                    ofertas = []
+                    for card in cards_oferta:
                         try:
-                            # Extrai título e URL do produto
-                            titulo_elem = card.select_one('h2 a')
-                            if not titulo_elem:
+                            # Verifica se é um card de oferta válido (deve ter link e imagem)
+                            link_oferta = card.find('a')
+                            if not link_oferta or not link_oferta.get('href'):
                                 continue
+                            
+                            # Extrai informações da oferta
+                            url_produto = link_oferta.get('href')
+                            if not url_produto.startswith('http'):
+                                url_produto = f"https://www.promobit.com.br{url_produto}"
+                            
+                            # Título da oferta
+                            titulo_elem = card.find('span', class_=lambda x: x and 'line-clamp-2' in x)
+                            titulo = titulo_elem.get_text(strip=True) if titulo_elem else "Título não encontrado"
+                            
+                            # Preço atual - corrigindo para pegar o valor correto
+                            preco_container = card.find('div', class_=lambda x: x and 'lg:order-0' in x and 'items-center' in x)
+                            if preco_container:
+                                # Pega o símbolo R$ e o valor separadamente
+                                simbolo_elem = preco_container.find('span', class_=lambda x: x and 'pr-1' in x)
+                                valor_elem = preco_container.find('span', class_=lambda x: x and 'whitespace-nowrap' in x)
                                 
-                            titulo = titulo_elem.get_text(strip=True)
-                            url_oferta = titulo_elem.get('href', '')
-                            
-                            # Verifica se o título contém alguma palavra-chave relevante
-                            titulo_lower = titulo.lower()
-                            palavras_encontradas = [p for p in PALAVRAS_CHAVE if re.search(r'\b' + re.escape(p) + r'\b', titulo_lower)]
-                            if not palavras_encontradas:
-                                logger.debug(f"Pulando oferta - Nenhuma palavra-chave encontrada no título: {titulo}")
-                                continue
-                            else:
-                                logger.debug(f"Palavras-chave encontradas no título: {', '.join(palavras_encontradas)}")
-                            
-                            
-                            # Extrai preços e desconto
-                            preco_elem = card.select_one('div[data-testid="offer-price"]')
-                            if not preco_elem:
-                                continue
-                                
-                            preco_atual, preco_original, desconto = extrair_preco(
-                                preco_elem.get_text(strip=True))
-                            
-                            # Se não conseguiu extrair preço, pula para a próxima oferta
-                            if not preco_atual:
-                                logger.debug(f"Pulando oferta - Não foi possível extrair o preço do texto: {preco_elem.get_text(strip=True)}")
-                                continue
-                                
-                            if desconto is not None and desconto < min_desconto:
-                                logger.debug(f"Pulando oferta - Desconto de {desconto}% é menor que o mínimo de {min_desconto}%")
-                                continue
-                            
-                            # Converte preços para float para comparação
-                            try:
-                                preco_atual_float = float(preco_atual.replace('.', '').replace(',', '.'))
-                                
-                                # Filtra por faixa de preço
-                                if min_preco is not None and preco_atual_float < min_preco:
-                                    continue
-                                    
-                                if max_preco is not None and preco_atual_float > max_preco:
-                                    continue
-                                    
-                            except (ValueError, AttributeError):
-                                continue
-                            
-                            # Extrai URL da imagem
-                            img_elem = card.select_one('img')
-                            imagem_url = img_elem.get('src', '') if img_elem else ''
-                            
-                            # Se a URL da imagem for relativa, converte para absoluta
-                            if imagem_url and not imagem_url.startswith(('http://', 'https://')):
-                                if imagem_url.startswith('/'):
-                                    imagem_url = f"https://www.promobit.com.br{imagem_url}"
+                                if simbolo_elem and valor_elem:
+                                    preco_atual = f"{simbolo_elem.get_text(strip=True)}{valor_elem.get_text(strip=True)}"
+                                elif valor_elem:
+                                    preco_atual = f"R$ {valor_elem.get_text(strip=True)}"
                                 else:
-                                    imagem_url = f"https://www.promobit.com.br/{imagem_url}"
+                                    preco_atual = "Preço não encontrado"
+                            else:
+                                preco_atual = "Preço não encontrado"
                             
-                            # Extrai nome da loja
-                            loja_elem = card.select_one('a[data-testid="offer-store"]')
-                            loja = loja_elem.get_text(strip=True) if loja_elem else 'Desconhecida'
+                            # Preço original (riscado) - corrigindo o seletor
+                            preco_original_elem = card.find('span', class_=lambda x: x and 'line-through' in x and 'text-sm' in x)
+                            preco_original = preco_original_elem.get_text(strip=True) if preco_original_elem else ""
                             
-                            # Normaliza o nome da loja
-                            loja_normalizada = normalizar_loja(loja)
-                            
-                            # Filtra por lojas oficiais, se necessário
-                            if apenas_lojas_oficiais and loja_normalizada == 'Desconhecida':
-                                continue
-                            
-                            # Extrai URL do produto na loja
-                            url_produto = card.select_one('a[data-testid="offer-link"]')
-                            url_produto = url_produto.get('href', '') if url_produto else ''
-                            
-                            # Se não tem URL do produto, usa a URL da oferta
-                            if not url_produto:
-                                url_produto = f"https://www.promobit.com.br{url_oferta}"
-                            
-                            # Extrai avaliação do produto
-                            avaliacao_elem = card.select_one('span[data-testid="offer-rating"]')
-                            avaliacao = 0.0
-                            votos = 0
-                            
-                            if avaliacao_elem:
-                                try:
-                                    avaliacao_texto = avaliacao_elem.get_text(strip=True)
-                                    if avaliacao_texto:
-                                        # Extrai avaliação no formato "4.5 (123)"
-                                        match = re.search(r'(\d+[\\.]?\d*).*?\((\d+)\)', avaliacao_texto)
-                                        if match:
-                                            avaliacao = float(match.group(1).replace(',', '.'))
-                                            votos = int(match.group(2))
-                                except (ValueError, AttributeError) as e:
-                                    logger.debug(f"Erro ao extrair avaliação: {e}")
-                            
-                            # Filtra por avaliação mínima
-                            if avaliacao < min_avaliacao:
-                                logger.debug(f"Pulando oferta - Avaliação {avaliacao} é menor que o mínimo de {min_avaliacao}")
-                                continue
+                            # Calcula desconto usando a função extrair_preco
+                            if preco_atual and preco_original and preco_atual != "Preço não encontrado":
+                                # Extrai apenas os valores numéricos dos preços
+                                preco_atual_limpo = preco_atual.replace('R$', '').strip()
+                                preco_original_limpo = preco_original.replace('R$', '').strip()
                                 
-                            if votos < min_votos:
-                                logger.debug(f"Pulando oferta - Apenas {votos} votos, mínimo necessário é {min_votos}")
-                                continue
+                                try:
+                                    # Converte para float para calcular desconto
+                                    preco_atual_valor = float(preco_atual_limpo.replace('.', '').replace(',', '.'))
+                                    preco_original_valor = float(preco_original_limpo.replace('.', '').replace(',', '.'))
+                                    
+                                    # Calcula desconto
+                                    if preco_original_valor > preco_atual_valor:
+                                        desconto = int(((preco_original_valor - preco_atual_valor) / preco_original_valor) * 100)
+                                    else:
+                                        desconto = 0
+                                except:
+                                    desconto = 0
+                            else:
+                                desconto = 0
                             
-                            # Verifica se tem frete grátis
-                            frete_gratis = 'frete grátis' in card.get_text().lower()
-                            if apenas_frete_gratis and not frete_gratis:
-                                logger.debug("Pulando oferta - Frete grátis não encontrado")
-                                continue
+                            # Imagem do produto
+                            img_elem = card.find('img')
+                            imagem_url = img_elem.get('src') if img_elem else ""
                             
-                            # Extrai domínio da URL do produto
-                            dominio = extrair_dominio(url_produto)
+                            # Loja
+                            loja_elem = card.find('span', class_=lambda x: x and 'text-sm' in x and 'mr-1' in x)
+                            loja = loja_elem.get_text(strip=True) if loja_elem else "Loja não identificada"
                             
-                            # Adiciona a oferta à lista
+                            # Cria objeto da oferta
                             oferta = {
                                 'titulo': titulo,
-                                'url_produto': url_produto,
-                                'url_fonte': f"https://www.promobit.com.br{url_oferta}",
-                                'preco': preco_atual,
+                                'preco_atual': preco_atual,
                                 'preco_original': preco_original,
-                                'preco_float': preco_atual_float,
-                                'loja': loja_normalizada,
-                                'dominio': dominio,
-                                'fonte': 'Promobit',
+                                'desconto': desconto,
                                 'imagem_url': imagem_url,
-                                'avaliacao': avaliacao,
-                                'votos': votos,
-                                'frete_gratis': frete_gratis,
-                                'desconto': desconto or 0,
-                                'timestamp': datetime.now().isoformat()
+                                'url_produto': url_produto,
+                                'loja': loja,
+                                'url_afiliado': url_produto,  # Por enquanto, usa a mesma URL
+                                'fonte': 'promobit'
                             }
                             
-                            ofertas_filtradas += 1
-                            logger.debug(f"Oferta adicionada: {oferta['titulo']} - R$ {oferta['preco']}")
-                            page_ofertas.append(oferta)
+                            ofertas.append(oferta)
+                            logger.debug(f"Oferta extraída: {titulo[:50]}... - {preco_atual}")
                             
                         except Exception as e:
-                            logger.error(f"Erro ao processar card de oferta: {e}", exc_info=True)
+                            logger.error(f"Erro ao extrair oferta do card: {e}")
                             continue
                             
-                    logger.info(f"Página {page_num}: {ofertas_filtradas} de {len(cards)} ofertas passaram nos filtros")
-                    return page_ofertas
+                    logger.info(f"Página {page_num}: {len(ofertas)} ofertas passaram nos filtros")
+                    return ofertas
                     
                 except Exception as e:
                     logger.error(f"Erro ao processar a página {page_num}: {e}", exc_info=True)
@@ -663,7 +601,7 @@ async def main():
                 for i, oferta in enumerate(ofertas[:10], 1):  # Mostra até 10 ofertas
                     print(f"\n{i}. {oferta.get('titulo', 'Sem título')}")
                     print(f"   Loja: {oferta.get('loja', 'N/A')}")
-                    print(f"   Preço: R$ {oferta.get('preco', 'N/A')}")
+                    print(f"   Preço: R$ {oferta.get('preco_atual', 'N/A')}")
                     if oferta.get('preco_original'):
                         print(f"   Preço original: R$ {oferta['preco_original']} ({oferta.get('desconto', 0)}% de desconto)")
                     print(f"   Avaliação: {oferta.get('avaliacao', 'N/A')} ({oferta.get('votos', 0)} votos)")

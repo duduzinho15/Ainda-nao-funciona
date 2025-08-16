@@ -9,26 +9,104 @@ from telegram.ext import ContextTypes, Application
 from telegram.constants import ParseMode
 
 import config
-from database import adicionar_oferta_manual, adicionar_oferta, oferta_ja_existe, extrair_dominio_loja
+from database import adicionar_oferta_manual, adicionar_oferta, oferta_ja_existe, oferta_ja_existe_por_url, extrair_dominio_loja
+from utils.images import fetch_bytes, fetch_og_image
 
 # Configuração de logging
 logger = logging.getLogger(__name__)
 
-def escape_markdown_v2(text: str) -> str:
+def html_escape(s: str | None) -> str:
+    """Escapa caracteres especiais para HTML"""
+    if not s: 
+        return ""
+    return (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
+
+def build_buttons(url_principal: str, extras: dict[str,str] | None = None):
+    """Constrói botões inline para a oferta"""
+    btns = [[InlineKeyboardButton("🛒 Comprar agora", url=url_principal)]]
+    if extras:
+        for label, url in list(extras.items())[:2]:
+            btns[0].append(InlineKeyboardButton(f"🔎 {label}", url=url))
+    return InlineKeyboardMarkup(btns)
+
+async def _send_card(bot, chat_id, caption_html, url_btn, maybe_img_url, reply_markup=None):
     """
-    Escapa o texto para o formato MarkdownV2 do Telegram.
+    Envia cartão de oferta com imagem grande via bytes ou fallback robusto
     
     Args:
-        text: Texto a ser escapado
-        
-    Returns:
-        str: Texto escapado
+        bot: Instância do bot do Telegram
+        chat_id: ID do chat para enviar
+        caption_html: Legenda formatada em HTML
+        url_btn: URL principal para botão (usada para OG image se não tiver imagem)
+        maybe_img_url: URL da imagem da oferta (opcional)
+        reply_markup: Teclado inline (opcional)
     """
-    if not text:
-        return ""
-        
-    escape_chars = r'_*[]()~`>#+-=|{}.!'
-    return re.sub(f'([{re.escape(escape_chars)}])', r'\\\1', str(text))
+    img_url = maybe_img_url
+    image_source = 'none'
+    
+    # Se não tiver imagem da oferta, tenta extrair OG image da URL
+    if not img_url and url_btn:
+        img_url = fetch_og_image(url_btn)
+        if img_url:
+            image_source = 'og:image'
+            logger.info(f"Imagem extraída via OG: {img_url[:80]}...")
+    
+    # Tenta enviar como bytes (mais sólido contra hotlinking)
+    if img_url:
+        buf = fetch_bytes(img_url)
+        try:
+            if buf:
+                image_source = 'offer' if maybe_img_url else 'og:image'
+                logger.info(f"Enviando imagem via bytes (fonte: {image_source})")
+                return await bot.send_photo(
+                    chat_id=chat_id, photo=buf, caption=caption_html,
+                    parse_mode=ParseMode.HTML, reply_markup=reply_markup
+                )
+            else:
+                image_source = 'offer' if maybe_img_url else 'og:image'
+                logger.info(f"Enviando imagem via URL (fonte: {image_source})")
+                return await bot.send_photo(
+                    chat_id=chat_id, photo=img_url, caption=caption_html,
+                    parse_mode=ParseMode.HTML, reply_markup=reply_markup
+                )
+        except Exception as e:
+            logger.warning(f"Falha ao enviar imagem ({image_source}): {e}")
+            pass
+
+    # Fallback: texto SEM preview
+    logger.info("Fallback para texto sem preview")
+    return await bot.send_message(
+        chat_id=chat_id, text=caption_html, parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True, reply_markup=reply_markup
+    )
+
+def format_caption_html(oferta: Dict[str, Any]) -> str:
+    """Formata a legenda da oferta em HTML"""
+    titulo = html_escape(oferta.get("titulo", "Oferta"))
+    preco_atual = html_escape(str(oferta.get("preco_atual", "—")))
+    preco_original = html_escape(str(oferta.get("preco_original", "")))
+    desconto = oferta.get("desconto", 0)
+    loja = html_escape(oferta.get("loja", "Loja"))
+    origem = html_escape(oferta.get("fonte", "Sistema"))
+    
+    linhas = [f"🔥 <b>{titulo}</b>"]
+    
+    # Adiciona características se disponíveis
+    if oferta.get("caracteristicas"):
+        for c in oferta["caracteristicas"][:4]:
+            linhas.append(f"• {html_escape(c)}")
+    
+    # Adiciona preços
+    linhas.append(f"💰 <b>Preço:</b> {preco_atual}")
+    
+    # Adiciona preço original e desconto se disponíveis
+    if preco_original and preco_original != "—" and desconto and desconto > 0:
+        linhas.append(f"💸 <b>De:</b> {preco_original}")
+        linhas.append(f"🔥 <b>Desconto:</b> {desconto}% OFF")
+    
+    linhas.append(f"🏷 {loja} | {origem}")
+    
+    return "\n".join(linhas)
 
 async def publicar_oferta(
     mensagem: str, 
@@ -41,7 +119,7 @@ async def publicar_oferta(
     Publica uma oferta no canal do Telegram.
     
     Args:
-        mensagem: Texto formatado da oferta (já em MarkdownV2)
+        mensagem: Texto formatado da oferta (já em HTML)
         imagem_url: URL da imagem da oferta (opcional)
         url_afiliado: URL de afiliado para o botão (opcional)
         chat_id: ID do chat para publicar (opcional, usa o configurado por padrão)
@@ -64,43 +142,22 @@ async def publicar_oferta(
         # Cria o teclado inline se houver URL de afiliado
         reply_markup = None
         if url_afiliado:
-            keyboard = [
-                [
-                    InlineKeyboardButton("🛒 Ver Oferta", url=url_afiliado),
-                    InlineKeyboardButton("📢 Ver Canal", url="https://t.me/garimpeirogeek")
-                ]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
+            reply_markup = build_buttons(url_afiliado)
         
-        # Publica a oferta com ou sem imagem
-        if imagem_url:
-            # Tenta enviar a foto com legenda
-            try:
-                await bot.send_photo(
-                    chat_id=chat_id,
-                    photo=imagem_url,
-                    caption=mensagem,
-                    parse_mode=ParseMode.MARKDOWN_V2,
-                    reply_markup=reply_markup
-                )
-                return True
-            except Exception as e:
-                logger.warning(f"Erro ao enviar foto, tentando apenas texto: {e}")
-                # Se falhar, tenta enviar apenas o texto
-        
-        # Se não tiver imagem ou falhar ao enviar a foto, envia apenas o texto
-        await bot.send_message(
+        # Usa o novo sistema de cartão com imagem grande
+        await _send_card(
+            bot=bot,
             chat_id=chat_id,
-            text=mensagem,
-            parse_mode=ParseMode.MARKDOWN_V2,
-            disable_web_page_preview=not bool(imagem_url),  # Desativa preview se tiver imagem
+            caption_html=mensagem,
+            url_btn=url_afiliado,
+            maybe_img_url=imagem_url,
             reply_markup=reply_markup
         )
         
         return True
         
     except Exception as e:
-        logger.error(f"Erro ao publicar oferta: {e}", exc_info=True)
+        logger.error(f"Erro ao publicar oferta: {e}")
         return False
 
 async def comando_oferta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -159,185 +216,101 @@ async def comando_oferta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         oferta = {
             'url_produto': link,
             'titulo': titulo,
-            'preco': preco,
+            'preco_atual': preco,
             'loja': dominio_loja.capitalize(),
             'fonte': 'Comando',
             'url_fonte': link
         }
         
         # 7. Verificar se a oferta já existe
-        if oferta_ja_existe(link):
+        if oferta_ja_existe_por_url(link):
             logger.info(f"Oferta já existe no banco de dados: {link}")
             await update.message.reply_text("ℹ️ Esta oferta já foi publicada anteriormente.")
             return
 
-        # 8. Formatar a mensagem para o Telegram
-        linhas = []
+        # 8. Formatar a mensagem para o Telegram (HTML)
+        mensagem_html = format_caption_html(oferta)
         
-        # Título
-        linhas.append(f"🔥 *{escape_markdown_v2(titulo)}*\n")
-        
-        # Preço (formato simples, já que não temos preço original para o comando manual)
-        linhas.append(f"💵 *Preço:* {escape_markdown_v2(str(preco))}\n")
-        
-        # Loja
-        linhas.append(f"🏪 *Loja:* {escape_markdown_v2(dominio_loja.capitalize())}")
-        
-        # Links
-        linhas.append(f"\n🛒 [Ver oferta]({link})")
-        linhas.append(f"🔗 [Gostou? Compartilhe!](https://t.me/share/url?url={link.replace('&', '%26')})")
-        
-        # Junta todas as linhas para formar a mensagem final
-        mensagem = '\n'.join(linhas)
-
-        # 9. Publicar a oferta
+        # 9. Publicar a oferta usando o novo sistema
         sucesso = await publicar_oferta(
-            mensagem=mensagem,
-            url_afiliado=link,  # Será convertido para link de afiliado se disponível
-            chat_id=config.TELEGRAM_CHAT_ID,
+            mensagem=mensagem_html,
+            url_afiliado=link,  # Por enquanto usa o link original
             context=context
         )
         
-        # 10. Se a publicação for bem-sucedida, salvar no banco de dados
         if sucesso:
-            if adicionar_oferta(oferta):
-                logger.info(f"Oferta adicionada via comando: {titulo}")
-                await update.message.reply_text("✅ Oferta publicada com sucesso!")
-            else:
-                logger.warning(f"Falha ao salvar oferta no banco de dados: {titulo}")
-                await update.message.reply_text(
-                    "⚠️ Oferta publicada, mas não foi possível salvar no banco de dados."
-                )
-        else:
-            logger.error(f"Falha ao publicar oferta: {titulo}")
+            # 10. Adicionar ao banco de dados
+            adicionar_oferta_manual(link, titulo, preco)
+            
+            # 11. Confirmar sucesso
             await update.message.reply_text(
-                "❌ Falha ao publicar a oferta. Verifique os logs para mais detalhes."
+                "✅ Oferta publicada com sucesso no canal!\n"
+                f"📢 Verifique: https://t.me/garimpeirogeek"
             )
             
+            logger.info(f"✅ Oferta publicada via comando: {titulo[:50]}...")
+        else:
+            await update.message.reply_text("❌ Erro ao publicar a oferta. Tente novamente.")
+            logger.error(f"❌ Falha ao publicar oferta via comando: {titulo[:50]}...")
+            
     except Exception as e:
-        logger.error(f"Erro ao processar comando /oferta: {e}", exc_info=True)
-        if update and update.message:
-            await update.message.reply_text(
-                "❌ Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde."
-            )
-
-def calcular_desconto(preco_atual: str, preco_original: str) -> Optional[str]:
-    """
-    Calcula o percentual de desconto entre dois preços.
-    
-    Args:
-        preco_atual: Preço atual como string (ex: 'R$ 1.999,90')
-        preco_original: Preço original como string (ex: 'R$ 2.499,90')
-        
-    Returns:
-        str: Percentual de desconto formatado (ex: '20%') ou None se não for possível calcular
-    """
-    try:
-        # Remove caracteres não numéricos, exceto vírgula e ponto
-        def parse_price(price_str):
-            # Remove R$, espaços e converte vírgula para ponto
-            clean = price_str.lower().replace('r$', '').replace(' ', '').replace('.', '').replace(',', '.')
-            return float(clean) if clean else 0
-        
-        atual = parse_price(preco_atual)
-        original = parse_price(preco_original)
-        
-        if atual > 0 and original > 0 and original > atual:
-            desconto = ((original - atual) / original) * 100
-            return f"{int(round(desconto))}%"
-    except Exception as e:
-        logger.warning(f"Erro ao calcular desconto: {e}")
-    
-    return None
+        logger.error(f"❌ Erro no comando /oferta: {e}")
+        await update.message.reply_text("❌ Erro interno. Tente novamente ou contate o administrador.")
 
 async def publicar_oferta_automatica(
     oferta: Dict[str, Any], 
-    context: Optional[ContextTypes.DEFAULT_TYPE] = None
+    context: ContextTypes.DEFAULT_TYPE,
+    chat_id: Optional[str] = None
 ) -> bool:
     """
-    Publica automaticamente uma oferta no canal do Telegram.
-    
-    Esta função é usada para publicar ofertas encontradas automaticamente
-    por scrapers ou APIs, como a da Amazon.
+    Publica uma oferta automaticamente no canal do Telegram.
     
     Args:
-        oferta: Dicionário com os dados da oferta a ser publicada
-        context: Contexto do bot do Telegram (opcional)
+        oferta: Dicionário com dados da oferta
+        context: Contexto do bot
+        chat_id: ID do chat para publicar (opcional)
         
     Returns:
         bool: True se a publicação foi bem-sucedida, False caso contrário
     """
     try:
-        # Extrai os dados da oferta
-        titulo = oferta.get('titulo', 'Oferta Especial')
-        preco = oferta.get('preco', 'Preço não disponível')
-        preco_original = oferta.get('preco_original')
-        url = oferta.get('url_produto', '')
-        imagem_url = oferta.get('imagem_url')
-        loja = oferta.get('loja', 'Loja')
-        menor_preco_historico = oferta.get('menor_preco_historico', False)
+        # Obtém o bot do contexto
+        if context is None or not hasattr(context, 'bot'):
+            logger.error("Contexto inválido ou sem instância do bot")
+            return False
+            
+        bot = context.bot
+            
+        if not chat_id:
+            chat_id = config.TELEGRAM_CHAT_ID
         
-        # Calcula o desconto se houver preço original
-        desconto = None
-        if preco_original:
-            desconto = calcular_desconto(str(preco), str(preco_original))
+        # Formata a legenda em HTML
+        caption_html = format_caption_html(oferta)
         
-        # Constrói a mensagem
-        linhas = []
+        # Obtém URL de afiliado ou URL do produto
+        url_afiliado = oferta.get('url_afiliado') or oferta.get('url_produto')
         
-        # Adiciona destaque para menor preço histórico
-        if menor_preco_historico:
-            linhas.append("🔥📉 *MENOR PREÇO HISTÓRICO!* 📉🔥\n")
+        # Obtém URL da imagem
+        img_url = oferta.get('imagem_url')
         
-        # Título
-        linhas.append(f"🔥 *{escape_markdown_v2(titulo)}*\n")
+        # Cria botões inline
+        reply_markup = None
+        if url_afiliado:
+            reply_markup = build_buttons(url_afiliado)
         
-        # Preços
-        if preco_original and desconto:
-            linhas.append(f"💰 *De ~{escape_markdown_v2(str(preco_original))}~ por")
-            linhas.append(f"💵 *Preço:* {escape_markdown_v2(str(preco))} (*{desconto} de desconto*)\n")
-        else:
-            linhas.append(f"💵 *Preço:* {escape_markdown_v2(str(preco))}\n")
-        
-        # Loja
-        linhas.append(f"🏪 *Loja:* {escape_markdown_v2(loja)}")
-        
-        # Links
-        linhas.append(f"\n🛒 [Ver oferta]({url})")
-        linhas.append(f"🔗 [Gostou? Compartilhe!](https://t.me/share/url?url={url.replace('&', '%26')})")
-        
-        # Junta todas as linhas para formar a mensagem final
-        mensagem = '\n'.join(linhas)
-        
-        # Publica a oferta
-        sucesso = await publicar_oferta(
-            mensagem=mensagem,
-            imagem_url=imagem_url,
-            url_afiliado=url,
-            context=context
+        # Usa o novo sistema de cartão com imagem grande
+        await _send_card(
+            bot=bot,
+            chat_id=chat_id,
+            caption_html=caption_html,
+            url_btn=url_afiliado,
+            maybe_img_url=img_url,
+            reply_markup=reply_markup
         )
         
-        if sucesso:
-            logger.info(f"Oferta publicada com sucesso: {titulo}")
-            
-            # Notifica usuários interessados se o sistema estiver disponível
-            try:
-                from notification_system import notify_users_about_offer
-                if context and hasattr(context, 'bot'):
-                    notification_results = await notify_users_about_offer(context.bot, oferta)
-                    if notification_results['notified_users'] > 0:
-                        logger.info(f"📢 {notification_results['successful_notifications']} usuários notificados sobre a oferta")
-                    else:
-                        logger.info("ℹ️ Nenhum usuário interessado para notificar")
-            except ImportError:
-                logger.debug("Sistema de notificações não disponível")
-            except Exception as e:
-                logger.error(f"Erro ao notificar usuários: {e}")
-        else:
-            logger.error(f"Falha ao publicar oferta: {titulo}")
-            
-        return sucesso
+        logger.info(f"✅ Oferta publicada automaticamente: {oferta.get('titulo', 'Sem título')[:50]}...")
+        return True
         
     except Exception as e:
-        logger.error(f"Erro em publicar_oferta_automatica: {e}", exc_info=True)
+        logger.error(f"❌ Erro ao publicar oferta automaticamente: {e}")
         return False
