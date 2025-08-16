@@ -1,0 +1,501 @@
+#!/usr/bin/env python3
+"""
+Sistema Avançado de Scraping para Produtos
+Extrai nomes reais e imagens funcionais de todas as lojas
+"""
+
+import requests
+import time
+import logging
+import re
+import json
+from typing import Optional, Dict, Any
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import random
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class AdvancedProductScraper:
+    """Scraper avançado para extrair dados reais dos produtos"""
+    
+    def __init__(self):
+        self.session = requests.Session()
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0'
+        })
+        
+        # Headers alternativos para rotação
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0'
+        ]
+    
+    def _rotate_user_agent(self):
+        """Rotaciona User-Agent para evitar bloqueios"""
+        self.session.headers['User-Agent'] = random.choice(self.user_agents)
+    
+    def _add_delay(self):
+        """Adiciona delay aleatório entre requisições"""
+        time.sleep(random.uniform(1, 3))
+    
+    def scrape_shopee_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping avançado para produtos da Shopee"""
+        try:
+            logger.info(f"🔍 Scraping avançado Shopee: {product_url}")
+            self._rotate_user_agent()
+            self._add_delay()
+            
+            # Primeira tentativa: requisição direta
+            response = self.session.get(product_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extrai dados usando múltiplas estratégias
+            product_data = {}
+            
+            # 1. TENTATIVA: Meta tags
+            product_data.update(self._extract_from_meta_tags(soup))
+            
+            # 2. TENTATIVA: JSON-LD
+            product_data.update(self._extract_from_json_ld(soup))
+            
+            # 3. TENTATIVA: __NEXT_DATA__
+            product_data.update(self._extract_from_next_data(soup))
+            
+            # 4. TENTATIVA: Scripts inline
+            product_data.update(self._extract_from_inline_scripts(soup))
+            
+            # 5. TENTATIVA: HTML direto
+            product_data.update(self._extract_from_html_direct(soup))
+            
+            # 6. TENTATIVA: API interna da Shopee
+            if not product_data.get('title') or not product_data.get('image_url'):
+                api_data = self._extract_from_shopee_api(product_url)
+                if api_data:
+                    product_data.update(api_data)
+            
+            # Validação final
+            if product_data.get('title') and product_data.get('image_url'):
+                logger.info(f"✅ Dados extraídos com sucesso: {product_data['title']}")
+                return product_data
+            else:
+                logger.warning("⚠️ Dados incompletos extraídos")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping Shopee: {e}")
+            return None
+    
+    def _extract_from_meta_tags(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados das meta tags"""
+        data = {}
+        
+        # Meta tags comuns
+        meta_selectors = {
+            'title': ['meta[property="og:title"]', 'meta[name="title"]', 'meta[property="twitter:title"]'],
+            'image_url': ['meta[property="og:image"]', 'meta[name="image"]', 'meta[property="twitter:image"]'],
+            'description': ['meta[property="og:description"]', 'meta[name="description"]']
+        }
+        
+        for key, selectors in meta_selectors.items():
+            for selector in selectors:
+                meta = soup.select_one(selector)
+                if meta and meta.get('content'):
+                    data[key] = meta['content'].strip()
+                    break
+        
+        return data
+    
+    def _extract_from_json_ld(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados de JSON-LD"""
+        data = {}
+        
+        try:
+            scripts = soup.find_all('script', type='application/ld+json')
+            for script in scripts:
+                if script.string:
+                    json_data = json.loads(script.string)
+                    if isinstance(json_data, dict) and json_data.get('@type') == 'Product':
+                        if 'name' in json_data and not data.get('title'):
+                            data['title'] = json_data['name']
+                        if 'image' in json_data and not data.get('image_url'):
+                            data['image_url'] = json_data['image']
+                        if 'description' in json_data and not data.get('description'):
+                            data['description'] = json_data['description']
+                        break
+        except Exception as e:
+            logger.debug(f"Erro ao extrair JSON-LD: {e}")
+        
+        return data
+    
+    def _extract_from_next_data(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados do __NEXT_DATA__"""
+        data = {}
+        
+        try:
+            script = soup.find('script', id='__NEXT_DATA__')
+            if script and script.string:
+                next_data = json.loads(script.string)
+                
+                # Navega pela estrutura do __NEXT_DATA__
+                if 'props' in next_data:
+                    props = next_data['props']
+                    if 'pageProps' in props:
+                        page_props = props['pageProps']
+                        if 'initialReduxState' in page_props:
+                            redux_state = page_props['initialReduxState']
+                            if 'item' in redux_state and 'itemData' in redux_state['item']:
+                                item_data = redux_state['item']['itemData']
+                                
+                                if 'name' in item_data and not data.get('title'):
+                                    data['title'] = item_data['name']
+                                
+                                if 'images' in item_data and item_data['images']:
+                                    # Constrói URL de imagem real da Shopee
+                                    image_hash = item_data['images'][0]
+                                    data['image_url'] = f"https://cf.shopee.com.br/file/{image_hash}"
+                                
+                                if 'description' in item_data and not data.get('description'):
+                                    data['description'] = item_data['description']
+        except Exception as e:
+            logger.debug(f"Erro ao extrair __NEXT_DATA__: {e}")
+        
+        return data
+    
+    def _extract_from_inline_scripts(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados de scripts inline"""
+        data = {}
+        
+        try:
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if script.string:
+                    script_text = script.string
+                    
+                    # Busca por padrões comuns
+                    patterns = {
+                        'title': [r'"name"\s*:\s*"([^"]+)"', r'"title"\s*:\s*"([^"]+)"'],
+                        'image_url': [r'"image"\s*:\s*"([^"]+)"', r'"image_url"\s*:\s*"([^"]+)"'],
+                        'description': [r'"description"\s*:\s*"([^"]+)"']
+                    }
+                    
+                    for key, pattern_list in patterns.items():
+                        if not data.get(key):
+                            for pattern in pattern_list:
+                                match = re.search(pattern, script_text)
+                                if match:
+                                    data[key] = match.group(1).strip()
+                                    break
+        except Exception as e:
+            logger.debug(f"Erro ao extrair scripts inline: {e}")
+        
+        return data
+    
+    def _extract_from_html_direct(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados diretamente do HTML"""
+        data = {}
+        
+        try:
+            # Título - múltiplas estratégias
+            title_selectors = [
+                'h1[data-testid="product-title"]',
+                'h1.product-title',
+                'h1[class*="title"]',
+                'div[data-testid="product-title"]',
+                'span[data-testid="product-title"]'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = soup.select_one(selector)
+                if title_elem and title_elem.get_text(strip=True):
+                    data['title'] = title_elem.get_text(strip=True)
+                    break
+            
+            # Imagem - múltiplas estratégias
+            image_selectors = [
+                'img[data-testid="product-image"]',
+                'img.product-image',
+                'img[class*="image"]',
+                'div[data-testid="product-image"] img',
+                'div.product-image img'
+            ]
+            
+            for selector in image_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem and img_elem.get('src'):
+                    src = img_elem['src']
+                    if src.startswith('http'):
+                        data['image_url'] = src
+                    else:
+                        data['image_url'] = urljoin('https://shopee.com.br', src)
+                    break
+                    
+        except Exception as e:
+            logger.debug(f"Erro ao extrair HTML direto: {e}")
+        
+        return data
+    
+    def _extract_from_shopee_api(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Tenta extrair dados da API interna da Shopee"""
+        try:
+            # Extrai IDs do produto da URL
+            if '/product/' in product_url:
+                parts = product_url.split('/product/')[1].split('/')
+                if len(parts) >= 2:
+                    shop_id = parts[0]
+                    item_id = parts[1]
+                    
+                    # Constrói URL da API interna da Shopee
+                    api_url = f"https://shopee.com.br/api/v4/item/get?itemid={item_id}&shopid={shop_id}"
+                    
+                    self._rotate_user_agent()
+                    response = self.session.get(api_url, timeout=15)
+                    
+                    if response.status_code == 200:
+                        api_data = response.json()
+                        
+                        if 'data' in api_data:
+                            item_data = api_data['data']
+                            
+                            data = {}
+                            if 'name' in item_data:
+                                data['title'] = item_data['name']
+                            
+                            if 'images' in item_data and item_data['images']:
+                                # Constrói URL de imagem real
+                                image_hash = item_data['images'][0]
+                                data['image_url'] = f"https://cf.shopee.com.br/file/{image_hash}"
+                            
+                            if 'description' in item_data:
+                                data['description'] = item_data['description']
+                            
+                            return data
+                            
+        except Exception as e:
+            logger.debug(f"Erro ao extrair da API Shopee: {e}")
+        
+        return None
+    
+    def scrape_amazon_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping para produtos da Amazon"""
+        try:
+            logger.info(f"🔍 Scraping Amazon: {product_url}")
+            self._rotate_user_agent()
+            self._add_delay()
+            
+            response = self.session.get(product_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            data = {}
+            
+            # Título da Amazon
+            title_selectors = [
+                '#productTitle',
+                'h1[data-automation-id="product-title"]',
+                'h1.a-size-large',
+                'span#productTitle'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = soup.select_one(selector)
+                if title_elem and title_elem.get_text(strip=True):
+                    data['title'] = title_elem.get_text(strip=True)
+                    break
+            
+            # Imagem da Amazon
+            image_selectors = [
+                '#landingImage',
+                '#imgBlkFront',
+                'img[data-old-hires]',
+                'img.a-dynamic-image'
+            ]
+            
+            for selector in image_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem:
+                    src = img_elem.get('src') or img_elem.get('data-old-hires')
+                    if src and src.startswith('http'):
+                        data['image_url'] = src
+                        break
+            
+            return data if data.get('title') and data.get('image_url') else None
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping Amazon: {e}")
+            return None
+    
+    def scrape_aliexpress_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping para produtos do AliExpress"""
+        try:
+            logger.info(f"🔍 Scraping AliExpress: {product_url}")
+            self._rotate_user_agent()
+            self._add_delay()
+            
+            response = self.session.get(product_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            data = {}
+            
+            # Título do AliExpress
+            title_selectors = [
+                'h1.product-title',
+                'h1[class*="title"]',
+                'div.product-title',
+                'span.product-title'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = soup.select_one(selector)
+                if title_elem and title_elem.get_text(strip=True):
+                    data['title'] = title_elem.get_text(strip=True)
+                    break
+            
+            # Imagem do AliExpress
+            image_selectors = [
+                'img[data-src]',
+                'img.main-image',
+                'img[class*="image"]',
+                'div.main-image img'
+            ]
+            
+            for selector in image_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem:
+                    src = img_elem.get('data-src') or img_elem.get('src')
+                    if src and src.startswith('http'):
+                        data['image_url'] = src
+                        break
+            
+            return data if data.get('title') and data.get('image_url') else None
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping AliExpress: {e}")
+            return None
+    
+    def scrape_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping universal para qualquer loja"""
+        try:
+            domain = urlparse(product_url).netloc.lower()
+            
+            if 'shopee' in domain:
+                return self.scrape_shopee_product(product_url)
+            elif 'amazon' in domain:
+                return self.scrape_amazon_product(product_url)
+            elif 'aliexpress' in domain:
+                return self.scrape_aliexpress_product(product_url)
+            else:
+                # Scraping genérico para outras lojas
+                return self._generic_scraping(product_url)
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping universal: {e}")
+            return None
+    
+    def _generic_scraping(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping genérico para lojas não específicas"""
+        try:
+            logger.info(f"🔍 Scraping genérico: {product_url}")
+            self._rotate_user_agent()
+            self._add_delay()
+            
+            response = self.session.get(product_url, timeout=15)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            data = {}
+            
+            # Título genérico
+            title_selectors = [
+                'h1',
+                'h1[class*="title"]',
+                'h1[class*="product"]',
+                'div[class*="title"]',
+                'span[class*="title"]'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = soup.select_one(selector)
+                if title_elem and title_elem.get_text(strip=True):
+                    title_text = title_elem.get_text(strip=True)
+                    if len(title_text) > 5:  # Evita títulos muito curtos
+                        data['title'] = title_text
+                        break
+            
+            # Imagem genérica
+            image_selectors = [
+                'img[src*="product"]',
+                'img[class*="image"]',
+                'img[class*="photo"]',
+                'img[data-src]',
+                'img[src]'
+            ]
+            
+            for selector in image_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem:
+                    src = img_elem.get('data-src') or img_elem.get('src')
+                    if src and src.startswith('http'):
+                        data['image_url'] = src
+                        break
+            
+            return data if data.get('title') and data.get('image_url') else None
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping genérico: {e}")
+            return None
+
+def main():
+    """Teste do sistema de scraping"""
+    print("🧪 TESTANDO SISTEMA AVANÇADO DE SCRAPING")
+    print("=" * 60)
+    
+    scraper = AdvancedProductScraper()
+    
+    # URLs de teste
+    test_urls = {
+        'Shopee': 'https://shopee.com.br/product/366295833/18297606894',
+        'Amazon': 'https://www.amazon.com.br/dp/B08N5WRWNW',
+        'AliExpress': 'https://pt.aliexpress.com/item/1005009463783046.html'
+    }
+    
+    for store, url in test_urls.items():
+        print(f"\n🔍 Testando {store}:")
+        print(f"   URL: {url}")
+        
+        try:
+            result = scraper.scrape_product(url)
+            
+            if result:
+                print(f"   ✅ Título: {result.get('title', 'N/A')}")
+                print(f"   ✅ Imagem: {result.get('image_url', 'N/A')}")
+                print(f"   ✅ Descrição: {result.get('description', 'N/A')}")
+            else:
+                print(f"   ❌ Falha na extração")
+                
+        except Exception as e:
+            print(f"   ❌ Erro: {e}")
+        
+        print("-" * 40)
+
+if __name__ == "__main__":
+    main()

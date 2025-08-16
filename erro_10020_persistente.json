@@ -1,0 +1,23 @@
+{
+  "timestamp": 1755213972.773876,
+  "test_case": "Query de Schema",
+  "error_details": {
+    "message": "error [10020]: Invalid Authorization Header",
+    "extensions": {
+      "code": 10020,
+      "message": "Invalid Authorization Header"
+    }
+  },
+  "full_response": {
+    "errors": [
+      {
+        "message": "error [10020]: Invalid Authorization Header",
+        "extensions": {
+          "code": 10020,
+          "message": "Invalid Authorization Header"
+        }
+      }
+    ]
+  },
+  "execution_time": 2.1453516483306885
+}

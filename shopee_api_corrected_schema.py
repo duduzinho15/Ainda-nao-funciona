@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""
+API da Shopee com Schema Corrigido - Baseado nos erros recebidos
+"""
+
+import requests
+import time
+import hashlib
+import json
+from typing import List, Dict, Any
+
+class ShopeeAPICorrectedSchema:
+    """API da Shopee com schema GraphQL correto"""
+    
+    def __init__(self, app_id: str, app_secret: str):
+        self.app_id = app_id
+        self.app_secret = app_secret
+        self.base_url = "https://open-api.affiliate.shopee.com.br/graphql"
+    
+    def _generate_signature(self, timestamp: int, payload: str) -> str:
+        """Gera assinatura SHA256 no formato que funciona"""
+        factor = str(self.app_id) + str(timestamp) + payload + self.app_secret
+        signature = hashlib.sha256(factor.encode()).hexdigest()
+        return signature
+    
+    def get_product_offers(self, page: int = 0, limit: int = 50, 
+                          list_type: int = 0, sort_type: int = 2) -> List[Dict[str, Any]]:
+        """Busca ofertas de produtos com schema correto"""
+        
+        # Schema corrigido baseado nos erros recebidos
+        query = """query Fetch($page: Int, $limit: Int, $listType: Int, $sortType: Int) {
+            productOfferV2(
+                listType: $listType,
+                sortType: $sortType,
+                page: $page,
+                limit: $limit
+            ) {
+                nodes {
+                    commissionRate
+                    commission
+                    price
+                    productLink
+                    offerLink
+                    ratingStar
+                    shopName
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                }
+            }
+        }"""
+        
+        # Formata query
+        formatted_query = query.replace('\n', '').strip()
+        
+        # Prepara payload
+        payload = {
+            "query": formatted_query,
+            "variables": {
+                "page": page,
+                "limit": limit,
+                "listType": list_type,
+                "sortType": sort_type
+            }
+        }
+        
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        timestamp = int(time.time())
+        signature = self._generate_signature(timestamp, payload_str)
+        
+        # Headers corretos
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'SHA256 Credential={self.app_id},Timestamp={timestamp},Signature={signature}'
+        }
+        
+        print(f"🔍 Buscando {limit} ofertas (página {page})")
+        
+        try:
+            response = requests.post(self.base_url, data=payload_str, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if 'data' in result and 'productOfferV2' in result['data']:
+                    products = result['data']['productOfferV2']['nodes']
+                    print(f"✅ {len(products)} produtos encontrados!")
+                    return products
+                else:
+                    print("⚠️ Resposta inesperada da API")
+                    if 'errors' in result:
+                        print("📋 Erros encontrados:")
+                        for error in result['errors']:
+                            print(f"   ❌ {error.get('message', 'Erro desconhecido')}")
+                    return []
+            else:
+                print(f"❌ Erro HTTP {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Erro na requisição: {e}")
+            return []
+    
+    def get_schema_info(self) -> Dict[str, Any]:
+        """Busca informações do schema da API"""
+        
+        query = """query IntrospectionQuery {
+            __schema {
+                types {
+                    name
+                    description
+                    fields {
+                        name
+                        description
+                        type {
+                            name
+                            kind
+                        }
+                    }
+                }
+            }
+        }"""
+        
+        # Formata query
+        formatted_query = query.replace('\n', '').strip()
+        
+        # Prepara payload
+        payload = {
+            "query": formatted_query
+        }
+        
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        timestamp = int(time.time())
+        signature = self._generate_signature(timestamp, payload_str)
+        
+        # Headers corretos
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'SHA256 Credential={self.app_id},Timestamp={timestamp},Signature={signature}'
+        }
+        
+        print("🔍 Buscando informações do schema...")
+        
+        try:
+            response = requests.post(self.base_url, data=payload_str, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if 'data' in result and '__schema' in result['data']:
+                    print("✅ Schema obtido com sucesso!")
+                    return result
+                else:
+                    print("⚠️ Resposta inesperada do schema")
+                    if 'errors' in result:
+                        print("📋 Erros encontrados:")
+                        for error in result['errors']:
+                            print(f"   ❌ {error.get('message', 'Erro desconhecido')}")
+                    return {}
+            else:
+                print(f"❌ Erro HTTP {response.status_code}")
+                return {}
+                
+        except Exception as e:
+            print(f"❌ Erro ao buscar schema: {e}")
+            return {}
+    
+    def test_simple_query(self) -> List[Dict[str, Any]]:
+        """Testa query simples que sabemos que funciona"""
+        
+        # Query baseada no código que funcionou
+        query = """query Fetch($page: Int) {
+            productOfferV2(
+                listType: 0,
+                sortType: 2,
+                page: $page,
+                limit: 50
+            ) {
+                nodes {
+                    commissionRate
+                    commission
+                    price
+                    productLink
+                    offerLink
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                }
+            }
+        }"""
+        
+        # Formata query
+        formatted_query = query.replace('\n', '').strip()
+        
+        # Prepara payload
+        payload = {
+            "query": formatted_query,
+            "variables": {
+                "page": 0
+            }
+        }
+        
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        timestamp = int(time.time())
+        signature = self._generate_signature(timestamp, payload_str)
+        
+        # Headers corretos
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'SHA256 Credential={self.app_id},Timestamp={timestamp},Signature={signature}'
+        }
+        
+        print("🔍 Testando query simples...")
+        
+        try:
+            response = requests.post(self.base_url, data=payload_str, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if 'data' in result and 'productOfferV2' in result['data']:
+                    products = result['data']['productOfferV2']['nodes']
+                    print(f"✅ {len(products)} produtos encontrados com query simples!")
+                    return products
+                else:
+                    print("⚠️ Resposta inesperada da query simples")
+                    if 'errors' in result:
+                        print("📋 Erros encontrados:")
+                        for error in result['errors']:
+                            print(f"   ❌ {error.get('message', 'Erro desconhecido')}")
+                    return []
+            else:
+                print(f"❌ Erro HTTP {response.status_code}")
+                return []
+                
+        except Exception as e:
+            print(f"❌ Erro na query simples: {e}")
+            return []
+
+def main():
+    """Função principal para teste"""
+    print("🚀 TESTE DA API DA SHOPEE - SCHEMA CORRIGIDO")
+    print("=" * 60)
+    
+    # Credenciais que funcionaram
+    app_id = "18330800803"
+    app_secret = "IOMXMSUM5KDOLSYKXQERKCU42SNMJERR"
+    
+    print(f"✅ Usando credenciais:")
+    print(f"   🆔 App ID: {app_id}")
+    print(f"   🔐 App Secret: {app_secret[:10]}...{app_secret[-10:]}")
+    
+    # Cria instância da API
+    api = ShopeeAPICorrectedSchema(app_id, app_secret)
+    
+    try:
+        # Teste 1: Query simples que sabemos que funciona
+        print("\n🧪 TESTE 1: Query Simples (Baseada no código que funcionou)")
+        print("-" * 60)
+        simple_offers = api.test_simple_query()
+        
+        if simple_offers:
+            print(f"\n📦 Primeiros 3 produtos encontrados:")
+            for i, product in enumerate(simple_offers[:3], 1):
+                print(f"\n{i}. Produto encontrado:")
+                print(f"   💰 Preço: R$ {product.get('price', 'N/A')}")
+                print(f"   💸 Comissão: R$ {product.get('commission', 'N/A')}")
+                print(f"   📊 Taxa: {product.get('commissionRate', 'N/A')}%")
+                print(f"   🔗 Link do Produto: {product.get('productLink', 'N/A')[:50]}...")
+                print(f"   🎯 Link da Oferta: {product.get('offerLink', 'N/A')[:50]}...")
+        
+        # Teste 2: Query com schema corrigido
+        print("\n🧪 TESTE 2: Query com Schema Corrigido")
+        print("-" * 60)
+        corrected_offers = api.get_product_offers(page=0, limit=10, sort_type=5)
+        
+        if corrected_offers:
+            print(f"\n📦 Primeiros 3 produtos encontrados:")
+            for i, product in enumerate(corrected_offers[:3], 1):
+                print(f"\n{i}. Produto encontrado:")
+                print(f"   💰 Preço: R$ {product.get('price', 'N/A')}")
+                print(f"   💸 Comissão: R$ {product.get('commission', 'N/A')}")
+                print(f"   📊 Taxa: {product.get('commissionRate', 'N/A')}%")
+                print(f"   ⭐ Avaliação: {product.get('ratingStar', 'N/A')}")
+                print(f"   🏪 Loja: {product.get('shopName', 'N/A')}")
+        
+        # Teste 3: Informações do Schema
+        print("\n🧪 TESTE 3: Informações do Schema")
+        print("-" * 60)
+        schema_info = api.get_schema_info()
+        
+        if schema_info:
+            print("✅ Schema obtido com sucesso!")
+            print("📋 Informações disponíveis no schema")
+        else:
+            print("⚠️ Não foi possível obter informações do schema")
+        
+        print("\n🎉 Todos os testes concluídos!")
+        
+    except Exception as e:
+        print(f"❌ Erro durante o teste: {e}")
+
+if __name__ == "__main__":
+    main()

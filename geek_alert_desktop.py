@@ -1,0 +1,678 @@
+#!/usr/bin/env python3
+"""
+Aplicativo Desktop Completo para Sistema Inteligente de Alertas Geek
+Interface gráfica completa com controles visuais
+"""
+
+import sys
+import os
+import threading
+import time
+import asyncio
+import logging
+from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox, ttk, scrolledtext
+import queue
+import json
+
+# Adiciona o diretório atual ao path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Importa o sistema inteligente
+from intelligent_geek_alert_system import IntelligentGeekAlertSystem
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('geek_alert_desktop.log', encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+class GeekAlertDesktopApp:
+    """Aplicativo Desktop Completo para Sistema Inteligente de Alertas"""
+    
+    def __init__(self):
+        self.root = tk.Tk()
+        self.setup_main_window()
+        
+        # Variáveis do sistema
+        self.running = False
+        self.alert_system = None
+        self.alert_thread = None
+        self.log_queue = queue.Queue()
+        self.stats = {
+            "total_alerts": 0,
+            "total_products": 0,
+            "search_cycles": 0,
+            "last_alert": None,
+            "status": "Parado"
+        }
+        
+        # Configurações
+        self.config = self.load_config()
+        
+        # Cria interface
+        self.create_widgets()
+        
+        # Atualiza logs periodicamente
+        self.update_logs()
+        
+    def setup_main_window(self):
+        """Configura a janela principal"""
+        self.root.title("🚀 Sistema Inteligente de Alertas Geek")
+        self.root.geometry("900x700")
+        self.root.resizable(True, True)
+        
+        # Ícone da janela (se disponível)
+        try:
+            self.root.iconbitmap("geek_icon.ico")
+        except:
+            pass
+        
+        # Centraliza a janela
+        self.center_window()
+        
+        # Configura grid principal
+        self.root.grid_rowconfigure(0, weight=1)
+        self.root.grid_columnconfigure(1, weight=1)
+        
+    def center_window(self):
+        """Centraliza a janela na tela"""
+        self.root.update_idletasks()
+        width = self.root.winfo_width()
+        height = self.root.winfo_height()
+        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.root.winfo_screenheight() // 2) - (height // 2)
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+    
+    def create_widgets(self):
+        """Cria todos os widgets da interface"""
+        # Frame lateral esquerdo
+        self.create_left_panel()
+        
+        # Frame principal direito
+        self.create_main_panel()
+        
+        # Barra de status
+        self.create_status_bar()
+        
+    def create_left_panel(self):
+        """Cria painel lateral esquerdo com controles"""
+        left_frame = ttk.Frame(self.root, padding="10")
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        left_frame.grid_rowconfigure(8, weight=1)
+        
+        # Título
+        title_label = tk.Label(left_frame, text="🎮 CONTROLES", 
+                             font=("Arial", 14, "bold"))
+        title_label.grid(row=0, column=0, pady=(0, 20), sticky="ew")
+        
+        # Botão Iniciar
+        self.start_btn = tk.Button(left_frame, text="🚀 INICIAR SISTEMA", 
+                                  command=self.start_system, 
+                                  font=("Arial", 12, "bold"),
+                                  bg="green", fg="white", height=2)
+        self.start_btn.grid(row=1, column=0, pady=10, sticky="ew")
+        
+        # Botão Parar
+        self.stop_btn = tk.Button(left_frame, text="⏹️ PARAR SISTEMA", 
+                                 command=self.stop_system, 
+                                 font=("Arial", 12, "bold"),
+                                 bg="red", fg="white", height=2,
+                                 state="disabled")
+        self.stop_btn.grid(row=2, column=0, pady=10, sticky="ew")
+        
+        # Separador
+        separator1 = ttk.Separator(left_frame, orient="horizontal")
+        separator1.grid(row=3, column=0, pady=20, sticky="ew")
+        
+        # Botão Estatísticas
+        stats_btn = tk.Button(left_frame, text="📊 ESTATÍSTICAS", 
+                            command=self.show_stats_window, 
+                            font=("Arial", 11), height=2)
+        stats_btn.grid(row=4, column=0, pady=5, sticky="ew")
+        
+        # Botão Configurações
+        config_btn = tk.Button(left_frame, text="⚙️ CONFIGURAÇÕES", 
+                             command=self.show_config_window, 
+                             font=("Arial", 11), height=2)
+        config_btn.grid(row=5, column=0, pady=5, sticky="ew")
+        
+        # Botão Limpar Logs
+        clear_btn = tk.Button(left_frame, text="🧹 LIMPAR LOGS", 
+                            command=self.clear_logs, 
+                            font=("Arial", 11), height=2)
+        clear_btn.grid(row=6, column=0, pady=5, sticky="ew")
+        
+        # Separador
+        separator2 = ttk.Separator(left_frame, orient="horizontal")
+        separator2.grid(row=7, column=0, pady=20, sticky="ew")
+        
+        # Status do sistema
+        status_frame = ttk.LabelFrame(left_frame, text="📡 Status do Sistema", padding="10")
+        status_frame.grid(row=8, column=0, sticky="ew", pady=10)
+        
+        self.status_label = tk.Label(status_frame, text="⏹️ PARADO", 
+                                   font=("Arial", 12, "bold"), fg="red")
+        self.status_label.pack()
+        
+        # Informações rápidas
+        info_frame = ttk.LabelFrame(left_frame, text="📊 Info Rápida", padding="10")
+        info_frame.grid(row=9, column=0, sticky="ew", pady=10)
+        
+        self.quick_stats_label = tk.Label(info_frame, text="Nenhuma atividade", 
+                                        font=("Arial", 9))
+        self.quick_stats_label.pack()
+        
+    def create_main_panel(self):
+        """Cria painel principal direito"""
+        main_frame = ttk.Frame(self.root, padding="10")
+        main_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
+        main_frame.grid_rowconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(0, weight=1)
+        
+        # Título principal
+        main_title = tk.Label(main_frame, text="🚀 SISTEMA INTELIGENTE DE ALERTAS GEEK", 
+                            font=("Arial", 16, "bold"))
+        main_title.grid(row=0, column=0, pady=(0, 20))
+        
+        # Notebook com abas
+        self.notebook = ttk.Notebook(main_frame)
+        self.notebook.grid(row=1, column=0, sticky="nsew")
+        
+        # Aba de Logs
+        self.create_logs_tab()
+        
+        # Aba de Configurações
+        self.create_config_tab()
+        
+        # Aba de Estatísticas
+        self.create_stats_tab()
+        
+    def create_logs_tab(self):
+        """Cria aba de logs"""
+        logs_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(logs_frame, text="📝 Logs em Tempo Real")
+        
+        # Controles de log
+        log_controls = ttk.Frame(logs_frame)
+        log_controls.pack(fill="x", pady=(0, 10))
+        
+        # Checkbox para auto-scroll
+        self.auto_scroll_var = tk.BooleanVar(value=True)
+        auto_scroll_cb = ttk.Checkbutton(logs_frame, text="Auto-scroll", 
+                                       variable=self.auto_scroll_var)
+        auto_scroll_cb.pack(side="left")
+        
+        # Botão limpar logs
+        clear_logs_btn = tk.Button(logs_frame, text="🧹 Limpar", 
+                                 command=self.clear_logs_display)
+        clear_logs_btn.pack(side="right")
+        
+        # Área de logs
+        self.logs_text = scrolledtext.ScrolledText(logs_frame, height=20, 
+                                                 font=("Consolas", 9))
+        self.logs_text.pack(fill="both", expand=True)
+        
+        # Carrega logs existentes
+        self.load_existing_logs()
+        
+    def create_config_tab(self):
+        """Cria aba de configurações"""
+        config_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(config_frame, text="⚙️ Configurações")
+        
+        # Frame para configurações
+        config_inner = ttk.Frame(config_frame)
+        config_inner.pack(fill="both", expand=True)
+        
+        # Configurações principais
+        config_data = [
+            ("🔍 Intervalo de Busca (minutos)", "search_interval", "5"),
+            ("💰 Desconto Mínimo (%)", "discount_threshold", "15"),
+            ("💸 Comissão Mínima (%)", "commission_threshold", "10"),
+            ("📱 Chat ID do Telegram", "telegram_chat_id", self.config.get("telegram_chat_id", "")),
+            ("🤖 Token do Bot", "telegram_bot_token", self.config.get("telegram_bot_token", "")),
+            ("🔄 Máximo de Produtos por Busca", "max_products", "20"),
+            ("⏰ Cooldown entre Alertas (horas)", "alert_cooldown", "6")
+        ]
+        
+        self.config_vars = {}
+        for i, (label, key, default_value) in enumerate(config_data):
+            row = i
+            
+            label_widget = tk.Label(config_inner, text=label, font=("Arial", 10, "bold"))
+            label_widget.grid(row=row, column=0, sticky="w", padx=10, pady=5)
+            
+            var = tk.StringVar(value=default_value)
+            self.config_vars[key] = var
+            
+            entry_widget = tk.Entry(config_inner, textvariable=var, font=("Arial", 10), width=30)
+            entry_widget.grid(row=row, column=1, sticky="ew", padx=10, pady=5)
+        
+        # Configura grid
+        config_inner.columnconfigure(1, weight=1)
+        
+        # Botões
+        button_frame = tk.Frame(config_frame)
+        button_frame.pack(pady=20)
+        
+        save_btn = tk.Button(button_frame, text="💾 Salvar Configurações", 
+                           command=self.save_config, font=("Arial", 12))
+        save_btn.pack(side="left", padx=10)
+        
+        reset_btn = tk.Button(button_frame, text="🔄 Resetar", 
+                            command=self.reset_config, font=("Arial", 12))
+        reset_btn.pack(side="left", padx=10)
+        
+    def create_stats_tab(self):
+        """Cria aba de estatísticas"""
+        stats_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(stats_frame, text="📊 Estatísticas")
+        
+        # Frame para estatísticas
+        stats_inner = ttk.Frame(stats_frame)
+        stats_inner.pack(fill="both", expand=True)
+        
+        # Estatísticas principais
+        stats_data = [
+            ("🚀 Status do Sistema", "status"),
+            ("📢 Total de Alertas", "total_alerts"),
+            ("🔍 Produtos Analisados", "total_products"),
+            ("🔄 Ciclos de Busca", "search_cycles"),
+            ("⏰ Último Alerta", "last_alert"),
+            ("💰 Produtos com Desconto", "products_with_discount"),
+            ("💸 Comissão Total", "total_commission")
+        ]
+        
+        self.stats_vars = {}
+        for i, (label, key) in enumerate(stats_data):
+            row = i // 2
+            col = i % 2
+            
+            label_widget = tk.Label(stats_inner, text=label, font=("Arial", 10, "bold"))
+            label_widget.grid(row=row, column=col*2, sticky="w", padx=10, pady=5)
+            
+            var = tk.StringVar(value="0")
+            self.stats_vars[key] = var
+            
+            value_widget = tk.Label(stats_inner, textvariable=var, font=("Arial", 10))
+            value_widget.grid(row=row, column=col*2+1, sticky="w", padx=10, pady=5)
+        
+        # Configura grid
+        stats_inner.columnconfigure(1, weight=1)
+        stats_inner.columnconfigure(3, weight=1)
+        
+        # Botão atualizar estatísticas
+        refresh_btn = tk.Button(stats_frame, text="🔄 Atualizar Estatísticas", 
+                              command=self.refresh_stats, font=("Arial", 12))
+        refresh_btn.pack(pady=20)
+        
+    def create_status_bar(self):
+        """Cria barra de status"""
+        status_bar = ttk.Frame(self.root)
+        status_bar.grid(row=1, column=0, columnspan=2, sticky="ew", padx=5, pady=2)
+        
+        # Status do sistema
+        self.status_bar_label = tk.Label(status_bar, text="Sistema Parado", 
+                                       font=("Arial", 9))
+        self.status_bar_label.pack(side="left")
+        
+        # Tempo de execução
+        self.uptime_label = tk.Label(status_bar, text="", font=("Arial", 9))
+        self.uptime_label.pack(side="right")
+        
+        # Atualiza tempo de execução
+        self.update_uptime()
+        
+    def start_system(self):
+        """Inicia o sistema de alertas"""
+        try:
+            if self.running:
+                messagebox.showinfo("Sistema", "Sistema já está rodando!")
+                return
+            
+            logger.info("🚀 Iniciando Sistema Inteligente de Alertas...")
+            self.stats["status"] = "Rodando"
+            
+            # Atualiza interface
+            self.status_label.config(text="🚀 RODANDO", fg="green")
+            self.status_bar_label.config(text="Sistema Rodando - Buscando ofertas...")
+            self.start_btn.config(state="disabled")
+            self.stop_btn.config(state="normal")
+            
+            # Inicia o sistema em thread separada
+            self.alert_thread = threading.Thread(target=self.run_alert_system)
+            self.alert_thread.daemon = True
+            self.alert_thread.start()
+            
+            self.running = True
+            self.start_time = datetime.now()
+            
+            # Mostra notificação
+            messagebox.showinfo("Sistema Iniciado", "Sistema de Alertas Geek está rodando!")
+            
+            logger.info("✅ Sistema iniciado com sucesso")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao iniciar sistema: {e}")
+            messagebox.showerror("Erro", f"Erro ao iniciar sistema: {e}")
+    
+    def stop_system(self):
+        """Para o sistema de alertas"""
+        try:
+            if not self.running:
+                messagebox.showinfo("Sistema", "Sistema não está rodando!")
+                return
+            
+            logger.info("⏹️ Parando Sistema Inteligente de Alertas...")
+            self.stats["status"] = "Parado"
+            
+            # Para o sistema
+            if self.alert_system:
+                self.alert_system.stop()
+            
+            self.running = False
+            
+            # Atualiza interface
+            self.status_label.config(text="⏹️ PARADO", fg="red")
+            self.status_bar_label.config(text="Sistema Parado")
+            self.start_btn.config(state="normal")
+            self.stop_btn.config(state="disabled")
+            
+            # Mostra notificação
+            messagebox.showinfo("Sistema Parado", "Sistema de Alertas Geek foi parado!")
+            
+            logger.info("✅ Sistema parado com sucesso")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao parar sistema: {e}")
+            messagebox.showerror("Erro", f"Erro ao parar sistema: {e}")
+    
+    def run_alert_system(self):
+        """Executa o sistema de alertas em thread separada"""
+        try:
+            logger.info("🎯 Executando Sistema Inteligente de Alertas...")
+            
+            # Cria e executa o sistema
+            self.alert_system = IntelligentGeekAlertSystem()
+            
+            # Executa o sistema de forma síncrona
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            try:
+                loop.run_until_complete(self.alert_system.run_continuous_search())
+            finally:
+                loop.close()
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no sistema de alertas: {e}")
+            self.running = False
+            self.stats["status"] = "Erro"
+            
+            # Atualiza interface na thread principal
+            self.root.after(0, self.handle_system_error, str(e))
+    
+    def handle_system_error(self, error_msg):
+        """Manipula erros do sistema na thread principal"""
+        self.status_label.config(text="❌ ERRO", fg="red")
+        self.status_bar_label.config(text=f"Erro: {error_msg}")
+        self.start_btn.config(state="normal")
+        self.stop_btn.config(state="disabled")
+        messagebox.showerror("Erro do Sistema", f"Erro no sistema: {error_msg}")
+    
+    def show_stats_window(self):
+        """Mostra janela de estatísticas"""
+        try:
+            # Cria janela de estatísticas
+            stats_window = tk.Toplevel(self.root)
+            stats_window.title("📊 Estatísticas Detalhadas")
+            stats_window.geometry("500x400")
+            stats_window.resizable(False, False)
+            
+            # Centraliza a janela
+            stats_window.transient(self.root)
+            stats_window.grab_set()
+            
+            # Título
+            title_label = tk.Label(stats_window, text="📊 ESTATÍSTICAS DETALHADAS", 
+                                 font=("Arial", 16, "bold"))
+            title_label.pack(pady=20)
+            
+            # Estatísticas
+            stats_text = scrolledtext.ScrolledText(stats_window, height=15, 
+                                                 font=("Consolas", 10))
+            stats_text.pack(pady=20, padx=20, fill="both", expand=True)
+            
+            # Carrega estatísticas
+            stats_content = self.get_detailed_stats()
+            stats_text.insert(tk.END, stats_content)
+            
+            # Botão fechar
+            close_btn = tk.Button(stats_window, text="❌ Fechar", 
+                                command=stats_window.destroy, font=("Arial", 12))
+            close_btn.pack(pady=20)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao mostrar estatísticas: {e}")
+            messagebox.showerror("Erro", f"Erro ao mostrar estatísticas: {e}")
+    
+    def show_config_window(self):
+        """Mostra janela de configurações"""
+        # Seleciona a aba de configurações
+        self.notebook.select(1)
+    
+    def get_detailed_stats(self):
+        """Obtém estatísticas detalhadas"""
+        try:
+            stats = {
+                "Status do Sistema": self.stats["status"],
+                "Total de Alertas": self.stats["total_alerts"],
+                "Produtos Analisados": self.stats["total_products"],
+                "Ciclos de Busca": self.stats["search_cycles"],
+                "Último Alerta": str(self.stats["last_alert"]) if self.stats["last_alert"] else "Nenhum",
+                "Tempo de Execução": str(datetime.now() - self.start_time) if hasattr(self, 'start_time') else "N/A"
+            }
+            
+            content = "📊 ESTATÍSTICAS DO SISTEMA\n"
+            content += "=" * 40 + "\n\n"
+            
+            for key, value in stats.items():
+                content += f"{key}: {value}\n"
+            
+            return content
+            
+        except Exception as e:
+            return f"Erro ao obter estatísticas: {e}"
+    
+    def refresh_stats(self):
+        """Atualiza estatísticas"""
+        try:
+            # Atualiza variáveis de estatísticas
+            for key, var in self.stats_vars.items():
+                if key in self.stats:
+                    var.set(str(self.stats[key]))
+                else:
+                    var.set("0")
+            
+            # Atualiza estatísticas rápidas
+            self.update_quick_stats()
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao atualizar estatísticas: {e}")
+    
+    def update_quick_stats(self):
+        """Atualiza estatísticas rápidas"""
+        try:
+            if self.running:
+                status_text = f"🔄 {self.stats['search_cycles']} ciclos • 📢 {self.stats['total_alerts']} alertas"
+            else:
+                status_text = "Sistema parado"
+            
+            self.quick_stats_label.config(text=status_text)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao atualizar estatísticas rápidas: {e}")
+    
+    def update_logs(self):
+        """Atualiza logs em tempo real"""
+        try:
+            # Verifica se há novos logs
+            try:
+                with open('geek_alert_desktop.log', 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    
+                    # Atualiza apenas se o conteúdo mudou
+                    if hasattr(self, 'last_log_content') and self.last_log_content == content:
+                        pass
+                    else:
+                        self.logs_text.delete(1.0, tk.END)
+                        self.logs_text.insert(tk.END, content)
+                        
+                        # Auto-scroll se habilitado
+                        if self.auto_scroll_var.get():
+                            self.logs_text.see(tk.END)
+                        
+                        self.last_log_content = content
+                        
+            except FileNotFoundError:
+                pass
+            
+            # Atualiza estatísticas
+            self.refresh_stats()
+            
+            # Agenda próxima atualização
+            self.root.after(1000, self.update_logs)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao atualizar logs: {e}")
+    
+    def load_existing_logs(self):
+        """Carrega logs existentes"""
+        try:
+            with open('geek_alert_desktop.log', 'r', encoding='utf-8') as f:
+                content = f.read()
+                self.logs_text.insert(tk.END, content)
+                self.logs_text.see(tk.END)
+        except FileNotFoundError:
+            self.logs_text.insert(tk.END, "Nenhum log encontrado ainda.\n")
+    
+    def clear_logs_display(self):
+        """Limpa display de logs"""
+        self.logs_text.delete(1.0, tk.END)
+        self.logs_text.insert(tk.END, "Logs limpos.\n")
+    
+    def clear_logs(self):
+        """Limpa arquivo de logs"""
+        try:
+            with open('geek_alert_desktop.log', 'w', encoding='utf-8') as f:
+                f.write("")
+            
+            self.clear_logs_display()
+            messagebox.showinfo("Logs", "Logs limpos com sucesso!")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao limpar logs: {e}")
+            messagebox.showerror("Erro", f"Erro ao limpar logs: {e}")
+    
+    def load_config(self):
+        """Carrega configurações do arquivo"""
+        try:
+            if os.path.exists('geek_alert_config.json'):
+                with open('geek_alert_config.json', 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            else:
+                return {}
+        except Exception as e:
+            logger.error(f"❌ Erro ao carregar configurações: {e}")
+            return {}
+    
+    def save_config(self):
+        """Salva configurações"""
+        try:
+            config = {}
+            for key, var in self.config_vars.items():
+                config[key] = var.get()
+            
+            with open('geek_alert_config.json', 'w', encoding='utf-8') as f:
+                json.dump(config, f, indent=2, ensure_ascii=False)
+            
+            messagebox.showinfo("Configurações", "Configurações salvas com sucesso!")
+            logger.info("✅ Configurações salvas")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar configurações: {e}")
+            messagebox.showerror("Erro", f"Erro ao salvar configurações: {e}")
+    
+    def reset_config(self):
+        """Reseta configurações para padrão"""
+        try:
+            default_config = {
+                "search_interval": "5",
+                "discount_threshold": "15",
+                "commission_threshold": "10",
+                "telegram_chat_id": "",
+                "telegram_bot_token": "",
+                "max_products": "20",
+                "alert_cooldown": "6"
+            }
+            
+            for key, value in default_config.items():
+                if key in self.config_vars:
+                    self.config_vars[key].set(value)
+            
+            messagebox.showinfo("Configurações", "Configurações resetadas para padrão!")
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao resetar configurações: {e}")
+            messagebox.showerror("Erro", f"Erro ao resetar configurações: {e}")
+    
+    def update_uptime(self):
+        """Atualiza tempo de execução"""
+        try:
+            if hasattr(self, 'start_time') and self.running:
+                uptime = datetime.now() - self.start_time
+                hours, remainder = divmod(int(uptime.total_seconds()), 3600)
+                minutes, seconds = divmod(remainder, 60)
+                uptime_str = f"Executando: {hours:02d}:{minutes:02d}:{seconds:02d}"
+                self.uptime_label.config(text=uptime_str)
+            else:
+                self.uptime_label.config(text="")
+            
+            # Agenda próxima atualização
+            self.root.after(1000, self.update_uptime)
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao atualizar uptime: {e}")
+    
+    def run(self):
+        """Executa o aplicativo"""
+        try:
+            logger.info("🚀 Iniciando Aplicativo Desktop Geek Alert...")
+            
+            # Inicia o loop principal
+            self.root.mainloop()
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no aplicativo: {e}")
+            messagebox.showerror("Erro Fatal", f"Erro no aplicativo: {e}")
+
+def main():
+    """Função principal"""
+    try:
+        # Cria e executa o aplicativo
+        app = GeekAlertDesktopApp()
+        app.run()
+        
+    except Exception as e:
+        logger.error(f"❌ Erro no aplicativo: {e}")
+        messagebox.showerror("Erro Fatal", f"Erro no aplicativo: {e}")
+
+if __name__ == "__main__":
+    main()

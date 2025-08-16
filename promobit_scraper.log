@@ -1,126 +1,39 @@
-2025-08-09 15:23:36,464 - promobit_scraper - DEBUG - URLs base configuradas: {'informatica': 'ofertas/informatica', 'eletronicos': 'ofertas/eletronicos', 'games': 'ofertas/games', 'celulares': 'ofertas/celulares'}
-2025-08-09 15:23:36,477 - promobit_scraper - INFO - === INÍCIO DO TESTE DO SCRAPER PROMOBIT ===
-2025-08-09 15:23:36,478 - promobit_scraper - INFO - Configurações iniciais:
-2025-08-09 15:23:36,478 - promobit_scraper - INFO - - Categorias disponíveis: ['informatica', 'eletronicos', 'games', 'celulares']
-2025-08-09 15:23:36,478 - promobit_scraper - INFO - - URL base: https://www.promobit.com.br/
-2025-08-09 15:23:36,479 - promobit_scraper - INFO - Headers da requisição:
-2025-08-09 15:23:36,479 - promobit_scraper - INFO -   Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
-2025-08-09 15:23:36,479 - promobit_scraper - INFO -   Accept-Language: pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7
-2025-08-09 15:23:36,479 - promobit_scraper - INFO -   Accept-Encoding: gzip, deflate, br
-2025-08-09 15:23:36,479 - promobit_scraper - INFO -   Connection: keep-alive
-2025-08-09 15:23:36,480 - promobit_scraper - INFO -   DNT: 1
-2025-08-09 15:23:36,480 - promobit_scraper - INFO -   Upgrade-Insecure-Requests: 1
-2025-08-09 15:23:36,480 - promobit_scraper - INFO -   Sec-Fetch-Dest: document
-2025-08-09 15:23:36,480 - promobit_scraper - INFO -   Sec-Fetch-Mode: navigate
-2025-08-09 15:23:36,481 - promobit_scraper - INFO -   Sec-Fetch-Site: same-origin
-2025-08-09 15:23:36,481 - promobit_scraper - INFO -   Sec-Fetch-User: ?1
-2025-08-09 15:23:36,481 - promobit_scraper - INFO -   Cache-Control: max-age=0
-2025-08-09 15:23:36,481 - promobit_scraper - INFO -   User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36
-2025-08-09 15:23:36,482 - promobit_scraper - INFO - Sessão aiohttp criada com sucesso
-2025-08-09 15:23:36,482 - promobit_scraper - INFO - 
-=== TESTE DE CONEXÃO COM A PÁGINA INICIAL ===
-2025-08-09 15:23:36,482 - promobit_scraper - INFO - Testando conexão com: https://www.promobit.com.br/
-2025-08-09 15:23:36,543 - promobit_scraper - INFO - Status da resposta: 200
-2025-08-09 15:23:36,543 - promobit_scraper - INFO - URL final após redirecionamentos: https://www.promobit.com.br/
-2025-08-09 15:23:36,544 - promobit_scraper - INFO - Tipo de conteúdo: text/html; charset=utf-8
-2025-08-09 15:23:36,544 - promobit_scraper - INFO - Tamanho do conteúdo: 285936 bytes
-2025-08-09 15:23:36,545 - promobit_scraper - INFO - Página inicial salva em 'promobit_homepage.html'
-2025-08-09 15:23:36,548 - promobit_scraper - INFO - Palavras-chave 'ofertas' ou 'promoções' encontradas na página inicial.
-2025-08-09 15:23:36,548 - promobit_scraper - INFO - 
-=== INICIANDO BUSCA POR OFERTAS ===
-2025-08-09 15:23:38,076 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica
-2025-08-09 15:23:38,076 - promobit_scraper - INFO - Fazendo requisição para: https://www.promobit.com.br/ofertas/informatica
-2025-08-09 15:23:38,077 - promobit_scraper - DEBUG - Headers da requisição: {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'DNT': '1', 'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Cache-Control': 'max-age=0', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'}
-2025-08-09 15:23:38,290 - promobit_scraper - INFO - Status da resposta: 404
-2025-08-09 15:23:38,290 - promobit_scraper - DEBUG - Headers da resposta: {'Date': 'Sat, 09 Aug 2025 18:23:38 GMT', 'Content-Type': 'text/html; charset=UTF-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=15', 'Expires': 'Thu, 19 Nov 1981 08:52:00 GMT', 'Pragma': 'no-cache', 'X-GoCache-CacheStatus': 'MISS', 'Server': 'gocache', 'X-XSS-Protection': '1; mode=block', 'X-Content-Type-Options': 'nosniff', 'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload', 'Content-Encoding': 'br'}
-2025-08-09 15:23:38,291 - promobit_scraper - ERROR - Erro na requisição: Status 404 para URL: https://www.promobit.com.br/ofertas/informatica
-2025-08-09 15:23:38,291 - promobit_scraper - ERROR - URL de redirecionamento: https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 15:23:38,291 - promobit_scraper - ERROR - Conteúdo do erro: <!DOCTYPE html>
-<!--                             _     _ _
-                                | |   (_) |
- _ __  _ __ ___  _ __ ___   ___ | |__  _| |_
-| '_ \| '__/ _ \| '_ ` _ \ / _ \| '_ \| | __|
-| |_) | | | (_) | | | | | | (_) | |_) | | |_
-| .__/|_|  \___/|_| |_| |_|\___/|_.__/|_|\__|
-| |
-|_|          AS MELHORES OFERTAS DA INTERNET
--->
-
-<html lang="pt-BR">
-<head>
-	<meta charset="UTF-8">
-				<link rel="preload" as="image" href="/imgs/banner/extensions/Extensao_azul.png">
-			<meta name="viewport" ...
-2025-08-09 15:23:38,292 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 15:23:38,292 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 15:23:38,292 - promobit_scraper - INFO - Ofertas salvas em 'ofertas_promobit.json'
-2025-08-09 16:09:36,122 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:09:36,258 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:09:36,326 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/informatica/?page=2
-2025-08-09 16:09:36,415 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/?page=2'
-2025-08-09 16:09:36,415 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:10:35,460 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:10:35,596 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:10:36,703 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/informatica/?page=2
-2025-08-09 16:10:36,776 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/?page=2'
-2025-08-09 16:10:36,776 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:12:34,510 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/informatica/?page=2
-2025-08-09 16:12:34,615 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/?page=2'
-2025-08-09 16:12:35,543 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:12:35,611 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:12:35,612 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:15:23,627 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:15:23,747 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:15:23,748 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:29:25,046 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/eletronicos/?page=2
-2025-08-09 16:29:25,250 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/eletronicos/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/eletronicos/?page=2'
-2025-08-09 16:29:26,369 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/eletronicos/
-2025-08-09 16:29:26,436 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/eletronicos/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/eletronicos/'
-2025-08-09 16:29:26,436 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:29:28,728 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:29:28,787 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:29:28,788 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:29:31,624 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/games/
-2025-08-09 16:29:31,677 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/games/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/games/'
-2025-08-09 16:29:31,678 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:31:33,745 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/ofertas/eletronicos/?page=2
-2025-08-09 16:31:34,522 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/eletronicos/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/eletronicos/?page=2'
-2025-08-09 16:31:34,619 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/eletronicos/
-2025-08-09 16:31:34,681 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/eletronicos/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/eletronicos/'
-2025-08-09 16:31:34,682 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:31:36,465 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/informatica/
-2025-08-09 16:31:36,579 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/informatica/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/informatica/'
-2025-08-09 16:31:36,579 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:31:39,347 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/ofertas/games/
-2025-08-09 16:31:39,416 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/ofertas/games/: 404, message='Not Found', url='https://www.promobit.com.br/ofertas/games/'
-2025-08-09 16:31:39,416 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:33:19,105 - promobit_scraper - INFO - Buscando ofertas na página 2 - https://www.promobit.com.br/promocoes/eletronicos/?page=2
-2025-08-09 16:33:19,228 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/promocoes/eletronicos/
-2025-08-09 16:33:19,391 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/promocoes/eletronicos/?page=2: 404, message='Not Found', url='https://www.promobit.com.br/404/'
-2025-08-09 16:33:19,503 - promobit_scraper - ERROR - Erro ao buscar a página https://www.promobit.com.br/promocoes/eletronicos/: 404, message='Not Found', url='https://www.promobit.com.br/404/'
-2025-08-09 16:33:19,504 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:33:20,580 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/promocoes/informatica/
-2025-08-09 16:33:20,957 - promobit_scraper - ERROR - Erro ao descomprimir resposta Brotli: name 'brotli' is not defined
-2025-08-09 16:33:20,958 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:33:22,789 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/promocoes/games/
-2025-08-09 16:33:23,261 - promobit_scraper - ERROR - Erro ao descomprimir resposta Brotli: name 'brotli' is not defined
-2025-08-09 16:33:23,262 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 0
-2025-08-09 16:44:10,450 - promobit_scraper - INFO - Iniciando busca por ofertas na categoria: informatica (URL: https://www.promobit.com.br/promocoes/informatica)
-2025-08-09 16:44:10,451 - promobit_scraper - ERROR - Erro inesperado ao buscar ofertas: name 'processar_pagina' is not defined
-Traceback (most recent call last):
-  File "C:\Users\Eduardo Vitorino\CascadeProjects\windsurf-project\promobit_scraper.py", line 636, in buscar_ofertas_promobit
-    processar_pagina(
-    ^^^^^^^^^^^^^^^^
-NameError: name 'processar_pagina' is not defined
-2025-08-11 21:58:12,390 - promobit_scraper - INFO - Iniciando busca por ofertas na categoria: informatica (URL: https://www.promobit.com.br/promocoes/informatica/)
-2025-08-11 21:58:12,390 - promobit_scraper - INFO - Processando página: https://www.promobit.com.br/promocoes/informatica/
-2025-08-11 21:58:13,626 - promobit_scraper - INFO - Encontrados 12 links de oferta na página
-2025-08-11 21:58:13,631 - promobit_scraper - INFO - Extraídas 12 ofertas válidas
-2025-08-11 21:58:13,631 - promobit_scraper - INFO - Página processada: 12 ofertas encontradas, 0 após filtros
-2025-08-11 21:58:13,631 - promobit_scraper - INFO - Busca concluída: 0 ofertas únicas encontradas
-2025-08-11 21:58:39,730 - promobit_scraper - INFO - Iniciando busca por ofertas na categoria: informatica (URL: https://www.promobit.com.br/promocoes/informatica/)
-2025-08-11 21:58:39,731 - promobit_scraper - INFO - Processando página: https://www.promobit.com.br/promocoes/informatica/
-2025-08-11 21:58:40,851 - promobit_scraper - INFO - Encontrados 12 links de oferta na página
-2025-08-11 21:58:40,855 - promobit_scraper - INFO - Extraídas 12 ofertas válidas
-2025-08-11 21:58:40,856 - promobit_scraper - INFO - Página processada: 12 ofertas encontradas, 12 após filtros
-2025-08-11 21:58:40,856 - promobit_scraper - INFO - Busca concluída: 12 ofertas únicas encontradas
+2025-08-16 17:00:37,650 - promobit_scraper - DEBUG - URLs base configuradas: {'informatica': '', 'eletronicos': '', 'games': '', 'celulares': ''}
+2025-08-16 17:00:40,287 - promobit_scraper - INFO - Buscando ofertas na página 1 - https://www.promobit.com.br/
+2025-08-16 17:00:40,288 - promobit_scraper - INFO - Fazendo requisição para: https://www.promobit.com.br/
+2025-08-16 17:00:40,288 - promobit_scraper - DEBUG - Headers da requisição: {'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8', 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7', 'Accept-Encoding': 'gzip, deflate, br', 'Connection': 'keep-alive', 'DNT': '1', 'Upgrade-Insecure-Requests': '1', 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'same-origin', 'Sec-Fetch-User': '?1', 'Cache-Control': 'max-age=0', 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0'}
+2025-08-16 17:00:40,374 - promobit_scraper - INFO - Status da resposta: 200
+2025-08-16 17:00:40,375 - promobit_scraper - DEBUG - Headers da resposta: {'Date': 'Sat, 16 Aug 2025 20:00:41 GMT', 'Content-Type': 'text/html; charset=utf-8', 'Transfer-Encoding': 'chunked', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=15', 'Set-Cookie': '__goc_session__=vmnilssrglcmpsbkrypkrwvtbwqtkrkk; expires=Sat, 23-Aug-25 20:00:41 GMT; SameSite=Lax; path=/; secure; HttpOnly', 'X-Powered-By': 'Next.js', 'Etag': 'W/"nt8zce4y5r6hv8"', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 f60b00cf9f5bd273bbb14bf3ef634e62.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'GRU3-P12', 'Alt-Svc': 'h3=":443"; ma=86400', 'X-Amz-Cf-Id': 'uax6ZsaRIKoXWlf4NbiqzyrHdwL20VjXMuUAo6-sj_dSVhucQyvNUQ==', 'X-GoCache-CacheStatus': 'HIT', 'Server': 'gocache', 'X-XSS-Protection': '1; mode=block', 'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload', 'X-Content-Type-Options': 'nosniff', 'Content-Encoding': 'br'}
+2025-08-16 17:00:40,376 - promobit_scraper - INFO - Tamanho do conteúdo bruto: 303733 bytes
+2025-08-16 17:00:40,376 - promobit_scraper - DEBUG - Content-Encoding: br
+2025-08-16 17:00:40,377 - promobit_scraper - DEBUG - Descomprimindo conteúdo com Brotli...
+2025-08-16 17:00:40,377 - promobit_scraper - WARNING - Falha ao descompactar conteúdo com Brotli: BrotliDecompress failed
+2025-08-16 17:00:40,377 - promobit_scraper - INFO - Tamanho do HTML decodificado: 303092 caracteres
+2025-08-16 17:00:40,379 - promobit_scraper - INFO - HTML salvo em 'promobit_page_1.html' para análise
+2025-08-16 17:00:40,383 - promobit_scraper - DEBUG - HTML salvo em promobit_page_1.html
+2025-08-16 17:00:40,384 - promobit_scraper - DEBUG - Primeiros 500 caracteres do HTML: <!DOCTYPE html><html lang="pt-BR"><head><meta charSet="utf-8"/><title>As Melhores Ofertas | Promoções e Cupons é no Promobit</title><meta name="description" content="Encontre as Melhores Ofertas e Cupons no Promobit. Reunimos promoções de Smartphones, TVs, Moda e muito mais. O menor preço nas melhores lojas."/><meta name="twitter:card" content="summary"/><meta name="twitter:site" content="@promobitoficial"/><meta name="twitter:creator" content="@promobitoficial"/><meta property="fb:app_id" conte
+2025-08-16 17:00:40,426 - promobit_scraper - DEBUG - HTML parseado com sucesso
+2025-08-16 17:00:40,427 - promobit_scraper - INFO - Encontrados 21 cards de oferta na página 1
+2025-08-16 17:00:40,428 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Motorola Edge 60 Pro 512GB Cinza 5G 24G... - R$3.419,10
+2025-08-16 17:00:40,428 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 512GB 12GB Gal... - R$6.002,10
+2025-08-16 17:00:40,429 - promobit_scraper - DEBUG - Oferta extraída: Notebook Acer Nitro V ANV15-51-57WS Intel Core i5-... - R$3.999,00
+2025-08-16 17:00:40,429 - promobit_scraper - DEBUG - Oferta extraída: Tênis Nike Air Force 1 "07 Next Nature Feminino... - R$474,99
+2025-08-16 17:00:40,430 - promobit_scraper - DEBUG - Oferta extraída: Descubra as nossas melhores ofertas e cupons exclu... - R$15,19
+2025-08-16 17:00:40,431 - promobit_scraper - DEBUG - Oferta extraída: Descubra as nossas melhores ofertas e cupons exclu... - Preço não encontrado
+2025-08-16 17:00:40,432 - promobit_scraper - DEBUG - Oferta extraída: Sabadou com Promoniver rolando! Missão #6 - Resolv... - Preço não encontrado
+2025-08-16 17:00:40,432 - promobit_scraper - DEBUG - Oferta extraída: Os 12 Celulares Mais Comprados Pela Comunidade nos... - Preço não encontrado
+2025-08-16 17:00:40,433 - promobit_scraper - DEBUG - Oferta extraída: Kit 3 Pares de Meias Light Não Atoalhado Cano Invi... - R$15,19
+2025-08-16 17:00:40,433 - promobit_scraper - DEBUG - Oferta extraída: Planos de Internet Móvel a Partir de R$58,99. Comp... - R$58,99
+2025-08-16 17:00:40,434 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 512GB 12GB Gal... - R$6.002,10
+2025-08-16 17:00:40,434 - promobit_scraper - DEBUG - Oferta extraída: Sandália Flat Feminina Com Estampa De Onça Vizzano... - R$34,99
+2025-08-16 17:00:40,434 - promobit_scraper - DEBUG - Oferta extraída: Smartphone Samsung Galaxy S25 Ultra 256GB 12GB Gal... - R$5.759,10
+2025-08-16 17:00:40,435 - promobit_scraper - DEBUG - Oferta extraída: PRATO FUNDO LUNA BRANCO BRILHANTE | Tok&Stok... - R$9,90
+2025-08-16 17:00:40,435 - promobit_scraper - DEBUG - Oferta extraída: Cetaphil Creme Hidratante 453 g Sem Fragrância par... - R$72,25
+2025-08-16 17:00:40,436 - promobit_scraper - DEBUG - Oferta extraída: Smart TV Samsung Vision AI TV 55" QLED 4K Q7F 2025... - R$2.899,00
+2025-08-16 17:00:40,436 - promobit_scraper - DEBUG - Oferta extraída: Jogo Back 4 Blood - PS4... - R$47,37
+2025-08-16 17:00:40,437 - promobit_scraper - DEBUG - Oferta extraída: Tênis Olympikus Sonoro 3 - Masculino Tam 39... - R$126,64
+2025-08-16 17:00:40,437 - promobit_scraper - DEBUG - Oferta extraída: Jogo Predator: Hunting Grounds - PS4... - R$59,16
+2025-08-16 17:00:40,438 - promobit_scraper - DEBUG - Oferta extraída: Jogo Dragon Ball Z Kakarot Daima Edition - PS5... - R$242,91
+2025-08-16 17:00:40,438 - promobit_scraper - DEBUG - Oferta extraída: Título não encontrado... - Preço não encontrado
+2025-08-16 17:00:40,439 - promobit_scraper - INFO - Página 1: 21 ofertas passaram nos filtros
+2025-08-16 17:00:40,439 - promobit_scraper - INFO - Busca concluída. Total de ofertas encontradas: 21

@@ -1,0 +1,495 @@
+#!/usr/bin/env python3
+"""
+Cliente para API de Afiliados da Shopee - Versão Melhorada
+Implementação com tratamento específico para erro 10035 e logs detalhados
+"""
+
+import hashlib
+import hmac
+import json
+import time
+import requests
+import logging
+from typing import Dict, Any, Optional
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class ShopeeAffiliateAPIEnhanced:
+    """
+    Cliente para integração com a API de Afiliados da Shopee.
+    Versão melhorada com tratamento específico para erro 10035.
+    """
+    
+    def __init__(self, app_id: str, app_secret: str):
+        """
+        Inicializa o cliente da API.
+        
+        Args:
+            app_id: ID da aplicação Shopee
+            app_secret: Chave secreta da aplicação Shopee
+        """
+        self.app_id = app_id
+        self.app_secret = app_secret
+        self.base_url = "https://open-api.affiliate.shopee.com.br/graphql"
+        
+        # Configuração de retry para erro 10035
+        self.session = self._create_session_with_retry()
+        
+    def _create_session_with_retry(self) -> requests.Session:
+        """Cria uma sessão com configuração de retry para erro 10035"""
+        session = requests.Session()
+        
+        # Estratégia de retry específica para erro 10035
+        retry_strategy = Retry(
+            total=3,  # Total de tentativas
+            backoff_factor=1,  # Fator de backoff exponencial
+            status_forcelist=[429, 500, 502, 503, 504],  # Status codes para retry
+            allowed_methods=["POST", "GET"],  # Métodos permitidos para retry
+            respect_retry_after_header=True,  # Respeita header Retry-After
+        )
+        
+        # Adiciona o adapter com retry
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
+        
+        # Configurações de timeout e headers
+        session.timeout = (30, 60)  # (connect_timeout, read_timeout)
+        
+        return session
+    
+    def _generate_signature(self, timestamp: int, payload: str) -> str:
+        """
+        Gera a assinatura SHA256 no formato EXATO esperado pela Shopee.
+        
+        IMPORTANTE: A string base deve seguir o formato:
+        app_id+timestamp+payload+app_secret
+        
+        Args:
+            timestamp: Unix timestamp atual
+            payload: JSON string do payload
+            
+        Returns:
+            Assinatura SHA256 em hexadecimal lowercase
+        """
+        # CRÍTICO: A string base deve ser EXATAMENTE neste formato
+        base_string = f"{self.app_id}{timestamp}{payload}{self.app_secret}"
+        
+        # Gera o hash SHA256
+        signature = hashlib.sha256(base_string.encode('utf-8')).hexdigest()
+        
+        # Log detalhado para debug
+        logger.info(f"🔐 Gerando assinatura para timestamp: {timestamp}")
+        logger.debug(f"📝 Base String (primeiros 50 chars): {base_string[:50]}...")
+        logger.debug(f"📝 Base String (últimos 50 chars): ...{base_string[-50:]}")
+        logger.debug(f"🔑 Assinatura gerada: {signature}")
+        
+        return signature
+    
+    def _format_query(self, query: str) -> str:
+        """
+        Formata a query GraphQL removendo espaços extras e quebras de linha.
+        
+        Args:
+            query: Query GraphQL com formatação
+            
+        Returns:
+            Query compacta sem espaços desnecessários
+        """
+        import re
+        
+        # Remove quebras de linha e espaços extras
+        query = ' '.join(query.split())
+        
+        # Remove espaços ao redor de { } ( ) : ,
+        query = re.sub(r'\s*([{}(),:.])\s*', r'\1', query)
+        
+        # Remove aspas duplas extras que podem causar problemas
+        query = query.replace('""', '"')
+        
+        logger.debug(f"📝 Query formatada: {query[:100]}...")
+        
+        return query
+    
+    def _handle_error_10035(self, response: requests.Response, attempt: int = 1) -> Dict[str, Any]:
+        """
+        Trata especificamente o erro 10035 da Shopee.
+        
+        Args:
+            response: Resposta da requisição
+            attempt: Número da tentativa atual
+            
+        Returns:
+            Dados da resposta ou erro tratado
+        """
+        try:
+            error_data = response.json()
+            logger.warning(f"⚠️ Erro 10035 detectado na tentativa {attempt}")
+            logger.warning(f"📊 Detalhes do erro: {json.dumps(error_data, indent=2)}")
+            
+            # Log específico para erro 10035
+            if 'errors' in error_data:
+                for error in error_data['errors']:
+                    if 'extensions' in error and 'code' in error['extensions']:
+                        code = error['extensions']['code']
+                        if code == 10035:
+                            logger.error(f"🚨 ERRO 10035: {error.get('message', 'Mensagem não disponível')}")
+                            logger.error(f"📋 Extensões: {error.get('extensions', {})}")
+                            
+                            # Tenta extrair informações úteis
+                            if 'extensions' in error:
+                                ext = error['extensions']
+                                if 'rateLimitInfo' in ext:
+                                    logger.info(f"⏱️ Rate Limit Info: {ext['rateLimitInfo']}")
+                                if 'retryAfter' in ext:
+                                    logger.info(f"🔄 Retry After: {ext['retryAfter']} segundos")
+            
+            return error_data
+            
+        except json.JSONDecodeError:
+            logger.error(f"❌ Erro ao decodificar resposta JSON para erro 10035")
+            return {"error": "Erro 10035 - Falha ao decodificar resposta"}
+    
+    def execute_query(self, query: str, variables: Optional[Dict[str, Any]] = None, max_retries: int = 3) -> Dict[str, Any]:
+        """
+        Executa uma query GraphQL na API da Shopee com tratamento específico para erro 10035.
+        
+        Args:
+            query: Query GraphQL a ser executada
+            variables: Variáveis opcionais para a query
+            max_retries: Número máximo de tentativas para erro 10035
+            
+        Returns:
+            Resposta da API em formato dict
+            
+        Raises:
+            requests.RequestException: Erro na requisição HTTP
+            ValueError: Erro ao processar resposta JSON
+        """
+        # Formata a query
+        formatted_query = self._format_query(query)
+        
+        # Prepara o payload
+        payload = {
+            "query": formatted_query
+        }
+        
+        if variables:
+            payload["variables"] = variables
+        
+        # Converte para JSON string
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        
+        # Timestamp atual (em segundos)
+        timestamp = int(time.time())
+        
+        # Gera a assinatura
+        signature = self._generate_signature(timestamp, payload_str)
+        
+        # Headers da requisição
+        headers = {
+            "Content-Type": "application/json",
+            "X-App-Id": self.app_id,
+            "X-Timestamp": str(timestamp),
+            "X-Signature": signature,
+            "User-Agent": "ShopeeAffiliateAPI/1.0"
+        }
+        
+        # Log da requisição
+        logger.info(f"🚀 Executando query GraphQL")
+        logger.info(f"📡 URL: {self.base_url}")
+        logger.info(f"🆔 App ID: {self.app_id}")
+        logger.info(f"⏰ Timestamp: {timestamp}")
+        logger.info(f"🔑 Signature: {signature[:20]}...")
+        logger.debug(f"📦 Payload: {payload_str[:200]}...")
+        
+        # Loop de tentativas para erro 10035
+        for attempt in range(1, max_retries + 1):
+            try:
+                logger.info(f"🔄 Tentativa {attempt}/{max_retries}")
+                
+                # Faz a requisição
+                response = self.session.post(
+                    self.base_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=(30, 60)
+                )
+                
+                # Log da resposta
+                logger.info(f"📥 Status Code: {response.status_code}")
+                logger.info(f"📊 Headers da resposta: {dict(response.headers)}")
+                
+                # Verifica o status da resposta
+                if response.status_code == 200:
+                    try:
+                        result = response.json()
+                        logger.info("✅ Query executada com sucesso")
+                        return result
+                    except json.JSONDecodeError as e:
+                        logger.error(f"❌ Erro ao decodificar JSON da resposta: {e}")
+                        logger.debug(f"📄 Conteúdo da resposta: {response.text[:500]}...")
+                        raise ValueError(f"Resposta inválida da API: {e}")
+                
+                elif response.status_code == 429:  # Rate Limit
+                    logger.warning(f"⚠️ Rate limit atingido (429)")
+                    retry_after = response.headers.get('Retry-After', 60)
+                    logger.info(f"⏳ Aguardando {retry_after} segundos antes de tentar novamente...")
+                    time.sleep(int(retry_after))
+                    continue
+                
+                elif response.status_code >= 500:  # Erro do servidor
+                    logger.warning(f"⚠️ Erro do servidor ({response.status_code})")
+                    if attempt < max_retries:
+                        wait_time = 2 ** attempt  # Backoff exponencial
+                        logger.info(f"⏳ Aguardando {wait_time} segundos antes de tentar novamente...")
+                        time.sleep(wait_time)
+                        continue
+                    else:
+                        logger.error(f"❌ Falha após {max_retries} tentativas")
+                        response.raise_for_status()
+                
+                else:
+                    # Outros códigos de erro
+                    logger.error(f"❌ Erro HTTP {response.status_code}")
+                    logger.debug(f"📄 Conteúdo da resposta: {response.text[:500]}...")
+                    
+                    # Tenta tratar como erro 10035
+                    try:
+                        error_data = response.json()
+                        if 'errors' in error_data:
+                            for error in error_data['errors']:
+                                if 'extensions' in error and 'code' in error['extensions']:
+                                    if error['extensions']['code'] == 10035:
+                                        logger.warning(f"🔄 Erro 10035 detectado, tentando novamente...")
+                                        if attempt < max_retries:
+                                            wait_time = 5 * attempt  # Wait progressivo
+                                            logger.info(f"⏳ Aguardando {wait_time} segundos...")
+                                            time.sleep(wait_time)
+                                            break
+                                        else:
+                                            logger.error(f"❌ Falha após {max_retries} tentativas para erro 10035")
+                                            return self._handle_error_10035(response, attempt)
+                    except:
+                        pass
+                    
+                    response.raise_for_status()
+                
+            except requests.exceptions.Timeout as e:
+                logger.error(f"⏰ Timeout na tentativa {attempt}: {e}")
+                if attempt < max_retries:
+                    wait_time = 5 * attempt
+                    logger.info(f"⏳ Aguardando {wait_time} segundos antes de tentar novamente...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+                    
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"🔌 Erro de conexão na tentativa {attempt}: {e}")
+                if attempt < max_retries:
+                    wait_time = 10 * attempt
+                    logger.info(f"⏳ Aguardando {wait_time} segundos antes de tentar novamente...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro inesperado na tentativa {attempt}: {e}")
+                if attempt < max_retries:
+                    wait_time = 5 * attempt
+                    logger.info(f"⏳ Aguardando {wait_time} segundos antes de tentar novamente...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+        
+        # Se chegou aqui, todas as tentativas falharam
+        logger.error(f"❌ Todas as {max_retries} tentativas falharam")
+        raise Exception(f"Falha após {max_retries} tentativas")
+    
+    def get_product_offers(self, limit: int = 10) -> Dict[str, Any]:
+        """
+        Busca ofertas de produtos usando a API GraphQL.
+        
+        Args:
+            limit: Número máximo de produtos a retornar
+            
+        Returns:
+            Dados das ofertas de produtos
+        """
+        query = """query ProductOfferQuery($limit: Int) {
+            productOfferV2(limit: $limit) {
+                nodes {
+                    id
+                    title
+                    priceMin
+                    priceMax
+                    imageUrl
+                    productUrl
+                    categoryName
+                    shopName
+                    rating
+                    reviewCount
+                    soldCount
+                    discountPercentage
+                    originalPrice
+                    currentPrice
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                }
+            }
+        }"""
+        
+        variables = {"limit": limit}
+        
+        logger.info(f"🔍 Buscando {limit} ofertas de produtos")
+        return self.execute_query(query, variables)
+    
+    def search_products(self, keyword: str, limit: int = 10) -> Dict[str, Any]:
+        """
+        Busca produtos por palavra-chave.
+        
+        Args:
+            keyword: Palavra-chave para busca
+            limit: Número máximo de produtos a retornar
+            
+        Returns:
+            Resultados da busca
+        """
+        query = """query SearchProducts($keyword: String!, $limit: Int) {
+            searchProducts(keyword: $keyword, limit: $limit) {
+                nodes {
+                    id
+                    title
+                    priceMin
+                    priceMax
+                    imageUrl
+                    productUrl
+                    categoryName
+                    shopName
+                    rating
+                    reviewCount
+                    soldCount
+                    discountPercentage
+                    originalPrice
+                    currentPrice
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                }
+            }
+        }"""
+        
+        variables = {"keyword": keyword, "limit": limit}
+        
+        logger.info(f"🔍 Buscando produtos com palavra-chave: {keyword}")
+        return self.execute_query(query, variables)
+    
+    def test_connection(self) -> bool:
+        """
+        Testa a conexão com a API da Shopee.
+        
+        Returns:
+            True se a conexão estiver funcionando, False caso contrário
+        """
+        try:
+            logger.info("🧪 Testando conexão com a API da Shopee...")
+            
+            # Query simples para teste
+            query = """query TestConnection {
+                __schema {
+                    types {
+                        name
+                    }
+                }
+            }"""
+            
+            result = self.execute_query(query)
+            
+            if 'data' in result and '__schema' in result['data']:
+                logger.info("✅ Conexão com a API da Shopee funcionando!")
+                return True
+            else:
+                logger.warning("⚠️ Conexão funcionando mas resposta inesperada")
+                logger.debug(f"📊 Resposta: {result}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Falha na conexão com a API da Shopee: {e}")
+            return False
+
+def main():
+    """Função principal para teste da API melhorada"""
+    print("🚀 TESTANDO API DA SHOPEE - VERSÃO MELHORADA")
+    print("=" * 60)
+    
+    # Solicita credenciais
+    app_id = input("🔑 Digite o App ID da Shopee: ").strip()
+    app_secret = input("🔐 Digite o App Secret da Shopee: ").strip()
+    
+    if not app_id or not app_secret:
+        print("❌ App ID e App Secret são obrigatórios")
+        return
+    
+    # Cria instância da API
+    api = ShopeeAffiliateAPIEnhanced(app_id, app_secret)
+    
+    try:
+        # Testa conexão
+        print("\n🧪 Testando conexão...")
+        if not api.test_connection():
+            print("❌ Falha na conexão")
+            return
+        
+        # Testa busca de ofertas
+        print("\n🔍 Testando busca de ofertas...")
+        offers = api.get_product_offers(limit=5)
+        
+        if 'data' in offers and 'productOfferV2' in offers['data']:
+            products = offers['data']['productOfferV2']['nodes']
+            print(f"✅ {len(products)} ofertas encontradas!")
+            
+            for i, product in enumerate(products, 1):
+                print(f"\n{i}. {product.get('title', 'Título não disponível')}")
+                print(f"   💰 Preço: R$ {product.get('currentPrice', 'N/A')}")
+                print(f"   🏪 Loja: {product.get('shopName', 'N/A')}")
+                print(f"   📂 Categoria: {product.get('categoryName', 'N/A')}")
+                if product.get('discountPercentage'):
+                    print(f"   🏷️ Desconto: {product['discountPercentage']}%")
+        else:
+            print("⚠️ Resposta inesperada da API")
+            print(f"📊 Resposta: {json.dumps(offers, indent=2)}")
+        
+        # Testa busca por palavra-chave
+        print("\n🔍 Testando busca por palavra-chave...")
+        search_results = api.search_products("smartphone", limit=3)
+        
+        if 'data' in search_results and 'searchProducts' in search_results['data']:
+            products = search_results['data']['searchProducts']['nodes']
+            print(f"✅ {len(products)} produtos encontrados para 'smartphone'!")
+            
+            for i, product in enumerate(products, 1):
+                print(f"\n{i}. {product.get('title', 'Título não disponível')}")
+                print(f"   💰 Preço: R$ {product.get('currentPrice', 'N/A')}")
+                print(f"   🏪 Loja: {product.get('shopName', 'N/A')}")
+        else:
+            print("⚠️ Resposta inesperada na busca")
+            print(f"📊 Resposta: {json.dumps(search_results, indent=2)}")
+            
+    except Exception as e:
+        print(f"❌ Erro durante o teste: {e}")
+        logger.error(f"Erro detalhado: {e}", exc_info=True)
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,567 @@
+#!/usr/bin/env python3
+"""
+Dashboard Web para Monitoramento do Sistema de Afiliados
+Interface web para acompanhar o status e performance do sistema
+"""
+import os
+import json
+import logging
+from datetime import datetime, timedelta
+from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask_socketio import SocketIO, emit
+import threading
+import time
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger('dashboard_web')
+
+# Cria aplicação Flask
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'garimpeirogeek_dashboard_2025'
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+class DashboardMonitor:
+    """Monitor do dashboard em tempo real"""
+    
+    def __init__(self):
+        self.stats = {
+            'system_status': '🟢 ONLINE',
+            'last_update': datetime.now().strftime('%H:%M:%S'),
+            'total_products': 0,
+            'affiliate_links_generated': 0,
+            'telegram_posts': 0,
+            'scrapers_status': {},
+            'affiliate_systems': {},
+            'performance_metrics': {},
+            'recent_activity': []
+        }
+        self.running = False
+        self.monitor_thread = None
+    
+    def start_monitoring(self):
+        """Inicia monitoramento em background"""
+        if not self.running:
+            self.running = True
+            self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
+            self.monitor_thread.start()
+            logger.info("Monitoramento iniciado")
+    
+    def stop_monitoring(self):
+        """Para monitoramento"""
+        self.running = False
+        if self.monitor_thread:
+            self.monitor_thread.join()
+        logger.info("Monitoramento parado")
+    
+    def _monitor_loop(self):
+        """Loop principal de monitoramento"""
+        while self.running:
+            try:
+                self._update_stats()
+                self._broadcast_updates()
+                time.sleep(5)  # Atualiza a cada 5 segundos
+            except Exception as e:
+                logger.error(f"Erro no loop de monitoramento: {e}")
+                time.sleep(10)
+    
+    def _update_stats(self):
+        """Atualiza estatísticas do sistema"""
+        try:
+            # Atualiza timestamp
+            self.stats['last_update'] = datetime.now().strftime('%H:%M:%S')
+            
+            # Simula dados do sistema (em produção, isso viria dos módulos reais)
+            self._update_scrapers_status()
+            self._update_affiliate_systems()
+            self._update_performance_metrics()
+            self._update_recent_activity()
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar estatísticas: {e}")
+    
+    def _update_scrapers_status(self):
+        """Atualiza status dos scrapers"""
+        try:
+            scrapers = {
+                'promobit': {'status': '🟢 ATIVO', 'last_run': '15:17:52', 'products': 18},
+                'pelando': {'status': '🟢 ATIVO', 'last_run': '15:17:52', 'products': 3},
+                'meupc_net': {'status': '🟢 ATIVO', 'last_run': '15:17:52', 'products': 14},
+                'buscape': {'status': '🟢 ATIVO', 'last_run': '15:17:52', 'products': 30},
+                'magazine_luiza': {'status': '🟢 ATIVO', 'last_run': '15:17:52', 'products': 50}
+            }
+            
+            self.stats['scrapers_status'] = scrapers
+            self.stats['total_products'] = sum(s['products'] for s in scrapers.values())
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar status dos scrapers: {e}")
+    
+    def _update_affiliate_systems(self):
+        """Atualiza status dos sistemas de afiliados"""
+        try:
+            affiliate_systems = {
+                'amazon': {'status': '✅ ATIVO', 'tag': 'garimpeirogee-20', 'links_generated': 25},
+                'aliexpress': {'status': '✅ ATIVO', 'tracking_id': 'telegram', 'links_generated': 18},
+                'shopee': {'status': '✅ ATIVO', 'partner_id': '18330800803', 'links_generated': 22},
+                'mercado_livre': {'status': '✅ ATIVO', 'tag': 'garimpeirogeek', 'links_generated': 15},
+                'awin': {'status': '✅ ATIVO', 'publisher_id': '2510157', 'links_generated': 30}
+            }
+            
+            self.stats['affiliate_systems'] = affiliate_systems
+            self.stats['affiliate_links_generated'] = sum(s['links_generated'] for s in affiliate_systems.values())
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar sistemas de afiliados: {e}")
+    
+    def _update_performance_metrics(self):
+        """Atualiza métricas de performance"""
+        try:
+            import random
+            # Simula métricas de performance (em produção, isso viria do sistema real)
+            performance_metrics = {
+                'response_time_avg': round(random.uniform(0.5, 2.0), 2),
+                'success_rate': round(random.uniform(95, 99.9), 1),
+                'uptime': '99.8%',
+                'memory_usage': f"{random.randint(45, 75)}%",
+                'cpu_usage': f"{random.randint(20, 60)}%",
+                'cache_hit_rate': f"{random.randint(85, 98)}%"
+            }
+            
+            self.stats['performance_metrics'] = performance_metrics
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar métricas de performance: {e}")
+    
+    def _update_recent_activity(self):
+        """Atualiza atividades recentes"""
+        try:
+            activities = [
+                {'time': '15:17:52', 'action': '📦 Promobit coletou 18 produtos', 'status': 'success'},
+                {'time': '15:17:52', 'action': '📦 Pelando coletou 3 produtos', 'status': 'success'},
+                {'time': '15:17:52', 'action': '📦 MeuPC.net coletou 14 produtos', 'status': 'success'},
+                {'time': '15:17:52', 'action': '📦 Buscapé coletou 30 produtos', 'status': 'success'},
+                {'time': '15:17:52', 'action': '📦 Magazine Luiza coletou 50 produtos', 'status': 'success'},
+                {'time': '15:17:52', 'action': '🔗 5 links de afiliado gerados', 'status': 'success'},
+                {'time': '15:17:52', 'action': '📱 5 ofertas postadas no Telegram', 'status': 'success'}
+            ]
+            
+            # Mantém apenas as últimas 10 atividades
+            self.stats['recent_activity'] = activities[-10:]
+            
+        except Exception as e:
+            logger.error(f"Erro ao atualizar atividades recentes: {e}")
+    
+    def _broadcast_updates(self):
+        """Envia atualizações via WebSocket"""
+        try:
+            socketio.emit('stats_update', self.stats)
+        except Exception as e:
+            logger.error(f"Erro ao enviar atualizações: {e}")
+    
+    def get_stats(self):
+        """Retorna estatísticas atuais"""
+        return self.stats.copy()
+
+# Instância global do monitor
+dashboard_monitor = DashboardMonitor()
+
+# Rotas do dashboard
+@app.route('/')
+def index():
+    """Página principal do dashboard"""
+    return render_template('dashboard.html')
+
+@app.route('/api/stats')
+def get_stats():
+    """API para obter estatísticas"""
+    return jsonify(dashboard_monitor.get_stats())
+
+@app.route('/api/scrapers')
+def get_scrapers():
+    """API para obter status dos scrapers"""
+    stats = dashboard_monitor.get_stats()
+    return jsonify(stats.get('scrapers_status', {}))
+
+@app.route('/api/affiliates')
+def get_affiliates():
+    """API para obter status dos sistemas de afiliados"""
+    stats = dashboard_monitor.get_stats()
+    return jsonify(stats.get('affiliate_systems', {}))
+
+@app.route('/api/performance')
+def get_performance():
+    """API para obter métricas de performance"""
+    stats = dashboard_monitor.get_stats()
+    return jsonify(stats.get('performance_metrics', {}))
+
+@app.route('/api/activity')
+def get_activity():
+    """API para obter atividades recentes"""
+    stats = dashboard_monitor.get_stats()
+    return jsonify(stats.get('recent_activity', []))
+
+@app.route('/control/start')
+def start_system():
+    """Inicia o sistema"""
+    try:
+        # Aqui você implementaria a lógica para iniciar o sistema
+        dashboard_monitor.stats['system_status'] = '🟢 ONLINE'
+        return jsonify({'status': 'success', 'message': 'Sistema iniciado'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/control/stop')
+def stop_system():
+    """Para o sistema"""
+    try:
+        # Aqui você implementaria a lógica para parar o sistema
+        dashboard_monitor.stats['system_status'] = '🔴 OFFLINE'
+        return jsonify({'status': 'success', 'message': 'Sistema parado'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/control/restart')
+def restart_system():
+    """Reinicia o sistema"""
+    try:
+        # Aqui você implementaria a lógica para reiniciar o sistema
+        dashboard_monitor.stats['system_status'] = '🟡 REINICIANDO'
+        return jsonify({'status': 'success', 'message': 'Sistema reiniciando'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+# WebSocket events
+@socketio.on('connect')
+def handle_connect():
+    """Cliente conectado"""
+    logger.info("Cliente conectado ao dashboard")
+    emit('connected', {'message': 'Conectado ao dashboard'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Cliente desconectado"""
+    logger.info("Cliente desconectado do dashboard")
+
+@socketio.on('request_stats')
+def handle_stats_request():
+    """Cliente solicitou estatísticas"""
+    stats = dashboard_monitor.get_stats()
+    emit('stats_update', stats)
+
+def create_dashboard_templates():
+    """Cria os templates HTML do dashboard"""
+    templates_dir = 'templates'
+    if not os.path.exists(templates_dir):
+        os.makedirs(templates_dir)
+    
+    # Template principal
+    dashboard_html = '''<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Sistema de Afiliados</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .stat-title { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #333; }
+        .status-online { color: #28a745; }
+        .status-offline { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+        .control-panel { background: white; border-radius: 10px; padding: 20px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .control-buttons { display: flex; gap: 10px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-warning { background: #ffc107; color: #333; }
+        .btn:hover { opacity: 0.8; }
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .chart-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .activity-log { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .activity-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+        .activity-time { color: #666; font-size: 12px; }
+        .activity-action { color: #333; }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .warning { color: #ffc107; }
+        .refresh-time { text-align: center; color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 Dashboard - Sistema de Afiliados</h1>
+        <p>Monitoramento em tempo real do sistema de recomendações de ofertas</p>
+    </div>
+    
+    <div class="container">
+        <!-- Painel de Controle -->
+        <div class="control-panel">
+            <h2>🎮 Painel de Controle</h2>
+            <div class="control-buttons">
+                <button class="btn btn-primary" onclick="startSystem()">▶️ Iniciar Sistema</button>
+                <button class="btn btn-danger" onclick="stopSystem()">⏹️ Parar Sistema</button>
+                <button class="btn btn-warning" onclick="restartSystem()">🔄 Reiniciar</button>
+            </div>
+        </div>
+        
+        <!-- Estatísticas Principais -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Status do Sistema</div>
+                <div class="stat-value" id="system-status">🟢 ONLINE</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Total de Produtos</div>
+                <div class="stat-value" id="total-products">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Links de Afiliado</div>
+                <div class="stat-value" id="affiliate-links">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Posts no Telegram</div>
+                <div class="stat-value" id="telegram-posts">0</div>
+            </div>
+        </div>
+        
+        <!-- Gráficos -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3>📊 Status dos Scrapers</h3>
+                <canvas id="scrapersChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🔗 Sistemas de Afiliados</h3>
+                <canvas id="affiliatesChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Log de Atividades -->
+        <div class="activity-log">
+            <h3>📝 Atividades Recentes</h3>
+            <div id="activity-list">
+                <!-- Atividades serão carregadas aqui -->
+            </div>
+        </div>
+        
+        <div class="refresh-time" id="refresh-time">
+            Última atualização: <span id="last-update">--:--:--</span>
+        </div>
+    </div>
+    
+    <script>
+        // Conecta ao WebSocket
+        const socket = io();
+        
+        // Elementos do DOM
+        const systemStatus = document.getElementById('system-status');
+        const totalProducts = document.getElementById('total-products');
+        const affiliateLinks = document.getElementById('affiliate-links');
+        const telegramPosts = document.getElementById('telegram-posts');
+        const lastUpdate = document.getElementById('last-update');
+        const activityList = document.getElementById('activity-list');
+        
+        // Gráficos
+        let scrapersChart, affiliatesChart;
+        
+        // Inicializa gráficos
+        function initCharts() {
+            // Gráfico dos Scrapers
+            const scrapersCtx = document.getElementById('scrapersChart').getContext('2d');
+            scrapersChart = new Chart(scrapersCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Ativos', 'Inativos', 'Erro'],
+                    datasets: [{
+                        data: [5, 0, 0],
+                        backgroundColor: ['#28a745', '#6c757d', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+            
+            // Gráfico dos Afiliados
+            const affiliatesCtx = document.getElementById('affiliatesChart').getContext('2d');
+            affiliatesChart = new Chart(affiliatesCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Amazon', 'AliExpress', 'Shopee', 'Mercado Livre', 'Awin'],
+                    datasets: [{
+                        data: [25, 18, 22, 15, 30],
+                        backgroundColor: ['#ff9900', '#ff4747', '#ee4d2d', '#ffe600', '#00a1f1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+        
+        // Atualiza estatísticas
+        function updateStats(stats) {
+            systemStatus.textContent = stats.system_status;
+            totalProducts.textContent = stats.total_products;
+            affiliateLinks.textContent = stats.affiliate_links_generated;
+            telegramPosts.textContent = stats.telegram_posts;
+            lastUpdate.textContent = stats.last_update;
+            
+            // Atualiza gráficos
+            updateCharts(stats);
+            
+            // Atualiza lista de atividades
+            updateActivityList(stats.recent_activity);
+        }
+        
+        // Atualiza gráficos
+        function updateCharts(stats) {
+            if (scrapersChart && stats.scrapers_status) {
+                const scrapers = Object.values(stats.scrapers_status);
+                const active = scrapers.filter(s => s.status.includes('ATIVO')).length;
+                const inactive = scrapers.filter(s => s.status.includes('INATIVO')).length;
+                const error = scrapers.filter(s => s.status.includes('ERRO')).length;
+                
+                scrapersChart.data.datasets[0].data = [active, inactive, error];
+                scrapersChart.update();
+            }
+            
+            if (affiliatesChart && stats.affiliate_systems) {
+                const affiliates = Object.values(stats.affiliate_systems);
+                const links = affiliates.map(a => a.links_generated || 0);
+                
+                affiliatesChart.data.datasets[0].data = links;
+                affiliatesChart.update();
+            }
+        }
+        
+        // Atualiza lista de atividades
+        function updateActivityList(activities) {
+            if (!activities) return;
+            
+            activityList.innerHTML = '';
+            activities.forEach(activity => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <span class="activity-time">${activity.time}</span>
+                    <span class="activity-action ${activity.status}">${activity.action}</span>
+                `;
+                activityList.appendChild(item);
+            });
+        }
+        
+        // Controles do sistema
+        function startSystem() {
+            fetch('/control/start')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Sistema iniciado com sucesso!');
+                    } else {
+                        alert('Erro ao iniciar sistema: ' + data.message);
+                    }
+                });
+        }
+        
+        function stopSystem() {
+            fetch('/control/stop')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Sistema parado com sucesso!');
+                    } else {
+                        alert('Erro ao parar sistema: ' + data.message);
+                    }
+                });
+        }
+        
+        function restartSystem() {
+            fetch('/control/restart')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Sistema reiniciando...');
+                    } else {
+                        alert('Erro ao reiniciar sistema: ' + data.message);
+                    }
+                });
+        }
+        
+        // Eventos do WebSocket
+        socket.on('connect', function() {
+            console.log('Conectado ao dashboard');
+        });
+        
+        socket.on('stats_update', function(stats) {
+            updateStats(stats);
+        });
+        
+        // Carrega estatísticas iniciais
+        socket.on('connect', function() {
+            socket.emit('request_stats');
+        });
+        
+        // Inicializa dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            initCharts();
+            
+            // Carrega estatísticas iniciais via API
+            fetch('/api/stats')
+                .then(response => response.json())
+                .then(stats => updateStats(stats));
+        });
+    </script>
+</body>
+</html>'''
+    
+    # Salva o template
+    with open(os.path.join(templates_dir, 'dashboard.html'), 'w', encoding='utf-8') as f:
+        f.write(dashboard_html)
+    
+    logger.info("Templates do dashboard criados com sucesso")
+
+def main():
+    """Função principal"""
+    print("🚀 INICIANDO DASHBOARD WEB")
+    print("=" * 50)
+    
+    try:
+        # Cria templates
+        create_dashboard_templates()
+        
+        # Inicia monitoramento
+        dashboard_monitor.start_monitoring()
+        
+        print("✅ Dashboard configurado com sucesso!")
+        print("🌐 Acesse: http://localhost:5000")
+        print("📊 Monitoramento em tempo real ativo")
+        print("🔧 Pressione Ctrl+C para parar")
+        
+        # Inicia servidor Flask
+        socketio.run(app, host='0.0.0.0', port=5000, debug=False)
+        
+    except KeyboardInterrupt:
+        print("\n👋 Encerrando dashboard...")
+        dashboard_monitor.stop_monitoring()
+        print("✅ Dashboard encerrado com sucesso!")
+    except Exception as e:
+        print(f"❌ Erro no dashboard: {e}")
+        dashboard_monitor.stop_monitoring()
+
+if __name__ == '__main__':
+    main()

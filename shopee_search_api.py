@@ -1,0 +1,286 @@
+#!/usr/bin/env python3
+"""
+API de Busca da Shopee
+Usa a API de busca para obter nomes reais dos produtos
+"""
+
+import requests
+import time
+import logging
+import json
+from typing import Optional, Dict, Any, List
+import random
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class ShopeeSearchAPI:
+    """API de busca da Shopee para obter dados reais dos produtos"""
+    
+    def __init__(self):
+        self.session = requests.Session()
+        
+        # Headers para API de busca da Shopee
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json, text/plain, */*',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Referer': 'https://shopee.com.br/',
+            'Origin': 'https://shopee.com.br'
+        })
+        
+        # URLs da API de busca da Shopee
+        self.search_api = "https://shopee.com.br/api/v4/search/search_items"
+        self.item_api = "https://shopee.com.br/api/v4/item/get"
+        
+    def _add_delay(self):
+        """Adiciona delay aleatório"""
+        time.sleep(random.uniform(1, 2))
+    
+    def search_product_by_id(self, shop_id: str, item_id: str) -> Optional[Dict[str, Any]]:
+        """Busca produto específico por ID usando a API de busca"""
+        try:
+            logger.info(f"🔍 Buscando produto: Shop ID {shop_id}, Item ID {item_id}")
+            
+            # 1. TENTATIVA: Busca direta por ID
+            search_result = self._search_by_item_id(item_id)
+            if search_result:
+                # Procura pelo item específico
+                for item in search_result:
+                    if (str(item.get('shopid')) == shop_id and 
+                        str(item.get('itemid')) == item_id):
+                        logger.info(f"✅ Produto encontrado via busca: {item.get('name', 'N/A')}")
+                        return self._format_product_data(item)
+            
+            # 2. TENTATIVA: Busca por shop_id + item_id
+            shop_search_result = self._search_by_shop_and_item(shop_id, item_id)
+            if shop_search_result:
+                logger.info(f"✅ Produto encontrado via busca da loja: {shop_search_result.get('name', 'N/A')}")
+                return shop_search_result
+            
+            # 3. TENTATIVA: API direta do item
+            item_result = self._get_item_direct(shop_id, item_id)
+            if item_result:
+                logger.info(f"✅ Produto encontrado via API direta: {item_result.get('name', 'N/A')}")
+                return item_result
+            
+            logger.warning("⚠️ Produto não encontrado em nenhuma API")
+            return None
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar produto: {e}")
+            return None
+    
+    def _search_by_item_id(self, item_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Busca produtos por ID do item"""
+        try:
+            self._add_delay()
+            
+            # Parâmetros de busca
+            search_params = {
+                'keyword': item_id,
+                'limit': 50,
+                'newest': 0,
+                'order': 'desc',
+                'page_type': 'search',
+                'scenario': 'PAGE_GLOBAL_SEARCH',
+                'version': 2
+            }
+            
+            logger.info(f"   🔍 Buscando por ID do item: {item_id}")
+            
+            response = self.session.get(self.search_api, params=search_params, timeout=15)
+            
+            if response.status_code == 200:
+                search_data = response.json()
+                
+                if 'items' in search_data and search_data['items']:
+                    logger.info(f"   📊 {len(search_data['items'])} produtos encontrados na busca")
+                    return search_data['items']
+                else:
+                    logger.info("   📊 Nenhum produto encontrado na busca")
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Erro na busca por ID: {e}")
+            return None
+    
+    def _search_by_shop_and_item(self, shop_id: str, item_id: str) -> Optional[Dict[str, Any]]:
+        """Busca produto específico por shop_id e item_id"""
+        try:
+            self._add_delay()
+            
+            # Tenta buscar produtos da loja específica
+            search_params = {
+                'shopid': shop_id,
+                'limit': 100,
+                'newest': 0,
+                'order': 'desc',
+                'page_type': 'shop',
+                'scenario': 'PAGE_SHOP_SEARCH',
+                'version': 2
+            }
+            
+            logger.info(f"   🔍 Buscando produtos da loja {shop_id}")
+            
+            response = self.session.get(self.search_api, params=search_params, timeout=15)
+            
+            if response.status_code == 200:
+                search_data = response.json()
+                
+                if 'items' in search_data and search_data['items']:
+                    # Procura pelo item específico
+                    for item in search_data['items']:
+                        if str(item.get('itemid')) == item_id:
+                            logger.info(f"   ✅ Item encontrado na loja: {item.get('name', 'N/A')}")
+                            return self._format_product_data(item)
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Erro na busca da loja: {e}")
+            return None
+    
+    def _get_item_direct(self, shop_id: str, item_id: str) -> Optional[Dict[str, Any]]:
+        """Tenta obter item diretamente via API"""
+        try:
+            self._add_delay()
+            
+            # Múltiplas URLs de API para tentar
+            api_urls = [
+                f"{self.item_api}?itemid={item_id}&shopid={shop_id}",
+                f"{self.item_api}?itemid={item_id}&shopid={shop_id}&version=1",
+                f"{self.item_api}?itemid={item_id}&shopid={shop_id}&version=2"
+            ]
+            
+            for api_url in api_urls:
+                try:
+                    logger.info(f"   🔍 Tentando API direta: {api_url}")
+                    
+                    response = self.session.get(api_url, timeout=15)
+                    
+                    if response.status_code == 200:
+                        api_data = response.json()
+                        
+                        if 'data' in api_data and api_data['data']:
+                            item_data = api_data['data']
+                            logger.info(f"   ✅ API direta funcionou: {item_data.get('name', 'N/A')}")
+                            return self._format_product_data(item_data)
+                    
+                    time.sleep(0.5)
+                    
+                except Exception as e:
+                    logger.debug(f"   ⚠️ API direta falhou: {e}")
+                    continue
+            
+            return None
+            
+        except Exception as e:
+            logger.debug(f"Erro na API direta: {e}")
+            return None
+    
+    def _format_product_data(self, item_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Formata dados do produto para o formato padrão"""
+        try:
+            formatted_data = {}
+            
+            # Título
+            if 'name' in item_data:
+                formatted_data['title'] = item_data['name']
+            elif 'title' in item_data:
+                formatted_data['title'] = item_data['title']
+            else:
+                formatted_data['title'] = "Produto Shopee"
+            
+            # Imagem
+            if 'image' in item_data:
+                formatted_data['image_url'] = item_data['image']
+            elif 'images' in item_data and item_data['images']:
+                # Constrói URL de imagem real da Shopee
+                image_hash = item_data['images'][0]
+                formatted_data['image_url'] = f"https://cf.shopee.com.br/file/{image_hash}"
+            else:
+                formatted_data['image_url'] = None
+            
+            # Descrição
+            if 'description' in item_data:
+                formatted_data['description'] = item_data['description']
+            else:
+                formatted_data['description'] = None
+            
+            # Preço
+            if 'price' in item_data:
+                formatted_data['price'] = item_data['price']
+            
+            # Avaliação
+            if 'rating_star' in item_data:
+                formatted_data['rating_star'] = item_data['rating_star']
+            
+            # Nome da loja
+            if 'shop_name' in item_data:
+                formatted_data['shop_name'] = item_data['shop_name']
+            
+            return formatted_data
+            
+        except Exception as e:
+            logger.error(f"Erro ao formatar dados: {e}")
+            return {}
+    
+    def test_image_url(self, image_url: str) -> bool:
+        """Testa se a URL da imagem é válida"""
+        try:
+            response = self.session.head(image_url, timeout=10)
+            return response.status_code == 200
+        except:
+            return False
+
+def main():
+    """Teste da API de busca da Shopee"""
+    print("🧪 TESTANDO API DE BUSCA DA SHOPEE")
+    print("=" * 60)
+    
+    api = ShopeeSearchAPI()
+    
+    # IDs de teste baseados nos logs anteriores
+    test_products = [
+        ('366295833', '18297606894'),
+        ('1193388723', '22193671026'),
+        ('1096310433', '23397649584')
+    ]
+    
+    for i, (shop_id, item_id) in enumerate(test_products, 1):
+        print(f"\n🔍 Teste {i}: Shop ID {shop_id}, Item ID {item_id}")
+        
+        try:
+            result = api.search_product_by_id(shop_id, item_id)
+            
+            if result:
+                print(f"   ✅ Título: {result.get('title', 'N/A')}")
+                print(f"   ✅ Imagem: {result.get('image_url', 'N/A')}")
+                print(f"   ✅ Descrição: {result.get('description', 'N/A')}")
+                print(f"   ✅ Preço: {result.get('price', 'N/A')}")
+                print(f"   ✅ Avaliação: {result.get('rating_star', 'N/A')}")
+                print(f"   ✅ Loja: {result.get('shop_name', 'N/A')}")
+                
+                # Testa a URL da imagem
+                if result.get('image_url'):
+                    is_valid = api.test_image_url(result['image_url'])
+                    print(f"   🖼️ Imagem válida: {'✅ Sim' if is_valid else '❌ Não'}")
+            else:
+                print(f"   ❌ Falha na extração")
+                
+        except Exception as e:
+            print(f"   ❌ Erro: {e}")
+        
+        print("-" * 40)
+        
+        # Pausa entre testes
+        if i < len(test_products):
+            time.sleep(2)
+
+if __name__ == "__main__":
+    main()

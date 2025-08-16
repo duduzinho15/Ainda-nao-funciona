@@ -66,7 +66,7 @@ function New-FirewallRules {
 }
 
 # Função para ativar ambiente virtual
-function Activate-VirtualEnvironment {
+function Start-VirtualEnvironment {
     $projectRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
     $venvPath = Join-Path $projectRoot "venv\Scripts\Activate.ps1"
     
@@ -129,7 +129,7 @@ function Main {
     }
     
     # Ativa ambiente virtual
-    if (Activate-VirtualEnvironment) {
+    if (Start-VirtualEnvironment) {
         # Inicia dashboard
         Start-Dashboard
     } else {

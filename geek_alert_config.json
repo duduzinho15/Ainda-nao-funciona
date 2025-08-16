@@ -1,0 +1,16 @@
+{
+  "search_interval": "5",
+  "discount_threshold": "15",
+  "commission_threshold": "10",
+  "telegram_chat_id": "",
+  "telegram_bot_token": "",
+  "max_products": "20",
+  "alert_cooldown": "6",
+  "lowest_price_ever": true,
+  "lowest_price_recent": true,
+  "recent_days": "90",
+  "priority_categories": ["smartphone", "notebook", "gaming", "headphones"],
+  "log_level": "INFO",
+  "auto_clean_logs": true,
+  "max_log_size_mb": "10"
+}

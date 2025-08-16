@@ -1,0 +1,327 @@
+#!/usr/bin/env python3
+"""
+Scraper corrigido para o Buscapé - Comparador de preços
+Coleta ofertas de produtos com preços e avaliações
+"""
+import asyncio
+import logging
+import random
+import re
+import time
+from datetime import datetime
+from typing import List, Dict, Any, Optional
+from urllib.parse import urljoin, urlparse
+
+import aiohttp
+from bs4 import BeautifulSoup
+
+# Configuração de logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('buscape_scraper_fixed.log', mode='a', encoding='utf-8')
+    ]
+)
+logger = logging.getLogger('buscape_scraper_fixed')
+
+# User Agents para rotação
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+]
+
+# URLs base para busca de ofertas
+BASE_URL = "https://www.buscape.com.br"
+
+# Categorias de interesse para produtos geek/tech
+CATEGORIAS = [
+    '/notebook',
+    '/tv',
+    '/tablet',
+    '/console-de-video-game',
+    '/monitor',
+    '/smartwatch',
+    '/fone-de-ouvido-e-headset',
+    '/caixa-de-som-bluetooth',
+    '/impressora-e-multifuncional'
+]
+
+def get_random_headers() -> dict:
+    """Retorna headers aleatórios para evitar bloqueio."""
+    return {
+        'User-Agent': random.choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'DNT': '1',
+        'Upgrade-Insecure-Requests': '1',
+        'Referer': 'https://www.buscape.com.br/',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Fetch-User': '?1',
+        'Cache-Control': 'max-age=0'
+    }
+
+def extrair_preco(texto: str) -> tuple[Optional[str], Optional[str]]:
+    """
+    Extrai preço atual e original de um texto.
+    
+    Args:
+        texto: Texto contendo os preços
+        
+    Returns:
+        tuple: (preco_atual, preco_original)
+    """
+    if not texto:
+        return None, None
+    
+    # Encontra todos os valores numéricos no formato R$ X.XXX,XX
+    precos = re.findall(r'R\$\s*([\d\.]+,\d{2})', texto)
+    
+    if not precos:
+        return None, None
+    
+    # Remove o símbolo R$ e espaços para padronização
+    precos = [p.strip() for p in precos]
+    
+    # Se tiver apenas um preço, retorna ele como preço atual
+    if len(precos) == 1:
+        return precos[0], None
+    
+    # Se tiver mais de um, assume que o primeiro é o preço original e o segundo o com desconto
+    return precos[1], precos[0]
+
+def extrair_avaliacao(texto: str) -> Optional[float]:
+    """
+    Extrai avaliação de um texto.
+    
+    Args:
+        texto: Texto contendo a avaliação
+        
+    Returns:
+        float: Avaliação encontrada ou None
+    """
+    if not texto:
+        return None
+    
+    # Procura por padrões de avaliação (ex: 4.5, 4,5, 4/5)
+    match = re.search(r'(\d+[.,]\d+|\d+)(?:\s*/\s*5)?', texto)
+    if match:
+        try:
+            valor = match.group(1).replace(',', '.')
+            return float(valor)
+        except ValueError:
+            pass
+    
+    return None
+
+async def buscar_ofertas_buscape(
+    session: aiohttp.ClientSession,
+    max_paginas: int = 3,
+    delay: float = 1.0
+) -> List[Dict[str, Any]]:
+    """
+    Busca ofertas no Buscapé usando categorias específicas.
+    
+    Args:
+        session: Sessão HTTP assíncrona
+        max_paginas: Número máximo de páginas para buscar
+        delay: Delay entre requisições em segundos
+    
+    Returns:
+        Lista de ofertas encontradas
+    """
+    ofertas = []
+    
+    try:
+        # Busca em categorias específicas
+        for categoria in CATEGORIAS[:max_paginas]:
+            try:
+                url_categoria = urljoin(BASE_URL, categoria)
+                logger.info(f"🔍 Buscando ofertas em: {url_categoria}")
+                
+                headers = get_random_headers()
+                
+                async with session.get(url_categoria, headers=headers, timeout=15) as response:
+                    if response.status != 200:
+                        logger.warning(f"⚠️ Erro ao acessar {url_categoria}: {response.status}")
+                        continue
+                    
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    
+                    # Salva HTML para debug se necessário
+                    if len(ofertas) == 0:  # Apenas na primeira categoria
+                        with open('buscape_debug.html', 'w', encoding='utf-8') as f:
+                            f.write(html)
+                        logger.info("✅ HTML salvo em buscape_debug.html para debug")
+                    
+                    # Busca por produtos usando seletores mais específicos
+                    produtos = []
+                    
+                    # Busca por produtos usando seletores específicos do Buscapé
+                    produtos = soup.select('.Hits_ProductCard__Bonl_')
+                    
+                    if not produtos:
+                        # Fallback: busca por elementos com links de produto
+                        produtos = soup.find_all('a', href=re.compile(r'/notebook/|/celular/|/tv/'))
+                        logger.info(f"🔄 Fallback: {len(produtos)} produtos encontrados por links")
+                    
+                    logger.info(f"🔍 Encontrados {len(produtos)} produtos para análise em {categoria}")
+                    
+                    for produto in produtos[:15]:  # Limita a 15 produtos por categoria
+                        try:
+                            oferta = extrair_oferta_produto(produto, categoria)
+                            if oferta:
+                                # Verifica se a oferta já foi adicionada
+                                if not any(o['url_produto'] == oferta['url_produto'] for o in ofertas):
+                                    ofertas.append(oferta)
+                                    logger.debug(f"Oferta adicionada: {oferta['titulo']} - {oferta['preco']}")
+                            
+                        except Exception as e:
+                            logger.warning(f"⚠️ Erro ao extrair produto: {e}")
+                            continue
+                        
+                        # Delay entre produtos
+                        await asyncio.sleep(delay * 0.1)
+                    
+                    # Delay entre categorias
+                    await asyncio.sleep(delay)
+                    
+            except Exception as e:
+                logger.error(f"❌ Erro ao processar categoria {categoria}: {e}")
+                continue
+        
+        logger.info(f"✅ {len(ofertas)} ofertas extraídas com sucesso")
+        
+    except Exception as e:
+        logger.error(f"❌ Erro geral na busca: {e}")
+    
+    return ofertas
+
+def extrair_oferta_produto(produto_element, categoria: str = None) -> Optional[Dict[str, Any]]:
+    """Extrai informações de uma oferta de produto do Buscapé."""
+    try:
+        # Título do produto
+        titulo_elem = produto_element.select_one('[data-testid="product-card::name"]')
+        
+        if not titulo_elem:
+            return None
+        
+        titulo = titulo_elem.get_text(strip=True)
+        if not titulo or len(titulo) < 5:
+            return None
+        
+        # URL do produto
+        url_produto = ""
+        link_elem = produto_element.find('a', href=True)
+        if link_elem:
+            href = link_elem.get('href', '')
+            if href.startswith('/'):
+                url_produto = urljoin(BASE_URL, href)
+            elif href.startswith('http'):
+                url_produto = href
+        
+        # Preço
+        preco_elem = produto_element.select_one('[data-testid="product-card::price"]')
+        
+        preco_texto = ""
+        if preco_elem:
+            preco_texto = preco_elem.get_text(strip=True)
+        
+        preco_atual, preco_original = extrair_preco(preco_texto)
+        
+        # Se não conseguiu extrair preço, tenta do texto geral
+        if not preco_atual:
+            texto_geral = produto_element.get_text()
+            preco_atual, preco_original = extrair_preco(texto_geral)
+        
+        # Avaliação
+        avaliacao_elem = produto_element.select_one('[data-testid="product-card::rating"]')
+        
+        avaliacao_texto = ""
+        if avaliacao_elem:
+            avaliacao_texto = avaliacao_elem.get_text(strip=True)
+        
+        avaliacao = extrair_avaliacao(avaliacao_texto)
+        
+        # Loja
+        loja_elem = produto_element.select_one('[data-testid="product-card::best-merchant"]')
+        
+        loja = "Buscapé"
+        if loja_elem:
+            loja_texto = loja_elem.get_text(strip=True)
+            if loja_texto and len(loja_texto) > 1:
+                loja = loja_texto
+        
+        # Imagem
+        img_elem = produto_element.select_one('[data-testid="product-card::image"] img')
+        imagem_url = ""
+        if img_elem:
+            src = img_elem.get('src', '')
+            if src.startswith('//'):
+                imagem_url = f"https:{src}"
+            elif src.startswith('/'):
+                imagem_url = urljoin(BASE_URL, src)
+            else:
+                imagem_url = src
+        
+        # Cria a oferta
+        oferta = {
+            'titulo': titulo,
+            'url_produto': url_produto or f"{BASE_URL}{categoria}",
+            'url_fonte': f"{BASE_URL}{categoria}",
+            'preco': preco_atual or 'Preço não informado',
+            'preco_original': preco_original,
+            'loja': loja,
+            'fonte': 'Buscapé',
+            'imagem_url': imagem_url,
+            'avaliacao': avaliacao,
+            'categoria': categoria.replace('/', '') if categoria else 'Geral',
+            'data_coleta': datetime.now().isoformat()
+        }
+        
+        return oferta
+        
+    except Exception as e:
+        logger.error(f"Erro ao extrair oferta: {e}")
+        return None
+
+async def main():
+    """Função de teste para o módulo."""
+    async with aiohttp.ClientSession() as session:
+        ofertas = await buscar_ofertas_buscape(session, max_paginas=2)
+        
+        print(f"\n=== OFERTAS ENCONTRADAS ({len(ofertas)}) ===\n")
+        
+        for i, oferta in enumerate(ofertas[:5], 1):  # Mostra apenas as 5 primeiras para teste
+            print(f"\n--- Oferta {i} ---")
+            print(f"Título: {oferta['titulo']}")
+            print(f"Loja: {oferta['loja']}")
+            print(f"Preço: {oferta['preco']}")
+            if oferta['preco_original']:
+                print(f"Preço original: {oferta['preco_original']}")
+            if oferta['avaliacao']:
+                print(f"Avaliação: {oferta['avaliacao']}/5")
+            print(f"Categoria: {oferta['categoria']}")
+            print(f"URL: {oferta['url_produto']}")
+            print(f"Fonte: {oferta['fonte']}")
+            if oferta['imagem_url']:
+                print(f"Imagem: {oferta['imagem_url']}")
+            print("-" * 50)
+
+if __name__ == "__main__":
+    # Configura logging para debug
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(handler)
+    
+    # Executa o teste
+    asyncio.run(main())

@@ -1,178 +1,143 @@
+#!/usr/bin/env python3
 """
-Teste da integração com a API da Awin.
-
-Este script testa todas as funcionalidades da integração com a Awin:
-- Conexão com a API
-- Busca de programas parceiros
-- Busca de ofertas
-- Conversão de dados
+Script para testar a API da Awin e verificar Publisher IDs
 """
 import asyncio
-import sys
-import os
+import aiohttp
+import config
+import json
 
-# Adiciona o diretório atual ao path para importar módulos locais
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-async def test_awin_integration():
-    """Testa a integração completa com a Awin."""
-    print("🧪 Testando Integração com a API da Awin")
-    print("=" * 60)
+async def test_awin_api():
+    """Testa a API da Awin com diferentes endpoints e Publisher IDs"""
     
-    try:
-        # Testa importação do módulo
-        print("📦 Testando importação do módulo...")
-        from awin_api import (
-            obter_programas_parceiros,
-            buscar_ofertas_awin,
-            testar_api_awin
-        )
-        print("✅ Módulo importado com sucesso!")
-        
-        # Testa configuração
-        print("\n⚙️  Testando configuração...")
-        import config
-        if config.AWIN_API_TOKEN and config.AWIN_API_TOKEN != "YOUR_TOKEN":
-            print(f"✅ Token da Awin configurado: {config.AWIN_API_TOKEN[:10]}...")
-        else:
-            print("❌ Token da Awin não configurado")
-            return False
-        
-        if config.AWIN_PUBLISHER_ID and config.AWIN_PUBLISHER_ID != "YOUR_PUBLISHER_ID":
-            print(f"✅ Publisher ID configurado: {config.AWIN_PUBLISHER_ID}")
-        else:
-            print("❌ Publisher ID não configurado")
-            return False
-        
-        # Testa função de teste integrada
-        print("\n🔍 Testando função de teste integrada...")
-        resultado_teste = await testar_api_awin()
-        if resultado_teste:
-            print("✅ Teste integrado executado com sucesso!")
-        else:
-            print("❌ Teste integrado falhou")
-            return False
-        
-        # Testa busca de programas parceiros
-        print("\n🏢 Testando busca de programas parceiros...")
-        programas = await obter_programas_parceiros()
-        if programas and 'data' in programas:
-            num_programas = len(programas['data'])
-            print(f"✅ {num_programas} programas parceiros encontrados!")
-            
-            # Lista os primeiros programas
-            for i, programa in enumerate(programas['data'][:5], 1):
-                nome = programa.get('name', 'Sem nome')
-                programa_id = programa.get('id', 'Sem ID')
-                print(f"   {i}. {nome} (ID: {programa_id})")
-        else:
-            print("❌ Nenhum programa parceiro encontrado")
-            return False
-        
-        # Testa busca de ofertas
-        print("\n📦 Testando busca de ofertas...")
-        ofertas = await buscar_ofertas_awin(max_ofertas=5, min_desconto=10)
-        if ofertas:
-            print(f"✅ {len(ofertas)} ofertas encontradas!")
-            
-            # Mostra detalhes das primeiras ofertas
-            for i, oferta in enumerate(ofertas[:3], 1):
-                print(f"\n   📦 Oferta {i}:")
-                print(f"      Título: {oferta['titulo'][:50]}...")
-                print(f"      Loja: {oferta['loja']}")
-                print(f"      Preço: {oferta['preco']}")
-                print(f"      Desconto: {oferta['desconto']}%")
-                print(f"      Categoria: {oferta['categoria']}")
-        else:
-            print("❌ Nenhuma oferta encontrada")
-            return False
-        
-        print("\n🎉 Todos os testes passaram com sucesso!")
-        return True
-        
-    except ImportError as e:
-        print(f"❌ Erro de importação: {e}")
-        return False
-    except Exception as e:
-        print(f"❌ Erro durante o teste: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-async def test_affiliate_conversion():
-    """Testa a conversão de links de afiliado."""
-    print("\n🔗 Testando Conversão de Links de Afiliado")
-    print("=" * 60)
+    print("🧪 TESTANDO API DA AWIN")
+    print("=" * 50)
     
-    try:
-        from affiliate import AffiliateLinkConverter
+    # Configurações
+    api_base = "https://api.awin.com"
+    api_version = "v1"
+    token = config.AWIN_API_TOKEN
+    
+    # Publisher IDs para testar
+    publisher_ids = [
+        "2510157",  # ID principal
+        "2370719",  # ID Samsung
+        "1234567",  # ID de teste (deve falhar)
+    ]
+    
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    async with aiohttp.ClientSession() as session:
         
-        converter = AffiliateLinkConverter()
+        # Teste 1: Verificar se a API está acessível
+        print("\n🔍 Teste 1: Verificando acessibilidade da API")
+        try:
+            async with session.get(f"{api_base}/", headers=headers) as response:
+                print(f"   Status: {response.status}")
+                if response.status == 200:
+                    print("   ✅ API acessível")
+                else:
+                    print("   ⚠️ API retornou status inesperado")
+        except Exception as e:
+            print(f"   ❌ Erro ao acessar API: {e}")
         
-        # URLs de teste para lojas da Awin
-        urls_teste = [
-            "https://www.kabum.com.br/produto/123456",
-            "https://www.dell.com.br/p/notebook-latitude-123",
-            "https://www.lenovo.com.br/notebook/thinkpad-456",
-            "https://www.acer.com.br/notebook/aspire-789"
+        # Teste 2: Verificar diferentes versões da API
+        print("\n🔍 Teste 2: Testando diferentes versões da API")
+        api_versions = ["v1", "v2", "v3"]
+        
+        for version in api_versions:
+            try:
+                url = f"{api_base}/{version}/publishers/2510157/programmes"
+                async with session.get(url, headers=headers) as response:
+                    print(f"   Versão {version}: HTTP {response.status}")
+                    if response.status == 200:
+                        print(f"   ✅ Versão {version} funciona!")
+                        break
+                    elif response.status == 404:
+                        print(f"   ❌ Versão {version} não encontrada")
+                    else:
+                        print(f"   ⚠️ Versão {version} retornou {response.status}")
+            except Exception as e:
+                print(f"   ❌ Erro ao testar versão {version}: {e}")
+        
+        # Teste 3: Testar diferentes endpoints
+        print("\n🔍 Teste 3: Testando diferentes endpoints")
+        endpoints = [
+            "programmes",
+            "programmes?relationship=joined",
+            "programmes?relationship=approved",
+            "advertisers",
+            "publishers"
         ]
         
-        print("🔍 Testando detecção de lojas...")
-        for url in urls_teste:
-            loja = converter.detect_store_from_url(url)
-            print(f"   {url[:40]}... → {loja}")
+        working_version = "v1"  # Usa a versão que funcionou no teste anterior
         
-        print("\n💰 Testando conversão de links...")
-        for url in urls_teste:
-            loja = converter.detect_store_from_url(url)
-            affiliate_url = converter.gerar_link_afiliado(url, loja)
-            
-            print(f"\n   🏪 {loja}:")
-            print(f"      Original: {url[:50]}...")
-            print(f"      Afiliado: {affiliate_url[:50]}...")
-            
-            if url != affiliate_url:
-                print("      ✅ Conversão realizada!")
-            else:
-                print("      ⚠️  Sem conversão (esperado para Awin)")
+        for endpoint in endpoints:
+            try:
+                url = f"{api_base}/{working_version}/publishers/2510157/{endpoint}"
+                async with session.get(url, headers=headers) as response:
+                    print(f"   Endpoint {endpoint}: HTTP {response.status}")
+                    if response.status == 200:
+                        print(f"   ✅ Endpoint {endpoint} funciona!")
+                        # Tenta ler a resposta para ver o formato
+                        try:
+                            data = await response.json()
+                            print(f"   📊 Resposta: {len(data.get('data', []))} itens")
+                        except:
+                            print(f"   📊 Resposta não é JSON válido")
+                    elif response.status == 404:
+                        print(f"   ❌ Endpoint {endpoint} não encontrado")
+                    else:
+                        print(f"   ⚠️ Endpoint {endpoint} retornou {response.status}")
+            except Exception as e:
+                print(f"   ❌ Erro ao testar endpoint {endpoint}: {e}")
         
-        print("\n✅ Teste de conversão concluído!")
-        return True
+        # Teste 4: Testar diferentes Publisher IDs
+        print("\n🔍 Teste 4: Testando diferentes Publisher IDs")
         
-    except Exception as e:
-        print(f"❌ Erro no teste de conversão: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
-
-async def main():
-    """Função principal de teste."""
-    print("🚀 Iniciando Testes da Integração Awin")
-    print("=" * 60)
+        for pub_id in publisher_ids:
+            try:
+                url = f"{api_base}/{working_version}/publishers/{pub_id}/programmes"
+                async with session.get(url, headers=headers) as response:
+                    print(f"   Publisher ID {pub_id}: HTTP {response.status}")
+                    if response.status == 200:
+                        print(f"   ✅ Publisher ID {pub_id} válido!")
+                        try:
+                            data = await response.json()
+                            print(f"   📊 Programas encontrados: {len(data.get('data', []))}")
+                        except:
+                            print(f"   📊 Resposta não é JSON válido")
+                    elif response.status == 404:
+                        print(f"   ❌ Publisher ID {pub_id} não encontrado")
+                    elif response.status == 401:
+                        print(f"   🔒 Publisher ID {pub_id} não autorizado")
+                    else:
+                        print(f"   ⚠️ Publisher ID {pub_id} retornou {response.status}")
+            except Exception as e:
+                print(f"   ❌ Erro ao testar Publisher ID {pub_id}: {e}")
+        
+        # Teste 5: Verificar se o token está válido
+        print("\n🔍 Teste 5: Verificando validade do token")
+        try:
+            # Tenta acessar um endpoint que deve funcionar se o token for válido
+            url = f"{api_base}/{working_version}/publishers"
+            async with session.get(url, headers=headers) as response:
+                print(f"   Status: {response.status}")
+                if response.status == 200:
+                    print("   ✅ Token válido")
+                elif response.status == 401:
+                    print("   ❌ Token inválido ou expirado")
+                else:
+                    print(f"   ⚠️ Status inesperado: {response.status}")
+        except Exception as e:
+            print(f"   ❌ Erro ao verificar token: {e}")
     
-    # Testa integração principal
-    resultado_integracao = await test_awin_integration()
-    
-    # Testa conversão de links
-    resultado_conversao = await test_affiliate_conversion()
-    
-    # Resultado final
-    print("\n" + "=" * 60)
-    print("📊 RESULTADO DOS TESTES")
-    print("=" * 60)
-    print(f"🔌 Integração Awin: {'✅ PASSOU' if resultado_integracao else '❌ FALHOU'}")
-    print(f"🔗 Conversão de Links: {'✅ PASSOU' if resultado_conversao else '❌ FALHOU'}")
-    
-    if resultado_integracao and resultado_conversao:
-        print("\n🎉 TODOS OS TESTES PASSARAM!")
-        print("✅ A integração com a Awin está funcionando corretamente!")
-        return True
-    else:
-        print("\n❌ ALGUNS TESTES FALHARAM!")
-        print("🔧 Verifique as configurações e tente novamente.")
-        return False
+    print("\n" + "=" * 50)
+    print("🏁 TESTES CONCLUÍDOS")
 
 if __name__ == "__main__":
-    # Executa os testes
-    resultado = asyncio.run(main())
-    sys.exit(0 if resultado else 1)
+    asyncio.run(test_awin_api())

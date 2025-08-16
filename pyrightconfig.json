@@ -24,7 +24,8 @@
             "extraPaths": [
                 "./venv/Lib/site-packages",
                 "./venv/Lib/site-packages/telegram",
-                "./venv/Lib/site-packages/telegram/ext"
+                "./venv/Lib/site-packages/telegram/ext",
+                "C:/Users/Eduardo Vitorino/AppData/Roaming/Python/Python313/site-packages"
             ]
         }
     ],

@@ -80,3 +80,6 @@ if AWIN_PUBLISHER_ID == "YOUR_PUBLISHER_ID":
     print("ℹ️  Para ativar, configure a variável de ambiente no arquivo .env:")
     print("    AWIN_PUBLISHER_ID")
     AWIN_PUBLISHER_ID = ""
+
+# Configurações de Rate Limiting
+POST_RATE_DELAY_MS = int(os.getenv("POST_RATE_DELAY_MS", "250"))  # Delay entre posts em massa

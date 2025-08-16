@@ -1,0 +1,763 @@
+#!/usr/bin/env python3
+"""
+Sistema ULTIMATE de Scraping para Produtos
+Versão mais robusta e eficaz para extrair dados reais
+Integração com Playwright para contornar proteções anti-bot
+"""
+
+import requests
+import time
+import logging
+import re
+import json
+from typing import Optional, Dict, Any
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+import random
+import asyncio
+import os
+import sys
+
+# Adiciona o diretório raiz ao path para importar módulos do projeto
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+try:
+    from base_playwright_scraper import BasePlaywrightScraper
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+    print("⚠️ Playwright não disponível. Usando apenas requests.")
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class UltimateProductScraper:
+    """Scraper ultimate para extrair dados reais dos produtos"""
+    
+    def __init__(self):
+        self.session = requests.Session()
+        self.playwright_scraper = None
+        
+        # Headers mais realistas
+        self.session.headers.update({
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"'
+        })
+        
+        # User agents mais variados
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0'
+        ]
+        
+        # Inicializa Playwright se disponível
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                self.playwright_scraper = BasePlaywrightScraper("https://shopee.com.br", "shopee")
+                logger.info("✅ Playwright criado (será inicializado quando necessário)")
+            except Exception as e:
+                logger.warning(f"⚠️ Falha ao criar Playwright: {e}")
+                self.playwright_scraper = None
+    
+    def _rotate_user_agent(self):
+        """Rotaciona User-Agent"""
+        self.session.headers['User-Agent'] = random.choice(self.user_agents)
+    
+    def _add_delay(self):
+        """Delay inteligente"""
+        time.sleep(random.uniform(2, 5))
+    
+    async def scrape_shopee_product_playwright(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping Shopee usando Playwright (mais robusto)"""
+        if not self.playwright_scraper:
+            return None
+            
+        try:
+            logger.info(f"🎭 Scraping Shopee com Playwright: {product_url}")
+            
+            # Inicializa o navegador se necessário
+            if not self.playwright_scraper.page:
+                await self.playwright_scraper.setup_browser()
+            
+            page = self.playwright_scraper.page
+            
+            # Estratégia 1: Tentar com diferentes user agents
+            user_agents = [
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Edge/120.0.0.0'
+            ]
+            
+            for attempt, user_agent in enumerate(user_agents, 1):
+                try:
+                    logger.info(f"   🔄 Tentativa {attempt} com User-Agent: {user_agent[:50]}...")
+                    
+                    # Define novo user agent
+                    await page.set_extra_http_headers({
+                        'User-Agent': user_agent,
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                        'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+                        'Accept-Encoding': 'gzip, deflate, br',
+                        'DNT': '1',
+                        'Connection': 'keep-alive',
+                        'Upgrade-Insecure-Requests': '1',
+                        'Sec-Fetch-Dest': 'document',
+                        'Sec-Fetch-Mode': 'navigate',
+                        'Sec-Fetch-Site': 'none',
+                        'Sec-Fetch-User': '?1',
+                        'Cache-Control': 'max-age=0'
+                    })
+                    
+                    # Navega para a página
+                    await page.goto(product_url, wait_until='networkidle', timeout=30000)
+                    
+                    # Aguarda carregamento dos elementos com delay variável
+                    await page.wait_for_timeout(random.uniform(3000, 7000))
+                    
+                    # Tenta aguardar elementos específicos
+                    try:
+                        await page.wait_for_selector('h1', timeout=15000)
+                        logger.info("✅ Elemento h1 encontrado")
+                    except:
+                        logger.warning("⚠️ Elemento h1 não encontrado")
+                    
+                    # Verifica se a página carregou corretamente (não é página de erro)
+                    page_content = await page.content()
+                    if 'VLibras' in page_content and 'shopee' not in page_content.lower():
+                        logger.warning(f"   ⚠️ Tentativa {attempt}: Página de erro/proteção detectada")
+                        continue
+                    
+                    # Debug: salva screenshot da página
+                    screenshot_path = f"shopee_debug_attempt_{attempt}_{int(time.time())}.png"
+                    await page.screenshot(path=screenshot_path)
+                    logger.info(f"📸 Screenshot salvo: {screenshot_path}")
+                    
+                    # Debug: salva HTML da página
+                    html_path = f"shopee_debug_attempt_{attempt}_{int(time.time())}.html"
+                    with open(html_path, 'w', encoding='utf-8') as f:
+                        f.write(page_content)
+                    logger.info(f"📄 HTML salvo: {html_path}")
+                    
+                    # Extrai dados usando JavaScript com múltiplas estratégias
+                    product_data = await page.evaluate("""
+                        () => {
+                            const data = {};
+                            
+                            // Estratégia 1: Meta tags
+                            const metaTitle = document.querySelector('meta[property="og:title"]');
+                            if (metaTitle && metaTitle.content) {
+                                data.title = metaTitle.content.trim();
+                            }
+                            
+                            const metaImage = document.querySelector('meta[property="og:image"]');
+                            if (metaImage && metaImage.content) {
+                                data.image_url = metaImage.content.trim();
+                            }
+                            
+                            // Estratégia 2: Título da página
+                            if (!data.title) {
+                                const titleSelectors = [
+                                    'h1[data-testid="product-title"]',
+                                    'h1.product-title',
+                                    'h1[class*="title"]',
+                                    'div[data-testid="product-title"]',
+                                    'span[data-testid="product-title"]',
+                                    'h1',
+                                    'title'
+                                ];
+                                
+                                for (const selector of titleSelectors) {
+                                    const elem = document.querySelector(selector);
+                                    if (elem) {
+                                        const text = elem.textContent || elem.innerText;
+                                        if (text && text.trim() && text.trim().length > 5) {
+                                            data.title = text.trim();
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Estratégia 3: Imagem
+                            if (!data.image_url) {
+                                const imageSelectors = [
+                                    'img[data-testid="product-image"]',
+                                    'img.product-image',
+                                    'img[class*="image"]',
+                                    'div[data-testid="product-image"] img',
+                                    'div.product-image img',
+                                    'img[src*="shopee"]',
+                                    'img[src]'
+                                ];
+                                
+                                for (const selector of imageSelectors) {
+                                    const elem = document.querySelector(selector);
+                                    if (elem) {
+                                        const src = elem.dataset.src || elem.src;
+                                        if (src && src.startsWith('http')) {
+                                            data.image_url = src;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            // Estratégia 4: Preço
+                            const priceSelectors = [
+                                '[data-testid="product-price"]',
+                                '.product-price',
+                                '[class*="price"]',
+                                '.price',
+                                '[data-testid="price"]'
+                            ];
+                            
+                            for (const selector of priceSelectors) {
+                                const elem = document.querySelector(selector);
+                                if (elem) {
+                                    const text = elem.textContent || elem.innerText;
+                                    if (text && text.trim()) {
+                                        data.price = text.trim();
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Estratégia 5: Descrição
+                            const descSelectors = [
+                                '[data-testid="product-description"]',
+                                '.product-description',
+                                '[class*="description"]',
+                                '.description',
+                                'meta[name="description"]'
+                            ];
+                            
+                            for (const selector of descSelectors) {
+                                const elem = document.querySelector(selector);
+                                if (elem) {
+                                    const text = elem.textContent || elem.innerText || elem.content;
+                                    if (text && text.trim()) {
+                                        data.description = text.trim();
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            // Debug: lista todos os elementos h1 encontrados
+                            data.debug_h1s = [];
+                            document.querySelectorAll('h1').forEach((h1, index) => {
+                                data.debug_h1s.push({
+                                    index: index,
+                                    text: h1.textContent?.trim() || h1.innerText?.trim() || 'N/A',
+                                    classes: h1.className || 'N/A'
+                                });
+                            });
+                            
+                            // Debug: lista todos os elementos img encontrados
+                            data.debug_images = [];
+                            document.querySelectorAll('img').forEach((img, index) => {
+                                data.debug_images.push({
+                                    index: index,
+                                    src: img.src || 'N/A',
+                                    data_src: img.dataset.src || 'N/A',
+                                    alt: img.alt || 'N/A'
+                                });
+                            });
+                            
+                            return data;
+                        }
+                    """)
+                    
+                    # Log dos dados de debug
+                    if product_data.get('debug_h1s'):
+                        logger.info(f"🔍 Debug H1s encontrados: {len(product_data['debug_h1s'])}")
+                        for h1 in product_data['debug_h1s'][:3]:  # Mostra apenas os primeiros 3
+                            logger.info(f"   H1[{h1['index']}]: {h1['text']} (classes: {h1['classes']})")
+                    
+                    if product_data.get('debug_images'):
+                        logger.info(f"🔍 Debug Images encontradas: {len(product_data['debug_images'])}")
+                        for img in product_data['debug_images'][:3]:  # Mostra apenas as primeiras 3
+                            logger.info(f"   Img[{img['index']}]: src={img['src']}, data-src={img['data_src']}")
+                    
+                    # Remove dados de debug
+                    product_data.pop('debug_h1s', None)
+                    product_data.pop('debug_images', None)
+                    
+                    # Verifica se conseguiu extrair dados válidos
+                    if product_data.get('title') and product_data.get('image_url'):
+                        # Verifica se não é apenas o título da página
+                        title = product_data['title'].lower()
+                        if 'shopee' not in title and 'ofertas' not in title and 'preços' not in title:
+                            logger.info(f"✅ Playwright extraiu dados válidos: {product_data['title']}")
+                            return product_data
+                        else:
+                            logger.warning(f"   ⚠️ Tentativa {attempt}: Título genérico da página detectado")
+                    else:
+                        logger.warning(f"   ⚠️ Tentativa {attempt}: Dados incompletos")
+                    
+                    # Pausa entre tentativas
+                    if attempt < len(user_agents):
+                        await asyncio.sleep(random.uniform(2, 5))
+                        
+                except Exception as e:
+                    logger.error(f"   ❌ Erro na tentativa {attempt}: {e}")
+                    if attempt < len(user_agents):
+                        await asyncio.sleep(random.uniform(1, 3))
+                    continue
+            
+            logger.warning("⚠️ Todas as tentativas falharam")
+            return None
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no Playwright: {e}")
+            return None
+    
+    def scrape_shopee_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping ULTIMATE para produtos da Shopee"""
+        try:
+            logger.info(f"🔍 Scraping ULTIMATE Shopee: {product_url}")
+            
+            # Estratégia 1: Tentar API interna primeiro (mais confiável)
+            api_data = self._extract_from_shopee_api_internal(product_url)
+            if api_data and api_data.get('title') and api_data.get('image_url'):
+                logger.info(f"✅ Dados extraídos via API interna: {api_data['title']}")
+                return api_data
+            
+            # Estratégia 2: Scraping da página com headers otimizados
+            self._rotate_user_agent()
+            self._add_delay()
+            
+            # Adiciona headers específicos da Shopee
+            shopee_headers = {
+                'Referer': 'https://shopee.com.br/',
+                'Origin': 'https://shopee.com.br',
+                'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"'
+            }
+            self.session.headers.update(shopee_headers)
+            
+            response = self.session.get(product_url, timeout=20)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.text, 'html.parser')
+            
+            # Extrai dados usando múltiplas estratégias
+            product_data = {}
+            
+            # 1. Meta tags (mais confiáveis)
+            product_data.update(self._extract_meta_tags_shopee(soup))
+            
+            # 2. __NEXT_DATA__ (dados do React)
+            if not product_data.get('title') or not product_data.get('image_url'):
+                product_data.update(self._extract_next_data_shopee(soup))
+            
+            # 3. Scripts inline
+            if not product_data.get('title') or not product_data.get('image_url'):
+                product_data.update(self._extract_inline_scripts_shopee(soup))
+            
+            # 4. HTML direto como fallback
+            if not product_data.get('title') or not product_data.get('image_url'):
+                product_data.update(self._extract_html_direct_shopee(soup))
+            
+            # Validação final
+            if product_data.get('title') and product_data.get('image_url'):
+                logger.info(f"✅ Dados extraídos com sucesso: {product_data['title']}")
+                return product_data
+            else:
+                logger.warning("⚠️ Dados incompletos extraídos")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping Shopee: {e}")
+            return None
+    
+    def _extract_from_shopee_api_internal(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Extrai dados da API interna da Shopee (mais confiável)"""
+        try:
+            # Extrai IDs do produto da URL
+            if '/product/' in product_url:
+                parts = product_url.split('/product/')[1].split('/')
+                if len(parts) >= 2:
+                    shop_id = parts[0]
+                    item_id = parts[1]
+                    
+                    # Múltiplas URLs de API para tentar
+                    api_urls = [
+                        f"https://shopee.com.br/api/v4/item/get?itemid={item_id}&shopid={shop_id}",
+                        f"https://shopee.com.br/api/v4/item/get?itemid={item_id}&shopid={shop_id}&version=1",
+                        f"https://shopee.com.br/api/v4/item/get?itemid={item_id}&shopid={shop_id}&version=2"
+                    ]
+                    
+                    for api_url in api_urls:
+                        try:
+                            logger.info(f"   🔍 Tentando API: {api_url}")
+                            
+                            # Headers específicos para API
+                            api_headers = {
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                                'Accept': 'application/json, text/plain, */*',
+                                'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.8',
+                                'Referer': product_url,
+                                'Origin': 'https://shopee.com.br',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                            
+                            response = self.session.get(api_url, headers=api_headers, timeout=15)
+                            
+                            if response.status_code == 200:
+                                api_data = response.json()
+                                
+                                if 'data' in api_data and api_data['data']:
+                                    item_data = api_data['data']
+                                    
+                                    data = {}
+                                    if 'name' in item_data:
+                                        data['title'] = item_data['name']
+                                    
+                                    if 'images' in item_data and item_data['images']:
+                                        # Constrói URL de imagem real da Shopee
+                                        image_hash = item_data['images'][0]
+                                        data['image_url'] = f"https://cf.shopee.com.br/file/{image_hash}"
+                                    
+                                    if 'description' in item_data:
+                                        data['description'] = item_data['description']
+                                    
+                                    if data.get('title') and data.get('image_url'):
+                                        logger.info(f"   ✅ API funcionou: {data['title']}")
+                                        return data
+                            
+                            time.sleep(1)  # Pausa entre tentativas
+                            
+                        except Exception as e:
+                            logger.debug(f"   ⚠️ API falhou: {e}")
+                            continue
+                            
+        except Exception as e:
+            logger.debug(f"Erro ao extrair da API Shopee: {e}")
+        
+        return None
+    
+    def _extract_meta_tags_shopee(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados das meta tags da Shopee"""
+        data = {}
+        
+        try:
+            # Meta tags específicas da Shopee
+            meta_selectors = {
+                'title': [
+                    'meta[property="og:title"]',
+                    'meta[name="title"]',
+                    'meta[property="twitter:title"]',
+                    'meta[name="description"]'  # Fallback
+                ],
+                'image_url': [
+                    'meta[property="og:image"]',
+                    'meta[name="image"]',
+                    'meta[property="twitter:image"]',
+                    'meta[property="og:image:secure_url"]'
+                ]
+            }
+            
+            for key, selectors in meta_selectors.items():
+                for selector in selectors:
+                    meta = soup.select_one(selector)
+                    if meta and meta.get('content'):
+                        content = meta['content'].strip()
+                        if content and content != 'undefined':
+                            data[key] = content
+                            break
+            
+            # Log dos dados extraídos
+            if data:
+                logger.info(f"   📊 Meta tags: {data}")
+                
+        except Exception as e:
+            logger.debug(f"Erro ao extrair meta tags: {e}")
+        
+        return data
+    
+    def _extract_next_data_shopee(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados do __NEXT_DATA__ da Shopee"""
+        data = {}
+        
+        try:
+            script = soup.find('script', id='__NEXT_DATA__')
+            if script and script.string:
+                next_data = json.loads(script.string)
+                
+                # Navega pela estrutura do __NEXT_DATA__
+                if 'props' in next_data:
+                    props = next_data['props']
+                    if 'pageProps' in props:
+                        page_props = props['pageProps']
+                        
+                        # Tenta múltiplas estruturas
+                        possible_paths = [
+                            ['initialReduxState', 'item', 'itemData'],
+                            ['initialReduxState', 'item'],
+                            ['initialReduxState', 'product'],
+                            ['initialReduxState', 'productData']
+                        ]
+                        
+                        for path in possible_paths:
+                            try:
+                                current = page_props
+                                for key in path:
+                                    if key in current:
+                                        current = current[key]
+                                    else:
+                                        break
+                                else:
+                                    # Caminho completo encontrado
+                                    if isinstance(current, dict):
+                                        if 'name' in current and not data.get('title'):
+                                            data['title'] = current['name']
+                                        
+                                        if 'images' in current and current['images']:
+                                            image_hash = current['images'][0]
+                                            data['image_url'] = f"https://cf.shopee.com.br/file/{image_hash}"
+                                        
+                                        if 'description' in current and not data.get('description'):
+                                            data['description'] = current['description']
+                                        
+                                        if data.get('title') and data.get('image_url'):
+                                            logger.info(f"   📊 __NEXT_DATA__: {data}")
+                                            return data
+                            except:
+                                continue
+                                
+        except Exception as e:
+            logger.debug(f"Erro ao extrair __NEXT_DATA__: {e}")
+        
+        return data
+    
+    def _extract_inline_scripts_shopee(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados de scripts inline da Shopee"""
+        data = {}
+        
+        try:
+            scripts = soup.find_all('script')
+            for script in scripts:
+                if script.string:
+                    script_text = script.string
+                    
+                    # Padrões específicos da Shopee
+                    patterns = {
+                        'title': [
+                            r'"name"\s*:\s*"([^"]+)"',
+                            r'"title"\s*:\s*"([^"]+)"',
+                            r'"product_name"\s*:\s*"([^"]+)"',
+                            r'"item_name"\s*:\s*"([^"]+)"'
+                        ],
+                        'image_url': [
+                            r'"image"\s*:\s*"([^"]+)"',
+                            r'"image_url"\s*:\s*"([^"]+)"',
+                            r'"main_image"\s*:\s*"([^"]+)"',
+                            r'"product_image"\s*:\s*"([^"]+)"'
+                        ]
+                    }
+                    
+                    for key, pattern_list in patterns.items():
+                        if not data.get(key):
+                            for pattern in pattern_list:
+                                match = re.search(pattern, script_text)
+                                if match:
+                                    value = match.group(1).strip()
+                                    if value and value != 'undefined' and len(value) > 3:
+                                        data[key] = value
+                                        break
+                                        
+        except Exception as e:
+            logger.debug(f"Erro ao extrair scripts inline: {e}")
+        
+        return data
+    
+    def _extract_html_direct_shopee(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """Extrai dados diretamente do HTML da Shopee"""
+        data = {}
+        
+        try:
+            # Título - múltiplas estratégias
+            title_selectors = [
+                'h1[data-testid="product-title"]',
+                'h1.product-title',
+                'h1[class*="title"]',
+                'div[data-testid="product-title"]',
+                'span[data-testid="product-title"]',
+                'h1',  # Fallback genérico
+                'div[class*="product-name"]',
+                'span[class*="product-name"]'
+            ]
+            
+            for selector in title_selectors:
+                title_elem = soup.select_one(selector)
+                if title_elem:
+                    title_text = title_elem.get_text(strip=True)
+                    if title_text and len(title_text) > 5 and 'shopee' not in title_text.lower():
+                        data['title'] = title_text
+                        break
+            
+            # Imagem - múltiplas estratégias
+            image_selectors = [
+                'img[data-testid="product-image"]',
+                'img.product-image',
+                'img[class*="image"]',
+                'div[data-testid="product-image"] img',
+                'div.product-image img',
+                'img[src*="shopee"]',  # Fallback
+                'img[src]'  # Último recurso
+            ]
+            
+            for selector in image_selectors:
+                img_elem = soup.select_one(selector)
+                if img_elem:
+                    src = img_elem.get('data-src') or img_elem.get('src')
+                    if src and src.startswith('http'):
+                        data['image_url'] = src
+                        break
+                        
+        except Exception as e:
+            logger.debug(f"Erro ao extrair HTML direto: {e}")
+        
+        return data
+    
+    async def scrape_product_async(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping universal assíncrono para qualquer loja"""
+        try:
+            domain = urlparse(product_url).netloc.lower()
+            
+            if 'shopee' in domain:
+                # Tenta Playwright primeiro se disponível
+                if self.playwright_scraper:
+                    playwright_result = await self.scrape_shopee_product_playwright(product_url)
+                    if playwright_result:
+                        return playwright_result
+                
+                # Fallback para requests
+                return self.scrape_shopee_product(product_url)
+            else:
+                # Para outras lojas, implementar métodos específicos
+                logger.info(f"🔍 Loja não implementada: {domain}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping universal assíncrono: {e}")
+            return None
+    
+    def scrape_product(self, product_url: str) -> Optional[Dict[str, Any]]:
+        """Scraping universal para qualquer loja"""
+        try:
+            domain = urlparse(product_url).netloc.lower()
+            
+            if 'shopee' in domain:
+                return self.scrape_shopee_product(product_url)
+            else:
+                # Para outras lojas, implementar métodos específicos
+                logger.info(f"🔍 Loja não implementada: {domain}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping universal: {e}")
+            return None
+
+async def main_async():
+    """Teste assíncrono do sistema ultimate de scraping"""
+    print("🧪 TESTANDO SISTEMA ULTIMATE DE SCRAPING (ASSÍNCRONO)")
+    print("=" * 60)
+    
+    scraper = UltimateProductScraper()
+    
+    # URLs de teste da Shopee
+    test_urls = [
+        'https://shopee.com.br/product/366295833/18297606894',
+        'https://shopee.com.br/product/1193388723/22193671026',
+        'https://shopee.com.br/product/1096310433/23397649584'
+    ]
+    
+    for i, url in enumerate(test_urls, 1):
+        print(f"\n🔍 Teste {i}: {url}")
+        
+        try:
+            result = await scraper.scrape_product_async(url)
+            
+            if result:
+                print(f"   ✅ Título: {result.get('title', 'N/A')}")
+                print(f"   ✅ Imagem: {result.get('image_url', 'N/A')}")
+                print(f"   ✅ Preço: {result.get('price', 'N/A')}")
+                print(f"   ✅ Descrição: {result.get('description', 'N/A')}")
+            else:
+                print(f"   ❌ Falha na extração")
+                
+        except Exception as e:
+            print(f"   ❌ Erro: {e}")
+        
+        print("-" * 40)
+        
+        # Pausa entre testes
+        if i < len(test_urls):
+            await asyncio.sleep(3)
+
+def main():
+    """Teste do sistema ultimate de scraping"""
+    print("🧪 TESTANDO SISTEMA ULTIMATE DE SCRAPING")
+    print("=" * 60)
+    
+    scraper = UltimateProductScraper()
+    
+    # URLs de teste da Shopee
+    test_urls = [
+        'https://shopee.com.br/product/366295833/18297606894',
+        'https://shopee.com.br/product/1193388723/22193671026',
+        'https://shopee.com.br/product/1096310433/23397649584'
+    ]
+    
+    for i, url in enumerate(test_urls, 1):
+        print(f"\n🔍 Teste {i}: {url}")
+        
+        try:
+            result = scraper.scrape_product(url)
+            
+            if result:
+                print(f"   ✅ Título: {result.get('title', 'N/A')}")
+                print(f"   ✅ Imagem: {result.get('image_url', 'N/A')}")
+                print(f"   ✅ Preço: {result.get('price', 'N/A')}")
+                print(f"   ✅ Descrição: {result.get('description', 'N/A')}")
+            else:
+                print(f"   ❌ Falha na extração")
+                
+        except Exception as e:
+            print(f"   ❌ Erro: {e}")
+        
+        print("-" * 40)
+        
+        # Pausa entre testes
+        if i < len(test_urls):
+            time.sleep(3)
+
+if __name__ == "__main__":
+    # Testa tanto a versão síncrona quanto a assíncrona
+    if PLAYWRIGHT_AVAILABLE:
+        print("🚀 Executando teste assíncrono com Playwright...")
+        asyncio.run(main_async())
+    else:
+        print("📡 Executando teste síncrono com requests...")
+        main()

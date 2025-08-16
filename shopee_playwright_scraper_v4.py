@@ -1,0 +1,465 @@
+#!/usr/bin/env python3
+"""
+Scraper da Shopee usando Playwright - Versão 4.0 com Estratégias Avançadas de Bypass
+Tenta múltiplas estratégias para contornar bloqueios anti-bot
+"""
+
+import asyncio
+import logging
+import time
+import random
+import json
+import os
+from base_playwright_scraper import BasePlaywrightScraper
+import re
+
+# Configuração de logging
+logger = logging.getLogger(__name__)
+
+class ShopeePlaywrightScraperV4(BasePlaywrightScraper):
+    """Scraper da Shopee usando Playwright - Versão 4.0 com Estratégias Avançadas"""
+    
+    def __init__(self, headless: bool = False):
+        super().__init__(
+            base_url="https://shopee.com.br",
+            store_name="Shopee Brasil",
+            headless=headless
+        )
+        
+        # Categorias populares para buscar ofertas
+        self.categorias = [
+            "smartphone",
+            "notebook", 
+            "fone de ouvido",
+            "smart tv",
+            "console de videogame",
+            "câmera digital",
+            "tablet",
+            "smartwatch"
+        ]
+        
+        # Seletores atualizados da Shopee
+        self.product_selectors = [
+            '[data-sqe="link"]',
+            '.shopee-search-item-result__item',
+            '[class*="shopee-search-item-result"]',
+            '[class*="item"]',
+            '[class*="product"]',
+            '[class*="card"]'
+        ]
+        
+        self.title_selectors = [
+            '[data-sqe="name"]',
+            '.ie3A\\+n',
+            '[class*="title"]',
+            '[class*="name"]',
+            'h1', 'h2', 'h3', 'h4'
+        ]
+        
+        self.price_selectors = [
+            '.ie3A\\+n\\+b',
+            '[class*="price"]',
+            '.price',
+            '[class*="cost"]',
+            '[class*="value"]'
+        ]
+        
+        self.link_selectors = [
+            'a[href*="/product/"]',
+            'a[href*="/item/"]',
+            '[data-sqe="link"] a',
+            'a[href*="/"]'
+        ]
+        
+        self.image_selectors = [
+            'img[src*="shopee"]',
+            'img[data-src]',
+            'img'
+        ]
+        
+        self.discount_selectors = [
+            '[class*="discount"]',
+            '[class*="off"]',
+            '.badge',
+            '[class*="badge"]'
+        ]
+        
+        # Estratégias de bypass
+        self.bypass_strategies = [
+            "mobile_user_agent",
+            "desktop_user_agent", 
+            "proxy_rotation",
+            "session_cookies",
+            "direct_category_access",
+            "search_engine_referrer"
+        ]
+        
+        # User agents para rotação
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 17_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1.2 Mobile/15E148 Safari/604.1",
+            "Mozilla/5.0 (iPad; CPU OS 17_1_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1.2 Mobile/15E148 Safari/604.1"
+        ]
+    
+    async def apply_bypass_strategy(self, strategy: str):
+        """Aplica uma estratégia específica de bypass"""
+        try:
+            logger.info(f"🔄 Aplicando estratégia: {strategy}")
+            
+            if strategy == "mobile_user_agent":
+                # Simula dispositivo móvel
+                mobile_ua = random.choice([ua for ua in self.user_agents if "iPhone" in ua or "iPad" in ua])
+                await self.page.set_extra_http_headers({"User-Agent": mobile_ua})
+                await self.page.set_viewport_size({"width": 375, "height": 667})
+                logger.info("✅ User agent móvel aplicado")
+                
+            elif strategy == "desktop_user_agent":
+                # Simula desktop
+                desktop_ua = random.choice([ua for ua in self.user_agents if "Windows" in ua or "Macintosh" in ua])
+                await self.page.set_extra_http_headers({"User-Agent": desktop_ua})
+                await self.page.set_viewport_size({"width": 1920, "height": 1080})
+                logger.info("✅ User agent desktop aplicado")
+                
+            elif strategy == "search_engine_referrer":
+                # Simula acesso vindo de um buscador
+                await self.page.set_extra_http_headers({
+                    "Referer": "https://www.google.com/",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                })
+                logger.info("✅ Referrer de buscador aplicado")
+                
+            elif strategy == "session_cookies":
+                # Tenta carregar cookies salvos
+                if os.path.exists("shopee_cookies.json"):
+                    with open("shopee_cookies.json", "r") as f:
+                        cookies = json.load(f)
+                    await self.page.context.add_cookies(cookies)
+                    logger.info("✅ Cookies de sessão carregados")
+                else:
+                    logger.info("⚠️ Nenhum cookie salvo encontrado")
+                    
+            await asyncio.sleep(2)
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao aplicar estratégia {strategy}: {e}")
+            return False
+    
+    async def try_direct_category_access(self, categoria: str):
+        """Tenta acessar categoria diretamente sem busca"""
+        try:
+            logger.info(f"🔍 Tentando acesso direto à categoria: {categoria}")
+            
+            # Mapeia categorias para IDs conhecidos
+            category_mapping = {
+                "smartphone": "11013230",
+                "notebook": "11013231", 
+                "fone de ouvido": "11013232",
+                "smart tv": "11013233",
+                "console de videogame": "11013234",
+                "câmera digital": "11013235",
+                "tablet": "11013236",
+                "smartwatch": "11013237"
+            }
+            
+            category_id = category_mapping.get(categoria, "11013230")
+            category_url = f"{self.base_url}/category/{category_id}"
+            
+            # Tenta diferentes estratégias de bypass
+            for strategy in self.bypass_strategies[:3]:  # Testa apenas as primeiras 3
+                try:
+                    await self.apply_bypass_strategy(strategy)
+                    
+                    # Acessa a categoria
+                    await self.page.goto(category_url, wait_until="networkidle")
+                    await asyncio.sleep(5)
+                    
+                    # Verifica se conseguiu acessar
+                    page_content = await self.page.content()
+                    
+                    if "Entre" not in page_content and len(page_content) > 10000:
+                        logger.info(f"✅ Estratégia {strategy} funcionou para categoria {categoria}")
+                        
+                        # Faz scroll para carregar produtos
+                        await self.scroll_page_smart(2.0)
+                        await asyncio.sleep(3)
+                        
+                        # Procura por produtos
+                        products = await self.extract_products_from_category_page(categoria)
+                        if products:
+                            return products
+                        else:
+                            logger.warning(f"⚠️ Categoria acessada mas nenhum produto encontrado")
+                            continue
+                    else:
+                        logger.warning(f"⚠️ Estratégia {strategy} não funcionou")
+                        continue
+                        
+                except Exception as e:
+                    logger.error(f"❌ Erro com estratégia {strategy}: {e}")
+                    continue
+            
+            return []
+            
+        except Exception as e:
+            logger.error(f"❌ Erro no acesso direto à categoria: {e}")
+            return []
+    
+    async def extract_products_from_category_page(self, categoria: str):
+        """Extrai produtos de uma página de categoria"""
+        try:
+            products = []
+            
+            # Procura por diferentes tipos de elementos de produto
+            selectors_to_try = [
+                'a[href*="/product/"]',
+                'a[href*="/item/"]',
+                '[class*="product"]',
+                '[class*="item"]',
+                '[class*="card"]'
+            ]
+            
+            for selector in selectors_to_try:
+                try:
+                    elements = await self.page.query_selector_all(selector)
+                    if elements:
+                        logger.info(f"✅ Encontrados {len(elements)} elementos com selector: {selector}")
+                        
+                        for i, element in enumerate(elements[:15]):  # Limita a 15 produtos
+                            try:
+                                product = await self.extract_product_info(element, categoria)
+                                if product:
+                                    products.append(product)
+                                    
+                            except Exception as e:
+                                logger.debug(f"⚠️ Erro ao extrair produto {i}: {e}")
+                                continue
+                        
+                        if products:
+                            break
+                            
+                except Exception as e:
+                    logger.debug(f"⚠️ Erro com selector {selector}: {e}")
+                    continue
+            
+            return products
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao extrair produtos da página: {e}")
+            return []
+    
+    async def extract_product_info(self, element, categoria: str):
+        """Extrai informações de um produto individual"""
+        try:
+            # Tenta extrair título
+            title = None
+            title_selectors = ['[class*="title"]', '[class*="name"]', 'h1', 'h2', 'h3', 'h4']
+            
+            for selector in title_selectors:
+                try:
+                    title_elem = await element.query_selector(selector)
+                    if title_elem:
+                        title = await title_elem.text_content()
+                        if title and title.strip():
+                            title = title.strip()[:100]
+                            break
+                except:
+                    continue
+            
+            if not title:
+                # Fallback: tenta extrair do próprio elemento
+                title = await element.text_content()
+                if title:
+                    title = title.strip()[:100]
+            
+            if not title:
+                return None
+            
+            # Tenta extrair link
+            link = None
+            try:
+                if hasattr(element, 'get_attribute'):
+                    link = await element.get_attribute('href')
+                else:
+                    link_elem = await element.query_selector('a')
+                    if link_elem:
+                        link = await link_elem.get_attribute('href')
+            except:
+                pass
+            
+            if link and not link.startswith('http'):
+                link = f"{self.base_url}{link}"
+            
+            # Tenta extrair preço
+            price = "Preço não disponível"
+            try:
+                # Procura por texto que contenha R$
+                text_content = await element.text_content()
+                if text_content and 'R$' in text_content:
+                    price_match = re.search(r'R\$\s*(\d+[,\d]*)', text_content)
+                    if price_match:
+                        price = price_match.group(1)
+            except:
+                pass
+            
+            # Cria o produto
+            product = {
+                'titulo': title,
+                'preco': price,
+                'link': link,
+                'imagem': None,
+                'desconto': None,
+                'loja': 'Shopee Brasil',
+                'categoria': categoria,
+                'timestamp': time.time()
+            }
+            
+            return product
+            
+        except Exception as e:
+            logger.debug(f"⚠️ Erro ao extrair informações do produto: {e}")
+            return None
+    
+    async def save_session_cookies(self):
+        """Salva cookies da sessão atual"""
+        try:
+            cookies = await self.page.context.cookies()
+            with open("shopee_cookies.json", "w") as f:
+                json.dump(cookies, f, indent=2)
+            logger.info("💾 Cookies da sessão salvos")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar cookies: {e}")
+            return False
+    
+    async def buscar_ofertas_gerais(self):
+        """Busca ofertas gerais usando estratégias avançadas de bypass"""
+        todas_ofertas = []
+        
+        if not await self.setup_browser():
+            logger.error("❌ Não foi possível configurar o navegador")
+            return []
+        
+        try:
+            logger.info("🚀 INICIANDO BUSCA DE OFERTAS NA SHOPEE COM PLAYWRIGHT V4.0")
+            logger.info("=" * 60)
+            
+            # Testa diferentes estratégias para cada categoria
+            for categoria in self.categorias:
+                try:
+                    logger.info(f"\n🔍 Buscando: {categoria.upper()}")
+                    
+                    # Tenta acesso direto à categoria primeiro
+                    ofertas_categoria = await self.try_direct_category_access(categoria)
+                    
+                    if not ofertas_categoria:
+                        logger.info(f"🔄 Tentando busca tradicional para {categoria}")
+                        
+                        # Tenta busca tradicional com diferentes estratégias
+                        search_url = f"{self.base_url}/search?keyword={categoria}&sortBy=sales&order=desc"
+                        
+                        for strategy in self.bypass_strategies[:2]:  # Testa apenas 2 estratégias
+                            try:
+                                await self.apply_bypass_strategy(strategy)
+                                
+                                await self.page.goto(search_url, wait_until="networkidle")
+                                await asyncio.sleep(5)
+                                
+                                page_content = await self.page.content()
+                                if "Entre" not in page_content:
+                                    logger.info(f"✅ Estratégia {strategy} funcionou para busca")
+                                    
+                                    # Extrai produtos
+                                    ofertas_categoria = await self.search_products_by_category(
+                                        categoria=categoria,
+                                        search_url=search_url,
+                                        product_selectors=self.product_selectors,
+                                        title_selectors=self.title_selectors,
+                                        price_selectors=self.price_selectors,
+                                        link_selectors=self.link_selectors,
+                                        image_selectors=self.image_selectors,
+                                        discount_selectors=self.discount_selectors
+                                    )
+                                    
+                                    if ofertas_categoria:
+                                        break
+                                else:
+                                    logger.warning(f"⚠️ Estratégia {strategy} não funcionou para busca")
+                                    
+                            except Exception as e:
+                                logger.error(f"❌ Erro com estratégia {strategy}: {e}")
+                                continue
+                    
+                    if ofertas_categoria:
+                        logger.info(f"✅ {categoria}: {len(ofertas_categoria)} ofertas encontradas")
+                        todas_ofertas.extend(ofertas_categoria)
+                    else:
+                        logger.warning(f"⚠️ {categoria}: Nenhuma oferta encontrada")
+                    
+                    # Delay entre categorias
+                    await asyncio.sleep(self.get_random_delay(3, 6))
+                    
+                except Exception as e:
+                    logger.error(f"❌ Erro na categoria {categoria}: {e}")
+                    continue
+            
+            # Remove duplicatas
+            ofertas_unicas = []
+            titulos_vistos = set()
+            
+            for oferta in todas_ofertas:
+                if oferta['titulo'] not in titulos_vistos:
+                    ofertas_unicas.append(oferta)
+                    titulos_vistos.add(oferta['titulo'])
+            
+            logger.info(f"\n🎯 TOTAL DE OFERTAS ÚNICAS: {len(ofertas_unicas)}")
+            
+            # Salva cookies da sessão
+            await self.save_session_cookies()
+            
+        except Exception as e:
+            logger.error(f"❌ Erro geral na busca: {e}")
+        
+        finally:
+            await self.close_browser()
+        
+        return todas_ofertas
+
+async def main():
+    """Função principal para teste"""
+    print("🚀 TESTANDO SHOPEE SCRAPER COM PLAYWRIGHT V4.0 (ESTRATÉGIAS AVANÇADAS)")
+    print("=" * 60)
+    
+    scraper = ShopeePlaywrightScraperV4(headless=False)
+    
+    # Testa conexão primeiro
+    if not await scraper.test_connection():
+        print("❌ Não foi possível conectar com a Shopee")
+        return
+    
+    # Busca ofertas
+    ofertas = await scraper.buscar_ofertas_gerais()
+    
+    print(f"\n🎯 RESULTADO: {len(ofertas)} ofertas encontradas")
+    print("=" * 60)
+    
+    for i, oferta in enumerate(ofertas[:10], 1):
+        print(f"\n{i}. {oferta['titulo']}")
+        print(f"   💰 Preço: {oferta['preco']}")
+        if oferta.get('desconto'):
+            print(f"   🏷️ Desconto: {oferta['desconto']}%")
+        print(f"   🏪 Loja: {oferta['loja']}")
+        print(f"   📂 Categoria: {oferta['categoria']}")
+        if oferta.get('link'):
+            print(f"   🔗 Link: {oferta['link'][:80]}...")
+    
+    # Salva as ofertas
+    if ofertas:
+        filename = scraper.save_results(ofertas, "ofertas_shopee_playwright_v4")
+        if filename:
+            print(f"\n💾 Ofertas salvas em: {filename}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

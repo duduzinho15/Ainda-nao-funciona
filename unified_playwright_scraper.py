@@ -1,0 +1,206 @@
+#!/usr/bin/env python3
+"""
+Scraper Unificado usando Playwright - Executa todos os scrapers em paralelo
+Versão otimizada para máxima eficiência
+"""
+
+import asyncio
+import logging
+import time
+from typing import List, Dict
+from shopee_playwright_scraper import ShopeePlaywrightScraper
+from amazon_playwright_scraper import AmazonPlaywrightScraper
+from magalu_playwright_scraper import MagaluPlaywrightScraper
+from promobit_playwright_scraper import PromobitPlaywrightScraper
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class UnifiedPlaywrightScraper:
+    """Scraper unificado que executa todos os scrapers em paralelo"""
+    
+    def __init__(self, headless: bool = True):
+        self.headless = headless
+        self.scrapers = {
+            "Shopee": ShopeePlaywrightScraper(headless),
+            "Amazon": AmazonPlaywrightScraper(headless),
+            "Magazine Luiza": MagaluPlaywrightScraper(headless),
+            "Promobit": PromobitPlaywrightScraper(headless)
+        }
+    
+    async def test_all_connections(self) -> Dict[str, bool]:
+        """Testa conexão com todas as lojas"""
+        logger.info("🔍 TESTANDO CONEXÕES COM TODAS AS LOJAS")
+        logger.info("=" * 60)
+        
+        results = {}
+        for store_name, scraper in self.scrapers.items():
+            try:
+                logger.info(f"🔍 Testando {store_name}...")
+                success = await scraper.test_connection()
+                results[store_name] = success
+                status = "✅ CONECTADO" if success else "❌ FALHOU"
+                logger.info(f"{status} - {store_name}")
+            except Exception as e:
+                logger.error(f"❌ Erro ao testar {store_name}: {e}")
+                results[store_name] = False
+        
+        return results
+    
+    async def scrape_store(self, store_name: str, scraper) -> List[Dict]:
+        """Executa scraping de uma loja específica"""
+        try:
+            logger.info(f"🚀 INICIANDO SCRAPING: {store_name}")
+            ofertas = await scraper.buscar_ofertas_gerais()
+            logger.info(f"✅ {store_name}: {len(ofertas)} ofertas encontradas")
+            return ofertas
+        except Exception as e:
+            logger.error(f"❌ Erro no scraping de {store_name}: {e}")
+            return []
+    
+    async def scrape_all_stores_parallel(self) -> Dict[str, List[Dict]]:
+        """Executa scraping de todas as lojas em paralelo"""
+        logger.info("🚀 INICIANDO SCRAPING PARALELO DE TODAS AS LOJAS")
+        logger.info("=" * 60)
+        
+        # Cria tasks para execução paralela
+        tasks = []
+        for store_name, scraper in self.scrapers.items():
+            task = self.scrape_store(store_name, scraper)
+            tasks.append(task)
+        
+        # Executa todas as tasks em paralelo
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Organiza os resultados
+        all_results = {}
+        for i, (store_name, scraper) in enumerate(self.scrapers.items()):
+            if isinstance(results[i], Exception):
+                logger.error(f"❌ Exceção em {store_name}: {results[i]}")
+                all_results[store_name] = []
+            else:
+                all_results[store_name] = results[i]
+        
+        return all_results
+    
+    async def scrape_all_stores_sequential(self) -> Dict[str, List[Dict]]:
+        """Executa scraping de todas as lojas sequencialmente"""
+        logger.info("🚀 INICIANDO SCRAPING SEQUENCIAL DE TODAS AS LOJAS")
+        logger.info("=" * 60)
+        
+        all_results = {}
+        for store_name, scraper in self.scrapers.items():
+            try:
+                ofertas = await self.scrape_store(store_name, scraper)
+                all_results[store_name] = ofertas
+                
+                # Delay entre lojas para não sobrecarregar
+                await asyncio.sleep(5)
+                
+            except Exception as e:
+                logger.error(f"❌ Erro no scraping de {store_name}: {e}")
+                all_results[store_name] = []
+        
+        return all_results
+    
+    def save_all_results(self, all_results: Dict[str, List[Dict]]) -> Dict[str, str]:
+        """Salva resultados de todas as lojas"""
+        saved_files = {}
+        
+        for store_name, ofertas in all_results.items():
+            if ofertas:
+                try:
+                    # Cria scraper temporário para usar o método save_results
+                    temp_scraper = self.scrapers[store_name]
+                    filename = temp_scraper.save_results(ofertas, f"ofertas_{store_name.lower().replace(' ', '_')}")
+                    if filename:
+                        saved_files[store_name] = filename
+                        logger.info(f"💾 {store_name}: salvo em {filename}")
+                except Exception as e:
+                    logger.error(f"❌ Erro ao salvar {store_name}: {e}")
+        
+        return saved_files
+    
+    def generate_summary(self, all_results: Dict[str, List[Dict]]) -> str:
+        """Gera resumo dos resultados"""
+        summary = []
+        summary.append("📊 RESUMO DOS RESULTADOS")
+        summary.append("=" * 60)
+        
+        total_ofertas = 0
+        for store_name, ofertas in all_results.items():
+            count = len(ofertas)
+            total_ofertas += count
+            summary.append(f"🏪 {store_name}: {count} ofertas")
+        
+        summary.append("=" * 60)
+        summary.append(f"🎯 TOTAL GERAL: {total_ofertas} ofertas")
+        
+        return "\n".join(summary)
+
+async def main():
+    """Função principal para teste"""
+    print("🚀 TESTANDO SCRAPER UNIFICADO COM PLAYWRIGHT")
+    print("=" * 60)
+    
+    # Cria scraper unificado
+    unified_scraper = UnifiedPlaywrightScraper(headless=True)
+    
+    # Testa conexões primeiro
+    connection_results = await unified_scraper.test_all_connections()
+    
+    # Mostra status das conexões
+    print("\n📡 STATUS DAS CONEXÕES:")
+    for store, connected in connection_results.items():
+        status = "✅ CONECTADO" if connected else "❌ FALHOU"
+        print(f"   {store}: {status}")
+    
+    # Verifica se pelo menos uma loja está conectada
+    if not any(connection_results.values()):
+        print("\n❌ Nenhuma loja conseguiu conectar. Verifique sua conexão.")
+        return
+    
+    print(f"\n✅ {sum(connection_results.values())} de {len(connection_results)} lojas conectadas")
+    
+    # Escolhe modo de execução
+    print("\n🔧 Escolha o modo de execução:")
+    print("1. Paralelo (mais rápido, mas pode sobrecarregar)")
+    print("2. Sequencial (mais lento, mas mais estável)")
+    
+    # Por padrão, usa sequencial para ser mais estável
+    mode = "2"  # Pode ser alterado para "1" para modo paralelo
+    
+    if mode == "1":
+        print("\n🚀 Executando em modo PARALELO...")
+        all_results = await unified_scraper.scrape_all_stores_parallel()
+    else:
+        print("\n🚀 Executando em modo SEQUENCIAL...")
+        all_results = await unified_scraper.scrape_all_stores_sequential()
+    
+    # Gera e mostra resumo
+    summary = unified_scraper.generate_summary(all_results)
+    print(f"\n{summary}")
+    
+    # Salva todos os resultados
+    print("\n💾 Salvando resultados...")
+    saved_files = unified_scraper.save_all_results(all_results)
+    
+    if saved_files:
+        print("\n📁 Arquivos salvos:")
+        for store, filename in saved_files.items():
+            print(f"   {store}: {filename}")
+    
+    # Mostra algumas ofertas de exemplo
+    print("\n🎯 EXEMPLOS DE OFERTAS ENCONTRADAS:")
+    print("=" * 60)
+    
+    for store_name, ofertas in all_results.items():
+        if ofertas:
+            print(f"\n🏪 {store_name}:")
+            for i, oferta in enumerate(ofertas[:3], 1):  # Mostra apenas 3 por loja
+                print(f"   {i}. {oferta['titulo'][:60]}...")
+                print(f"      💰 {oferta['preco']} | 📂 {oferta['categoria']}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

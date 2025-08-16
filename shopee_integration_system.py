@@ -1,0 +1,710 @@
+#!/usr/bin/env python3
+"""
+Sistema de Integração da API da Shopee com o Sistema Existente
+"""
+
+import requests
+import time
+import hashlib
+import json
+import sqlite3
+import logging
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
+from dataclasses import dataclass
+from enum import Enum
+import re # Adicionado para regex
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class SortType(Enum):
+    """Tipos de ordenação disponíveis"""
+    RELEVANCE = 2
+    PRICE_LOW_HIGH = 3
+    PRICE_HIGH_LOW = 4
+    COMMISSION_HIGH_LOW = 5
+    RATING_HIGH_LOW = 6
+    SALES_HIGH_LOW = 7
+
+class ListType(Enum):
+    """Tipos de lista disponíveis"""
+    ALL_PRODUCTS = 0
+    FEATURED = 1
+    NEW_ARRIVALS = 2
+    BEST_SELLERS = 3
+
+@dataclass
+class ShopeeProduct:
+    """Produto da Shopee com dados da API"""
+    price: float
+    commission: float
+    commission_rate: float
+    product_link: str
+    offer_link: str
+    rating_star: Optional[float]
+    shop_name: Optional[str]
+    timestamp: datetime
+    page: int
+    sort_type: SortType
+    list_type: ListType
+    title: Optional[str] = None
+    image_url: Optional[str] = None
+
+class ShopeeAPIIntegration:
+    """API da Shopee integrada com o sistema"""
+    
+    def __init__(self, app_id: str, app_secret: str):
+        self.app_id = app_id
+        self.app_secret = app_secret
+        self.base_url = "https://open-api.affiliate.shopee.com.br/graphql"
+        self.db_path = "shopee_products.db"
+        self.init_database()
+    
+    def init_database(self):
+        """Inicializa banco de dados para produtos da Shopee"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS shopee_products (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        price REAL NOT NULL,
+                        commission REAL NOT NULL,
+                        commission_rate REAL NOT NULL,
+                        product_link TEXT NOT NULL,
+                        offer_link TEXT NOT NULL,
+                        rating_star REAL,
+                        shop_name TEXT,
+                        timestamp DATETIME NOT NULL,
+                        page INTEGER NOT NULL,
+                        sort_type INTEGER NOT NULL,
+                        list_type INTEGER NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                
+                # Índices para otimização
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_shopee_price ON shopee_products(price)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_shopee_commission ON shopee_products(commission)")
+                cursor.execute("CREATE INDEX IF NOT EXISTS idx_shopee_timestamp ON shopee_products(timestamp)")
+                
+                conn.commit()
+                logger.info("✅ Banco de dados da Shopee inicializado")
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao inicializar banco da Shopee: {e}")
+    
+    def _generate_signature(self, timestamp: int, payload: str) -> str:
+        """Gera assinatura SHA256"""
+        factor = str(self.app_id) + str(timestamp) + payload + self.app_secret
+        signature = hashlib.sha256(factor.encode()).hexdigest()
+        return signature
+    
+    def get_product_offers(self, page: int = 0, limit: int = 50, 
+                          list_type: ListType = ListType.ALL_PRODUCTS,
+                          sort_type: SortType = SortType.RELEVANCE) -> List[ShopeeProduct]:
+        """Busca ofertas de produtos"""
+        
+        query = """query Fetch($page: Int, $limit: Int, $listType: Int, $sortType: Int) {
+            productOfferV2(
+                listType: $listType,
+                sortType: $sortType,
+                page: $page,
+                limit: $limit
+            ) {
+                nodes {
+                    commissionRate
+                    commission
+                    price
+                    productLink
+                    offerLink
+                    ratingStar
+                    shopName
+                }
+                pageInfo {
+                    page
+                    limit
+                    hasNextPage
+                }
+            }
+        }"""
+        
+        # Formata query
+        formatted_query = query.replace('\n', '').strip()
+        
+        # Prepara payload
+        payload = {
+            "query": formatted_query,
+            "variables": {
+                "page": page,
+                "limit": limit,
+                "listType": list_type.value,
+                "sortType": sort_type.value
+            }
+        }
+        
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        timestamp = int(time.time())
+        signature = self._generate_signature(timestamp, payload_str)
+        
+        # Headers corretos
+        headers = {
+            'Content-type': 'application/json',
+            'Authorization': f'SHA256 Credential={self.app_id},Timestamp={timestamp},Signature={signature}'
+        }
+        
+        logger.info(f"🔍 Buscando {limit} ofertas da Shopee (página {page})")
+        
+        try:
+            response = requests.post(self.base_url, data=payload_str, headers=headers, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                
+                if 'data' in result and 'productOfferV2' in result['data']:
+                    nodes = result['data']['productOfferV2']['nodes']
+                    products = []
+                    
+                    for node in nodes:
+                        # ✅ CORREÇÃO: Chamar as funções de extração
+                        product_link = node.get('productLink', '')
+                        
+                        logger.info(f"🔍 Processando produto: {product_link}")
+                        
+                        # Extrai título e imagem
+                        title = self._extract_title_from_link(product_link)
+                        image_url = self._extract_image_from_link(product_link)
+                        
+                        logger.info(f"   🔗 Título final: {title}")
+                        logger.info(f"   🖼️ Imagem final: {image_url}")
+                        
+                        product = ShopeeProduct(
+                            price=float(node.get('price', 0)),
+                            commission=float(node.get('commission', 0)),
+                            commission_rate=float(node.get('commissionRate', 0)),
+                            product_link=product_link,
+                            offer_link=node.get('offerLink', ''),
+                            rating_star=float(node.get('ratingStar', 0)) if node.get('ratingStar') else None,
+                            shop_name=node.get('shopName', ''),
+                            timestamp=datetime.now(),
+                            page=page,
+                            sort_type=sort_type,
+                            list_type=list_type,
+                            title=title,  # ✅ AGORA USA O TÍTULO EXTRAÍDO
+                            image_url=image_url  # ✅ AGORA USA A IMAGEM EXTRAÍDA
+                        )
+                        products.append(product)
+                    
+                    # Salva no banco
+                    self.save_products(products)
+                    
+                    logger.info(f"✅ {len(products)} produtos da Shopee encontrados")
+                    return products
+                else:
+                    logger.warning("⚠️ Resposta inesperada da API da Shopee")
+                    return []
+            else:
+                logger.error(f"❌ Erro HTTP {response.status_code}")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Erro na requisição da Shopee: {e}")
+            return []
+    
+    def save_products(self, products: List[ShopeeProduct]):
+        """Salva produtos no banco de dados"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                for product in products:
+                    cursor.execute("""
+                        INSERT INTO shopee_products (
+                            price, commission, commission_rate, product_link, offer_link,
+                            rating_star, shop_name, timestamp, page, sort_type, list_type
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        product.price, product.commission, product.commission_rate,
+                        product.product_link, product.offer_link, product.rating_star,
+                        product.shop_name, product.timestamp.isoformat(),
+                        product.page, product.sort_type.value, product.list_type.value
+                    ))
+                
+                conn.commit()
+                logger.info(f"✅ {len(products)} produtos da Shopee salvos no banco")
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao salvar produtos da Shopee: {e}")
+    
+    def get_best_commission_offers(self, limit: int = 20) -> List[ShopeeProduct]:
+        """Busca ofertas com melhor comissão"""
+        logger.info(f"🔍 Buscando {limit} melhores ofertas da Shopee...")
+        
+        # Busca do banco local primeiro
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM shopee_products 
+                    ORDER BY commission DESC, timestamp DESC 
+                    LIMIT ?
+                """, (limit,))
+                
+                rows = cursor.fetchall()
+                products = []
+                
+                for row in rows:
+                    product = ShopeeProduct(
+                        price=row[1], commission=row[2], commission_rate=row[3],
+                        product_link=row[4], offer_link=row[5], rating_star=row[6],
+                        shop_name=row[7], timestamp=datetime.fromisoformat(row[8]),
+                        page=row[9], sort_type=SortType(row[10]), list_type=ListType(row[11])
+                    )
+                    products.append(product)
+                
+                if products:
+                    logger.info(f"✅ {len(products)} melhores ofertas encontradas no banco")
+                    return products
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar do banco: {e}")
+        
+        # Se não encontrou no banco, busca na API
+        logger.info("🔍 Buscando na API da Shopee...")
+        return self.get_product_offers(page=0, limit=limit, sort_type=SortType.COMMISSION_HIGH_LOW)
+    
+    def get_offers_by_price_range(self, min_price: float, max_price: float, 
+                                 limit: int = 50) -> List[ShopeeProduct]:
+        """Busca ofertas por faixa de preço"""
+        logger.info(f"🔍 Buscando ofertas da Shopee entre R$ {min_price:.2f} e R$ {max_price:.2f}")
+        
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT * FROM shopee_products 
+                    WHERE price BETWEEN ? AND ?
+                    ORDER BY timestamp DESC 
+                    LIMIT ?
+                """, (min_price, max_price, limit))
+                
+                rows = cursor.fetchall()
+                products = []
+                
+                for row in rows:
+                    product = ShopeeProduct(
+                        price=row[1], commission=row[2], commission_rate=row[3],
+                        product_link=row[4], offer_link=row[5], rating_star=row[6],
+                        shop_name=row[7], timestamp=datetime.fromisoformat(row[8]),
+                        page=row[9], sort_type=SortType(row[10]), list_type=ListType(row[11])
+                    )
+                    products.append(product)
+                
+                if products:
+                    logger.info(f"✅ {len(products)} ofertas encontradas na faixa de preço")
+                    return products
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao buscar por faixa de preço: {e}")
+        
+        # Se não encontrou no banco, busca na API
+        logger.info("🔍 Buscando na API da Shopee...")
+        all_offers = self.get_product_offers(page=0, limit=limit * 3)
+        
+        filtered_offers = [
+            offer for offer in all_offers 
+            if min_price <= offer.price <= max_price
+        ]
+        
+        logger.info(f"✅ {len(filtered_offers)} ofertas encontradas na faixa de preço")
+        return filtered_offers[:limit]
+    
+    def get_daily_deals(self, limit: int = 20) -> List[ShopeeProduct]:
+        """Busca ofertas do dia (maior comissão + preço baixo)"""
+        logger.info(f"🔍 Buscando {limit} ofertas do dia da Shopee...")
+        
+        # Busca ofertas ordenadas por comissão
+        offers = self.get_product_offers(
+            page=0, 
+            limit=limit * 3,
+            sort_type=SortType.COMMISSION_HIGH_LOW
+        )
+        
+        if not offers:
+            return []
+        
+        # Calcula score baseado em comissão e preço
+        scored_offers = []
+        for offer in offers:
+            # Score = comissão / preço (maior é melhor)
+            score = offer.commission / offer.price if offer.price > 0 else 0
+            scored_offers.append((offer, score))
+        
+        # Ordena por score
+        daily_deals = sorted(scored_offers, key=lambda x: x[1], reverse=True)
+        result = [offer for offer, score in daily_deals[:limit]]
+        logger.info(f"✅ {len(result)} ofertas do dia encontradas")
+        
+        return result
+    
+    def search_products(self, keyword: str, page: int = 0, limit: int = 50) -> List[ShopeeProduct]:
+        """Busca produtos por palavra-chave com filtros de relevância real"""
+        logger.info(f"🔍 Buscando produtos da Shopee com: '{keyword}'")
+        
+        try:
+            # Primeiro, tenta buscar no banco local por produtos que possam corresponder
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                
+                # Busca por produtos que possam corresponder à palavra-chave
+                cursor.execute("""
+                    SELECT * FROM shopee_products 
+                    WHERE shop_name LIKE ? OR offer_link LIKE ?
+                    ORDER BY commission_rate DESC, timestamp DESC 
+                    LIMIT ?
+                """, (f'%{keyword}%', f'%{keyword}%', limit))
+                
+                rows = cursor.fetchall()
+                products = []
+                
+                for row in rows:
+                    product = ShopeeProduct(
+                        price=row[1], commission=row[2], commission_rate=row[3],
+                        product_link=row[4], offer_link=row[5], rating_star=row[6],
+                        shop_name=row[7], timestamp=datetime.fromisoformat(row[8]),
+                        page=row[9], sort_type=SortType(row[10]), list_type=ListType(row[11])
+                    )
+                    products.append(product)
+                
+                if products:
+                    logger.info(f"✅ {len(products)} produtos encontrados no banco para '{keyword}'")
+                    return products
+                
+                # Se não encontrou no banco, busca ofertas gerais e filtra de forma INTELIGENTE
+                logger.info("🔍 Buscando ofertas gerais para filtrar com relevância real...")
+                all_offers = self.get_product_offers(page=page, limit=limit*5, sort_type=SortType.RELEVANCE)
+                
+                if all_offers:
+                    # Filtra ofertas que REALMENTE correspondem à palavra-chave
+                    filtered_offers = []
+                    keyword_lower = keyword.lower()
+                    
+                    # Define categorias e palavras-chave relacionadas
+                    category_keywords = self._get_category_keywords(keyword_lower)
+                    
+                    for offer in all_offers:
+                        # Calcula score de relevância REAL baseado no conteúdo
+                        relevance_score = self._calculate_real_relevance(offer, keyword_lower, category_keywords)
+                        
+                        # Só inclui se tiver score MÍNIMO de relevância (mais rigoroso)
+                        if relevance_score >= 3:  # Threshold ajustado para capturar mais produtos relevantes
+                            filtered_offers.append((offer, relevance_score))
+                        
+                        if len(filtered_offers) >= limit * 2:  # Busca mais para ter opções
+                            break
+                    
+                    # Ordena por score de relevância e extrai apenas os produtos
+                    filtered_offers.sort(key=lambda x: x[1], reverse=True)
+                    products_only = [offer for offer, score in filtered_offers]
+                    
+                    logger.info(f"✅ {len(products_only)} produtos RELEVANTES filtrados para '{keyword}'")
+                    return products_only[:limit]
+                
+                logger.warning(f"⚠️ Nenhum produto relevante encontrado para '{keyword}'")
+                return []
+                
+        except Exception as e:
+            logger.error(f"❌ Erro na busca de produtos: {e}")
+            return []
+    
+    def _get_category_keywords(self, keyword: str) -> List[str]:
+        """Retorna palavras-chave relacionadas à categoria do produto"""
+        keyword_mapping = {
+            # Smartphones e celulares
+            "smartphone": ["celular", "telefone", "mobile", "iphone", "samsung", "xiaomi", "motorola", "lg", "huawei"],
+            "celular": ["smartphone", "telefone", "mobile", "iphone", "samsung", "xiaomi", "motorola", "lg", "huawei"],
+            "telefone": ["smartphone", "celular", "mobile", "iphone", "samsung", "xiaomi", "motorola", "lg", "huawei"],
+            
+            # Notebooks e computadores
+            "notebook": ["laptop", "computador", "pc", "portatil", "dell", "hp", "lenovo", "acer", "asus"],
+            "laptop": ["notebook", "computador", "pc", "portatil", "dell", "hp", "lenovo", "acer", "asus"],
+            "computador": ["notebook", "laptop", "pc", "desktop", "dell", "hp", "lenovo", "acer", "asus"],
+            
+            # Fones de ouvido
+            "fone": ["headphone", "headset", "earphone", "bluetooth", "sem fio", "jbl", "sony", "samsung", "xiaomi"],
+            "headphone": ["fone", "headset", "earphone", "bluetooth", "sem fio", "jbl", "sony", "samsung", "xiaomi"],
+            "headset": ["fone", "headphone", "earphone", "bluetooth", "sem fio", "jbl", "sony", "samsung", "xiaomi"],
+            
+            # Mouses
+            "mouse": ["mice", "gamer", "sem fio", "bluetooth", "logitech", "razer", "steelseries", "hyperx"],
+            
+            # Teclados
+            "teclado": ["keyboard", "gamer", "mecanico", "sem fio", "bluetooth", "logitech", "razer", "steelseries", "hyperx"],
+            
+            # Monitores
+            "monitor": ["tela", "display", "gamer", "curvo", "4k", "fullhd", "samsung", "lg", "dell", "hp"],
+            
+            # Placas de vídeo
+            "placa de video": ["gpu", "rtx", "gtx", "nvidia", "amd", "radeon", "gamer", "vram"],
+            "gpu": ["placa de video", "rtx", "gtx", "nvidia", "amd", "radeon", "gamer", "vram"],
+            
+            # Processadores
+            "processador": ["cpu", "intel", "amd", "ryzen", "core", "i3", "i5", "i7", "i9", "r3", "r5", "r7", "r9"],
+            "cpu": ["processador", "intel", "amd", "ryzen", "core", "i3", "i5", "i7", "i9", "r3", "r5", "r7", "r9"],
+            
+            # Câmeras
+            "camera": ["fotografia", "dslr", "mirrorless", "canon", "nikon", "sony", "fujifilm", "gopro"],
+            "fotografia": ["camera", "dslr", "mirrorless", "canon", "nikon", "sony", "fujifilm", "gopro"],
+            
+            # Smartwatches
+            "smartwatch": ["relogio", "apple watch", "samsung", "xiaomi", "huawei", "fitness", "esportivo"],
+            "relogio": ["smartwatch", "apple watch", "samsung", "xiaomi", "huawei", "fitness", "esportivo"],
+            
+            # Tablets
+            "tablet": ["ipad", "samsung", "xiaomi", "huawei", "lenovo", "portatil", "tela"],
+            
+            # Consoles de videogame
+            "console": ["playstation", "xbox", "nintendo", "switch", "ps5", "ps4", "xbox series", "gamer"],
+            "playstation": ["console", "ps5", "ps4", "ps3", "sony", "gamer"],
+            "xbox": ["console", "xbox series", "xbox one", "microsoft", "gamer"],
+            "nintendo": ["console", "switch", "wii", "3ds", "gamer"],
+            
+            # Jogos
+            "jogo": ["game", "videogame", "ps5", "ps4", "xbox", "switch", "pc", "steam"],
+            "game": ["jogo", "videogame", "ps5", "ps4", "xbox", "switch", "pc", "steam"],
+            
+            # Livros
+            "livro": ["book", "leitura", "romance", "ficcao", "tecnologia", "negocios", "autoajuda"],
+            "book": ["livro", "leitura", "romance", "ficcao", "tecnologia", "negocios", "autoajuda"],
+            
+            # Roupas
+            "roupa": ["camiseta", "calca", "vestido", "blusa", "jaqueta", "casaco", "moda", "fashion"],
+            "camiseta": ["roupa", "camisa", "blusa", "moda", "fashion"],
+            "calca": ["roupa", "jeans", "moda", "fashion"],
+            
+            # Calçados
+            "tenis": ["sapato", "chinelo", "sandalia", "bota", "moda", "fashion", "esportivo"],
+            "sapato": ["tenis", "chinelo", "sandalia", "bota", "moda", "fashion"],
+            
+            # Casa e decoração
+            "casa": ["decoracao", "moveis", "iluminacao", "tapete", "cortina", "almofada", "vaso"],
+            "decoracao": ["casa", "moveis", "iluminacao", "tapete", "cortina", "almofada", "vaso"],
+            
+            # Cozinha
+            "cozinha": ["utensilios", "panelas", "frigideiras", "facas", "liquidificador", "mixer", "cooktop"],
+            "utensilios": ["cozinha", "panelas", "frigideiras", "facas", "liquidificador", "mixer", "cooktop"],
+            
+            # Fitness
+            "fitness": ["academia", "musculacao", "cardio", "yoga", "pilates", "esporte", "saude"],
+            "academia": ["fitness", "musculacao", "cardio", "yoga", "pilates", "esporte", "saude"],
+            
+            # Beleza
+            "beleza": ["maquiagem", "skincare", "perfume", "cosmeticos", "cabelo", "pele", "makeup"],
+            "maquiagem": ["beleza", "skincare", "perfume", "cosmeticos", "cabelo", "pele", "makeup"],
+            
+            # Bebês
+            "bebe": ["infantil", "crianca", "fralda", "mamadeira", "berco", "carrinho", "brinquedo"],
+            "infantil": ["bebe", "crianca", "fralda", "mamadeira", "berco", "carrinho", "brinquedo"],
+            
+            # Pets
+            "pet": ["cachorro", "gato", "animal", "racao", "brinquedo", "coleira", "casinha"],
+            "cachorro": ["pet", "animal", "racao", "brinquedo", "coleira", "casinha"],
+            "gato": ["pet", "animal", "racao", "brinquedo", "coleira", "casinha"]
+        }
+        
+        # Retorna palavras-chave relacionadas ou apenas a palavra original
+        return keyword_mapping.get(keyword, [keyword])
+    
+    def _calculate_real_relevance(self, offer: ShopeeProduct, keyword: str, category_keywords: List[str]) -> int:
+        """Calcula relevância REAL baseada no conteúdo do produto"""
+        relevance_score = 0
+        keyword_lower = keyword.lower()
+        
+        # 1. Score baseado na LOJA (mais importante)
+        shop_name_lower = offer.shop_name.lower() if offer.shop_name else ""
+        
+        # Verifica se a loja tem relação com a categoria
+        for cat_keyword in category_keywords:
+            if cat_keyword in shop_name_lower:
+                relevance_score += 8  # Score alto para lojas da categoria
+                break
+        
+        # Verifica se a loja tem palavras relacionadas à tecnologia/eletrônicos
+        tech_keywords = ["tech", "digital", "eletronicos", "smart", "mobile", "gamer", "computer"]
+        if any(tech_word in shop_name_lower for tech_word in tech_keywords):
+            if any(tech_word in keyword_lower for tech_word in ["smartphone", "celular", "notebook", "computador", "fone", "mouse", "teclado"]):
+                relevance_score += 6  # Score alto para lojas tech + produtos tech
+        
+        # 2. Score baseado no LINK do produto (muito importante)
+        offer_link_lower = offer.offer_link.lower()
+        
+        # Verifica se o link contém palavras-chave da categoria
+        for cat_keyword in category_keywords:
+            if cat_keyword in offer_link_lower:
+                relevance_score += 7  # Score alto para links com palavras-chave
+                break
+        
+        # Verifica se o link contém a palavra-chave principal
+        if keyword in offer_link_lower:
+            relevance_score += 5
+        
+        # 3. Score baseado no PREÇO (produtos muito baratos podem não ser relevantes)
+        if keyword_lower in ["smartphone", "celular", "notebook", "laptop", "computador"]:
+            if offer.price < 50:  # Smartphones/notebooks muito baratos são suspeitos
+                relevance_score -= 5  # Penalização mais forte para produtos muito baratos
+            elif offer.price < 100:  # Faixa suspeita
+                relevance_score -= 2
+            elif 100 <= offer.price <= 5000:  # Faixa de preço realista
+                relevance_score += 2
+        
+        # 4. Score baseado na COMISSÃO (menos importante que relevância)
+        if offer.commission_rate > 0.1:
+            relevance_score += 1
+        
+        # 5. Score baseado na AVALIAÇÃO (produtos bem avaliados são mais confiáveis)
+        if offer.rating_star and offer.rating_star >= 4.5:
+            relevance_score += 1
+        
+        # 6. PENALIZAÇÃO para produtos claramente irrelevantes
+        irrelevant_keywords = ["chaveiro", "nebulizador", "cortador", "legumes", "verduras", "frutas", "foto", "acrilico"]
+        if any(irr_keyword in offer_link_lower for irr_keyword in irrelevant_keywords):
+            if keyword_lower in ["smartphone", "celular", "notebook", "computador", "fone", "mouse", "teclado"]:
+                relevance_score -= 10  # Penalização forte para produtos irrelevantes
+        
+        return relevance_score
+    
+    def _extract_title_from_link(self, product_link: str) -> Optional[str]:
+        """Extrai título do produto do link da Shopee"""
+        try:
+            logger.info(f"🔍 Extraindo título do link: {product_link}")
+            
+            # Formato real da Shopee: https://shopee.com.br/product/993030695/22293077045
+            # O primeiro número é o shop_id, o segundo é o item_id
+            
+            # Remove parâmetros de query
+            clean_link = product_link.split('?')[0].split('#')[0]
+            
+            if 'shopee.com.br/product/' in clean_link:
+                # Extrai os IDs do link
+                # Formato: /product/993030695/22293077045
+                parts = clean_link.split('/product/')[1].split('/')
+                
+                if len(parts) >= 2:
+                    shop_id = parts[0]
+                    item_id = parts[1]
+                    
+                    # Constrói um título descritivo baseado nos IDs
+                    # Como não temos o nome real, vamos criar um título útil
+                    title = f"Produto Shopee #{item_id}"
+                    
+                    logger.info(f"   🔗 Título extraído: {title}")
+                    return title
+            
+            # Fallback: retorna nome genérico
+            logger.warning("   ⚠️ Não foi possível extrair título, usando fallback")
+            return "Produto Shopee"
+            
+        except Exception as e:
+            logger.warning(f"Erro ao extrair título do link: {e}")
+            return "Produto Shopee"
+    
+    def _extract_image_from_link(self, product_link: str) -> Optional[str]:
+        """Extrai URL da imagem do produto do link da Shopee"""
+        # ⚠️ NOTA: A Shopee não permite acesso direto às imagens dos produtos
+        # As URLs retornam 404 devido a proteções de segurança
+        # Retornamos None para evitar tentativas de envio de imagem
+        
+        logger.info(f"🔍 Extraindo imagem do link: {product_link}")
+        logger.info("   ⚠️ Imagens da Shopee não são acessíveis diretamente (proteção de segurança)")
+        logger.info("   📝 Retornando None para evitar erros no Telegram")
+        
+        return None
+    
+    def test_connection(self) -> bool:
+        """Testa conexão com a API"""
+        try:
+            logger.info("🧪 Testando conexão com a API da Shopee...")
+            
+            offers = self.get_product_offers(page=0, limit=5)
+            
+            if offers and len(offers) > 0:
+                logger.info("✅ Conexão com a API da Shopee funcionando!")
+                return True
+            else:
+                logger.warning("⚠️ Conexão funcionando mas nenhum produto retornado")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Falha na conexão com a API da Shopee: {e}")
+            return False
+
+def main():
+    """Função principal para teste da integração"""
+    print("🚀 TESTANDO INTEGRAÇÃO DA API DA SHOPEE")
+    print("=" * 60)
+    
+    # Credenciais que funcionaram
+    app_id = "18330800803"
+    app_secret = "IOMXMSUM5KDOLSYKXQERKCU42SNMJERR"
+    
+    print(f"✅ Usando credenciais:")
+    print(f"   🆔 App ID: {app_id}")
+    print(f"   🔐 App Secret: {app_secret[:10]}...{app_secret[-10:]}")
+    
+    # Cria instância da integração
+    integration = ShopeeAPIIntegration(app_id, app_secret)
+    
+    try:
+        # Testa conexão
+        print("\n🧪 Testando conexão...")
+        if not integration.test_connection():
+            print("❌ Falha na conexão")
+            return
+        
+        # Teste 1: Busca de ofertas
+        print("\n🔍 Testando busca de ofertas...")
+        offers = integration.get_product_offers(page=0, limit=10, sort_type=SortType.COMMISSION_HIGH_LOW)
+        
+        if offers:
+            print(f"✅ {len(offers)} ofertas encontradas!")
+            
+            for i, offer in enumerate(offers[:3], 1):
+                print(f"\n{i}. Produto da Shopee:")
+                print(f"   💰 Preço: R$ {offer.price:.2f}")
+                print(f"   💸 Comissão: R$ {offer.commission:.2f}")
+                print(f"   📊 Taxa: {offer.commission_rate:.2f}%")
+                print(f"   🏪 Loja: {offer.shop_name}")
+                print(f"   🔗 Link: {offer.product_link[:50]}...")
+        
+        # Teste 2: Melhores ofertas
+        print("\n🔍 Testando melhores ofertas...")
+        best_deals = integration.get_best_commission_offers(limit=5)
+        
+        if best_deals:
+            print(f"✅ {len(best_deals)} melhores ofertas encontradas!")
+        
+        # Teste 3: Ofertas por faixa de preço
+        print("\n🔍 Testando ofertas por faixa de preço...")
+        price_range_offers = integration.get_offers_by_price_range(10.0, 50.0, limit=5)
+        
+        if price_range_offers:
+            print(f"✅ {len(price_range_offers)} ofertas entre R$ 10 e R$ 50 encontradas!")
+        
+        # Teste 4: Ofertas do dia
+        print("\n🔍 Testando ofertas do dia...")
+        daily_deals = integration.get_daily_deals(limit=5)
+        
+        if daily_deals:
+            print(f"✅ {len(daily_deals)} ofertas do dia encontradas!")
+        
+        print("\n🎉 Todos os testes de integração concluídos com sucesso!")
+        
+    except Exception as e:
+        print(f"❌ Erro durante o teste: {e}")
+        logger.error(f"Erro detalhado: {e}", exc_info=True)
+
+if __name__ == "__main__":
+    main()

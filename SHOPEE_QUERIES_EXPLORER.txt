@@ -1,0 +1,233 @@
+🚀 QUERIES GRAPHQL PARA O EXPLORER DA SHOPEE
+================================================================================
+📱 ACESSE: https://open-api.affiliate.shopee.com.br/explorer
+🔑 SUAS CREDENCIAIS: AppId: 18330800803 | Secret: BZDT6KRMD7AIHNWZS7443MS7R3K2CHC4
+
+================================================================================
+1️⃣ QUERY DE TESTE (Cole no campo Query)
+================================================================================
+{
+  __schema {
+    types {
+      name
+    }
+  }
+}
+
+================================================================================
+2️⃣ QUERY DE OFERTAS DE PRODUTOS (Cole no campo Query)
+================================================================================
+query ProductOfferQuery($limit: Int) {
+  productOfferV2(limit: $limit) {
+    nodes {
+      productName
+      itemId
+      commissionRate
+      commission
+      price
+      sales
+      imageUrl
+      shopName
+      shopId
+      ratingStar
+      productLink
+      priceMin
+      priceMax
+    }
+    pageInfo {
+      page
+      limit
+      hasNextPage
+    }
+  }
+}
+
+VARIÁVEIS (Cole no campo Variables):
+{
+  "limit": 10
+}
+
+================================================================================
+3️⃣ QUERY DE BUSCA POR PALAVRA-CHAVE (Cole no campo Query)
+================================================================================
+query SearchProducts($keyword: String!, $limit: Int) {
+  productOfferV2(keyword: $keyword, limit: $limit) {
+    nodes {
+      productName
+      itemId
+      commissionRate
+      price
+      imageUrl
+      shopName
+      productLink
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}
+
+VARIÁVEIS (Cole no campo Variables):
+{
+  "keyword": "notebook",
+  "limit": 5
+}
+
+================================================================================
+4️⃣ QUERY PARA EXPLORAR SCHEMA COMPLETO (Cole no campo Query)
+================================================================================
+{
+  __schema {
+    queryType {
+      name
+      fields {
+        name
+        description
+        type {
+          name
+          kind
+        }
+        args {
+          name
+          description
+          type {
+            name
+            kind
+          }
+        }
+      }
+    }
+    types {
+      name
+      description
+      kind
+      fields {
+        name
+        description
+        type {
+          name
+          kind
+        }
+      }
+    }
+  }
+}
+
+================================================================================
+5️⃣ QUERY DE DETALHES DO PRODUTO (Cole no campo Query)
+================================================================================
+query ProductDetails($itemId: String!) {
+  productOfferV2(itemId: $itemId) {
+    nodes {
+      productName
+      itemId
+      commissionRate
+      commission
+      price
+      sales
+      imageUrl
+      shopName
+      shopId
+      ratingStar
+      productLink
+      priceMin
+      priceMax
+      description
+      specifications
+      reviews {
+        rating
+        comment
+        userName
+        date
+      }
+    }
+  }
+}
+
+VARIÁVEIS (Cole no campo Variables):
+{
+  "itemId": "123456789"
+}
+
+================================================================================
+6️⃣ QUERY DE PRODUTOS POR CATEGORIA (Cole no campo Query)
+================================================================================
+query CategoryProducts($category: String!, $limit: Int) {
+  productOfferV2(category: $category, limit: $limit) {
+    nodes {
+      productName
+      itemId
+      commissionRate
+      price
+      imageUrl
+      shopName
+      productLink
+      priceMin
+      priceMax
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}
+
+VARIÁVEIS (Cole no campo Variables):
+{
+  "category": "electronics",
+  "limit": 20
+}
+
+================================================================================
+7️⃣ QUERY DE PRODUTOS EM PROMOÇÃO (Cole no campo Query)
+================================================================================
+query PromotionProducts($limit: Int) {
+  productOfferV2(limit: $limit, promotion: true) {
+    nodes {
+      productName
+      itemId
+      commissionRate
+      price
+      originalPrice
+      discountPercentage
+      imageUrl
+      shopName
+      productLink
+      promotionEndDate
+    }
+    pageInfo {
+      hasNextPage
+    }
+  }
+}
+
+VARIÁVEIS (Cole no campo Variables):
+{
+  "limit": 15
+}
+
+================================================================================
+🔧 INSTRUÇÕES DE USO NO EXPLORER
+================================================================================
+
+1. 📱 Acesse: https://open-api.affiliate.shopee.com.br/explorer
+
+2. 🔑 Configure suas credenciais:
+   - AppId: 18330800803
+   - Secret: BZDT6KRMD7AIHNWZS7443MS7R3K2CHC4
+
+3. 📝 Cole a query desejada no campo "Query"
+
+4. ⚙️ Configure as variáveis no campo "Variables" (se necessário)
+
+5. ▶️ Clique em "Play" para executar
+
+6. 📊 Visualize os resultados no painel direito
+
+💡 DICAS IMPORTANTES:
+- Comece com a QUERY DE TESTE para verificar a conexão
+- Use a QUERY DE SCHEMA para explorar todos os campos disponíveis
+- Ajuste os valores das variáveis conforme necessário
+- Copie e cole as queries diretamente no explorer
+- Se uma query não funcionar, verifique se os campos existem no schema
+
+🚀 BOA SORTE COM SUAS CONSULTAS NA API SHOPEE!

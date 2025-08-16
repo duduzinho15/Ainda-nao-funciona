@@ -1,5 +1,6 @@
 import logging
 import re
+import asyncio
 from typing import Optional, Dict, Any, List
 
 from datetime import datetime
@@ -11,306 +12,226 @@ from telegram.constants import ParseMode
 import config
 from database import adicionar_oferta_manual, adicionar_oferta, oferta_ja_existe, oferta_ja_existe_por_url, extrair_dominio_loja
 from utils.images import fetch_bytes, fetch_og_image
+from posting.message_templates import render_caption_and_buttons
 
 # Configuração de logging
 logger = logging.getLogger(__name__)
 
-def html_escape(s: str | None) -> str:
-    """Escapa caracteres especiais para HTML"""
-    if not s: 
-        return ""
-    return (s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"))
-
-def build_buttons(url_principal: str, extras: dict[str,str] | None = None):
-    """Constrói botões inline para a oferta"""
-    btns = [[InlineKeyboardButton("🛒 Comprar agora", url=url_principal)]]
-    if extras:
-        for label, url in list(extras.items())[:2]:
-            btns[0].append(InlineKeyboardButton(f"🔎 {label}", url=url))
-    return InlineKeyboardMarkup(btns)
-
-async def _send_card(bot, chat_id, caption_html, url_btn, maybe_img_url, reply_markup=None):
+async def _send_card(bot, chat_id: int, offer: dict):
     """
     Envia cartão de oferta com imagem grande via bytes ou fallback robusto
     
     Args:
         bot: Instância do bot do Telegram
         chat_id: ID do chat para enviar
-        caption_html: Legenda formatada em HTML
-        url_btn: URL principal para botão (usada para OG image se não tiver imagem)
-        maybe_img_url: URL da imagem da oferta (opcional)
-        reply_markup: Teclado inline (opcional)
+        offer: Dicionário com dados da oferta
     """
-    img_url = maybe_img_url
-    image_source = 'none'
-    
-    # Se não tiver imagem da oferta, tenta extrair OG image da URL
-    if not img_url and url_btn:
-        img_url = fetch_og_image(url_btn)
+    try:
+        # Renderiza caption e botões usando templates
+        caption, buttons = render_caption_and_buttons(offer)
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton(b["text"], url=b["url"]) for b in buttons]])
+
+        # Determina URL da imagem
+        img_url = offer.get("image_url") or offer.get("imagem_url")
+        if not img_url:
+            base_url = offer.get("affiliate_url") or offer.get("product_url")
+            if base_url:
+                img_url = fetch_og_image(base_url)
+
+        # Loga informações da oferta
+        store = offer.get("store", "unknown")
+        types = offer.get("types", [])
+        image_source = "none"
+        affiliate_kind = "none"
+        
         if img_url:
-            image_source = 'og:image'
-            logger.info(f"Imagem extraída via OG: {img_url[:80]}...")
-    
-    # Tenta enviar como bytes (mais sólido contra hotlinking)
-    if img_url:
-        buf = fetch_bytes(img_url)
-        try:
-            if buf:
-                image_source = 'offer' if maybe_img_url else 'og:image'
-                logger.info(f"Enviando imagem via bytes (fonte: {image_source})")
-                return await bot.send_photo(
-                    chat_id=chat_id, photo=buf, caption=caption_html,
-                    parse_mode=ParseMode.HTML, reply_markup=reply_markup
-                )
-            else:
-                image_source = 'offer' if maybe_img_url else 'og:image'
-                logger.info(f"Enviando imagem via URL (fonte: {image_source})")
-                return await bot.send_photo(
-                    chat_id=chat_id, photo=img_url, caption=caption_html,
-                    parse_mode=ParseMode.HTML, reply_markup=reply_markup
-                )
-        except Exception as e:
-            logger.warning(f"Falha ao enviar imagem ({image_source}): {e}")
-            pass
+            buf = fetch_bytes(img_url)
+            try:
+                if buf:
+                    image_source = "offer" if offer.get("image_url") or offer.get("imagem_url") else "og:image"
+                    affiliate_kind = "awin" if "awin" in store.lower() else "native"
+                    
+                    # Loga detalhes da publicação
+                    logger.info(f"📤 Publicando {store}: types={types}, image_source={image_source}, affiliate_kind={affiliate_kind}")
+                    
+                    return await bot.send_photo(
+                        chat_id=chat_id, photo=buf, caption=caption,
+                        parse_mode=ParseMode.HTML, reply_markup=markup
+                    )
+                else:
+                    image_source = "offer" if offer.get("image_url") or offer.get("imagem_url") else "og:image"
+                    affiliate_kind = "awin" if "awin" in store.lower() else "native"
+                    
+                    logger.info(f"📤 Publicando {store}: types={types}, image_source={image_source}, affiliate_kind={affiliate_kind}")
+                    
+                    return await bot.send_photo(
+                        chat_id=chat_id, photo=img_url, caption=caption,
+                        parse_mode=ParseMode.HTML, reply_markup=markup
+                    )
+            except Exception as e:
+                logger.warning(f"Falha ao enviar imagem ({image_source}): {e}")
+                pass
 
-    # Fallback: texto SEM preview
-    logger.info("Fallback para texto sem preview")
-    return await bot.send_message(
-        chat_id=chat_id, text=caption_html, parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True, reply_markup=reply_markup
-    )
+        # Fallback: texto SEM preview
+        image_source = "fallback:text"
+        affiliate_kind = "awin" if "awin" in store.lower() else "native"
+        
+        logger.info(f"📤 Publicando {store}: types={types}, image_source={image_source}, affiliate_kind={affiliate_kind}")
+        
+        return await bot.send_message(
+            chat_id=chat_id, text=caption, parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True, reply_markup=markup
+        )
+        
+    except Exception as e:
+        logger.error(f"Erro ao enviar cartão: {e}")
+        # Fallback final: mensagem simples
+        return await bot.send_message(
+            chat_id=chat_id,
+            text=f"🔥 Oferta: {offer.get('title', 'Oferta')}\n💰 Preço: {offer.get('price_formatted', '—')}",
+            parse_mode=ParseMode.HTML,
+            disable_web_page_preview=True
+        )
 
-def format_caption_html(oferta: Dict[str, Any]) -> str:
-    """Formata a legenda da oferta em HTML"""
-    titulo = html_escape(oferta.get("titulo", "Oferta"))
-    preco_atual = html_escape(str(oferta.get("preco_atual", "—")))
-    preco_original = html_escape(str(oferta.get("preco_original", "")))
-    desconto = oferta.get("desconto", 0)
-    loja = html_escape(oferta.get("loja", "Loja"))
-    origem = html_escape(oferta.get("fonte", "Sistema"))
-    
-    linhas = [f"🔥 <b>{titulo}</b>"]
-    
-    # Adiciona características se disponíveis
-    if oferta.get("caracteristicas"):
-        for c in oferta["caracteristicas"][:4]:
-            linhas.append(f"• {html_escape(c)}")
-    
-    # Adiciona preços
-    linhas.append(f"💰 <b>Preço:</b> {preco_atual}")
-    
-    # Adiciona preço original e desconto se disponíveis
-    if preco_original and preco_original != "—" and desconto and desconto > 0:
-        linhas.append(f"💸 <b>De:</b> {preco_original}")
-        linhas.append(f"🔥 <b>Desconto:</b> {desconto}% OFF")
-    
-    linhas.append(f"🏷 {loja} | {origem}")
-    
-    return "\n".join(linhas)
-
-async def publicar_oferta(
-    mensagem: str, 
-    imagem_url: Optional[str] = None, 
-    url_afiliado: Optional[str] = None,
-    chat_id: Optional[str] = None,
-    context: Optional[ContextTypes.DEFAULT_TYPE] = None
-) -> bool:
+async def publicar_oferta(bot, chat_id: int, mensagem: str, url_afiliado: str = None, reply_markup=None):
     """
-    Publica uma oferta no canal do Telegram.
+    Publica uma oferta no chat especificado
     
     Args:
-        mensagem: Texto formatado da oferta (já em HTML)
-        imagem_url: URL da imagem da oferta (opcional)
-        url_afiliado: URL de afiliado para o botão (opcional)
-        chat_id: ID do chat para publicar (opcional, usa o configurado por padrão)
-        context: Contexto do bot (opcional, usado para obter a instância do bot)
-        
-    Returns:
-        bool: True se a publicação foi bem-sucedida, False caso contrário
+        bot: Instância do bot do Telegram
+        chat_id: ID do chat para enviar
+        mensagem: Mensagem da oferta (deve ser HTML)
+        url_afiliado: URL de afiliado da oferta
+        reply_markup: Teclado inline (opcional)
     """
-    # Obtém o bot do contexto
-    if context is None or not hasattr(context, 'bot'):
-        logger.error("Contexto inválido ou sem instância do bot")
-        return False
-        
-    bot = context.bot
-        
-    if not chat_id:
-        chat_id = config.TELEGRAM_CHAT_ID
-    
     try:
-        # Cria o teclado inline se houver URL de afiliado
-        reply_markup = None
-        if url_afiliado:
-            reply_markup = build_buttons(url_afiliado)
-        
-        # Usa o novo sistema de cartão com imagem grande
-        await _send_card(
-            bot=bot,
-            chat_id=chat_id,
-            caption_html=mensagem,
-            url_btn=url_afiliado,
-            maybe_img_url=imagem_url,
-            reply_markup=reply_markup
-        )
-        
-        return True
+        # Converte dados antigos para novo formato se necessário
+        if isinstance(mensagem, dict):
+            # Formato antigo, converte para novo
+            offer = {
+                "title": mensagem.get("titulo", "Oferta"),
+                "price_formatted": mensagem.get("preco_atual", "—"),
+                "store": mensagem.get("loja", "Loja"),
+                "affiliate_url": url_afiliado or mensagem.get("url_afiliado") or "",
+                "origin": "Garimpeiro Geek"
+            }
+            await _send_card(bot, chat_id, offer)
+        else:
+            # Formato novo, usa diretamente
+            await _send_card(bot, chat_id, mensagem)
+            
+        logger.info(f"✅ Oferta publicada no chat {chat_id}")
         
     except Exception as e:
-        logger.error(f"Erro ao publicar oferta: {e}")
-        return False
+        logger.error(f"❌ Erro ao publicar oferta: {e}")
+        # Fallback: envia mensagem simples
+        try:
+            await bot.send_message(
+                chat_id=chat_id,
+                text="❌ Erro ao publicar oferta. Tente novamente.",
+                parse_mode=ParseMode.HTML
+            )
+        except:
+            pass
 
-async def comando_oferta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    Recebe um comando /oferta, formata e envia para o canal,
-    restringindo o uso ao administrador.
-    
-    Formato: /oferta <link> <preço> <título completo>
-    Exemplo: /oferta https://www.magazineluiza.com.br/notebook-dell-inspiron-3501/p/123456/te/1234/ 2999,90 Notebook Dell Inspiron 3501 i5 8GB 256GB SSD
-    """
+async def comando_oferta(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando para adicionar oferta manualmente"""
     try:
-        # 1. Verificar se o comando veio de uma mensagem válida
-        if not update or not update.message or not update.effective_user:
-            logger.warning("Comando /oferta recebido sem mensagem ou usuário válido")
+        # Extrai informações da mensagem
+        message_text = update.message.text
+        user_id = update.effective_user.id
+        
+        # Verifica se é admin
+        if str(user_id) != config.ADMIN_USER_ID:
+            await update.message.reply_text("❌ Apenas administradores podem usar este comando.")
             return
-
-        # 2. Verificar se o usuário é o administrador
-        user = update.effective_user
-        if not user or not user.id:
-            logger.warning("Usuário não encontrado ou ID inválido em comando_oferta")
-            return
-            
-        if str(user.id) != str(config.ADMIN_USER_ID):
-            logger.warning(f"Acesso negado para o usuário {user.id}")
-            await update.message.reply_text("❌ Acesso negado. Apenas o administrador pode usar este comando.")
-            return
-
-        # 3. Verificar argumentos fornecidos
-        if not context.args or len(context.args) < 3:
-            logger.warning("Argumentos insuficientes para o comando /oferta")
+        
+        # Parse da mensagem (formato: /oferta <link> <titulo> <preco>)
+        parts = message_text.split(maxsplit=3)
+        if len(parts) < 4:
             await update.message.reply_text(
-                "❌ Formato incorreto!\n"
-                "Uso: /oferta <link> <preço> <título completo>\n"
-                "Exemplo: /oferta https://www.magazineluiza.com.br/notebook... R$2999,90 Notebook Dell Inspiron 3501"
+                "📝 Uso: /oferta <link> <titulo> <preco>\n"
+                "Exemplo: /oferta https://amazon.com.br/produto Smartphone R$ 999,00"
             )
             return
-
-        # 4. Extrair e validar os argumentos
-        link = context.args[0].strip()
-        preco = context.args[1].strip()
-        titulo = " ".join(context.args[2:]).strip()
         
-        # Validações básicas
-        if not link.startswith(('http://', 'https://')):
-            await update.message.reply_text("❌ O link fornecido não é válido. Certifique-se de incluir http:// ou https://")
-            return
-            
-        if not any(char.isdigit() for char in preco):
-            await update.message.reply_text("❌ O preço deve conter valores numéricos")
-            return
-
-        # 5. Extrair domínio da loja para identificação
-        dominio_loja = extrair_dominio_loja(link)
+        _, link, titulo, preco = parts
         
-        # 6. Preparar dados da oferta para o banco de dados
-        oferta = {
-            'url_produto': link,
-            'titulo': titulo,
-            'preco_atual': preco,
-            'loja': dominio_loja.capitalize(),
-            'fonte': 'Comando',
-            'url_fonte': link
+        # Verifica se a oferta já existe
+        if oferta_ja_existe_por_url(link):
+            await update.message.reply_text("⚠️ Esta oferta já foi publicada anteriormente.")
+            return
+        
+        # Cria oferta no novo formato
+        offer = {
+            "title": titulo,
+            "price_formatted": preco,
+            "store": extrair_dominio_loja(link),
+            "affiliate_url": link,
+            "origin": "Garimpeiro Geek",
+            "types": []
         }
         
-        # 7. Verificar se a oferta já existe
-        if oferta_ja_existe_por_url(link):
-            logger.info(f"Oferta já existe no banco de dados: {link}")
-            await update.message.reply_text("ℹ️ Esta oferta já foi publicada anteriormente.")
-            return
-
-        # 8. Formatar a mensagem para o Telegram (HTML)
-        mensagem_html = format_caption_html(oferta)
+        # Publica a oferta
+        await _send_card(context.bot, int(config.TELEGRAM_CHAT_ID), offer)
         
-        # 9. Publicar a oferta usando o novo sistema
-        sucesso = await publicar_oferta(
-            mensagem=mensagem_html,
-            url_afiliado=link,  # Por enquanto usa o link original
-            context=context
-        )
+        # Adiciona ao banco de dados
+        adicionar_oferta_manual(link, titulo, preco)
         
-        if sucesso:
-            # 10. Adicionar ao banco de dados
-            adicionar_oferta_manual(link, titulo, preco)
-            
-            # 11. Confirmar sucesso
-            await update.message.reply_text(
-                "✅ Oferta publicada com sucesso no canal!\n"
-                f"📢 Verifique: https://t.me/garimpeirogeek"
-            )
-            
-            logger.info(f"✅ Oferta publicada via comando: {titulo[:50]}...")
-        else:
-            await update.message.reply_text("❌ Erro ao publicar a oferta. Tente novamente.")
-            logger.error(f"❌ Falha ao publicar oferta via comando: {titulo[:50]}...")
-            
+        await update.message.reply_text("✅ Oferta publicada com sucesso!")
+        
     except Exception as e:
-        logger.error(f"❌ Erro no comando /oferta: {e}")
-        await update.message.reply_text("❌ Erro interno. Tente novamente ou contate o administrador.")
+        logger.error(f"Erro no comando oferta: {e}")
+        await update.message.reply_text(f"❌ Erro ao processar comando: {e}")
 
-async def publicar_oferta_automatica(
-    oferta: Dict[str, Any], 
-    context: ContextTypes.DEFAULT_TYPE,
-    chat_id: Optional[str] = None
-) -> bool:
+async def publicar_oferta_automatica(oferta: Dict[str, Any], context) -> bool:
     """
-    Publica uma oferta automaticamente no canal do Telegram.
+    Publica oferta automaticamente usando o novo sistema de templates
     
     Args:
         oferta: Dicionário com dados da oferta
         context: Contexto do bot
-        chat_id: ID do chat para publicar (opcional)
         
     Returns:
-        bool: True se a publicação foi bem-sucedida, False caso contrário
+        True se publicado com sucesso, False caso contrário
     """
     try:
-        # Obtém o bot do contexto
-        if context is None or not hasattr(context, 'bot'):
-            logger.error("Contexto inválido ou sem instância do bot")
-            return False
+        # Converte dados antigos para novo formato se necessário
+        if "titulo" in oferta:
+            # Formato antigo, converte para novo
+            offer = {
+                "title": oferta.get("titulo", "Oferta"),
+                "price_formatted": oferta.get("preco_atual", oferta.get("preco", "—")),
+                "previous_price": oferta.get("preco_original"),
+                "store": oferta.get("loja", "Loja"),
+                "affiliate_url": oferta.get("url_afiliado") or oferta.get("url_produto"),
+                "image_url": oferta.get("imagem_url"),
+                "origin": oferta.get("fonte", "Garimpeiro Geek"),
+                "types": [],
+                "features": oferta.get("caracteristicas", []),
+                "desconto": oferta.get("desconto", 0)
+            }
             
-        bot = context.bot
-            
-        if not chat_id:
-            chat_id = config.TELEGRAM_CHAT_ID
+            # Adiciona tipos baseados no desconto
+            if offer["desconto"] >= 50:
+                offer["types"].append("flash_deal")
+            elif offer["desconto"] >= 30:
+                offer["types"].append("three_month_low")
+                
+        else:
+            # Já está no formato novo
+            offer = oferta
         
-        # Formata a legenda em HTML
-        caption_html = format_caption_html(oferta)
+        # Publica usando o novo sistema
+        await _send_card(context.bot, int(config.TELEGRAM_CHAT_ID), offer)
         
-        # Obtém URL de afiliado ou URL do produto
-        url_afiliado = oferta.get('url_afiliado') or oferta.get('url_produto')
+        # Rate limiting entre publicações
+        if hasattr(context, 'job') and context.job:
+            await asyncio.sleep(config.POST_RATE_DELAY_MS / 1000)
         
-        # Obtém URL da imagem
-        img_url = oferta.get('imagem_url')
-        
-        # Cria botões inline
-        reply_markup = None
-        if url_afiliado:
-            reply_markup = build_buttons(url_afiliado)
-        
-        # Usa o novo sistema de cartão com imagem grande
-        await _send_card(
-            bot=bot,
-            chat_id=chat_id,
-            caption_html=caption_html,
-            url_btn=url_afiliado,
-            maybe_img_url=img_url,
-            reply_markup=reply_markup
-        )
-        
-        logger.info(f"✅ Oferta publicada automaticamente: {oferta.get('titulo', 'Sem título')[:50]}...")
+        logger.info(f"✅ Oferta automática publicada: {offer.get('title', 'Oferta')[:50]}...")
         return True
         
     except Exception as e:
-        logger.error(f"❌ Erro ao publicar oferta automaticamente: {e}")
+        logger.error(f"❌ Erro ao publicar oferta automática: {e}")
         return False
