@@ -27,7 +27,7 @@ async def scrape_promobit(limit: int = 20) -> List[Dict[str, Any]]:
         return []
     
     try:
-        from promobit_scraper_clean import buscar_ofertas_promobit
+        from promobit_scraper import buscar_ofertas_promobit
         import aiohttp
         
         async with aiohttp.ClientSession() as session:
