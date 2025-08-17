@@ -42,28 +42,65 @@ def extract_asin_from_url(url: str) -> Optional[str]:
 # ---- 2) Expansão de shortlinks e wrappers (HEAD, baixo risco) ----
 async def _expand_redirect(url: str, timeout: int = 8) -> Optional[str]:
     """
-    Faz uma HEAD (com follow redirects) para resolver shortlinks (ex.: amzn.to).
-    Evita GET para reduzir risco de anti-bot. Retorna URL final ou None.
+    Faz uma HEAD (com follow redirects) para resolver shortlinks
+    
+    Args:
+        url: URL para expandir
+        timeout: Timeout em segundos
+        
+    Returns:
+        URL expandida ou None se falhar
     """
     try:
-        headers = {
-            "User-Agent": os.getenv("HTTP_UA", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                                               "AppleWebKit/537.36 (KHTML, like Gecko) "
-                                               "Chrome/124.0.0.0 Safari/537.36"),
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1"
-        }
+        from aiohttp import ClientTimeout
         
-        async with aiohttp.ClientSession(headers=headers) as sess:
-            async with sess.head(url, allow_redirects=True, timeout=timeout) as r:
-                final_url = str(r.url)
-                logger.debug(f"✅ Redirect expandido: {url} -> {final_url}")
-                return final_url
+        timeout_obj = ClientTimeout(total=timeout)
+        
+        async with aiohttp.ClientSession(timeout=timeout_obj) as session:
+            async with session.head(url, allow_redirects=True) as response:
+                if response.status == 200:
+                    final_url = str(response.url)
+                    if final_url != url:
+                        logger.info(f"✅ Redirect expandido: {url} -> {final_url}")
+                        return final_url
+                    else:
+                        return url
+                else:
+                    logger.warning(f"⚠️ Status {response.status} ao expandir: {url}")
+                    return None
+                    
     except Exception as e:
-        logger.warning(f"⚠️ Erro ao expandir redirect {url}: {e}")
+        logger.warning(f"⚠️ Erro ao expandir redirect: {e}")
+        return None
+
+def _unwrap_redirect_params(url: str) -> Optional[str]:
+    """
+    Desembrulha parâmetros de redirecionamento da URL
+    
+    Args:
+        url: URL com parâmetros de redirecionamento
+        
+    Returns:
+        URL desembrulhada ou None se não encontrar
+    """
+    try:
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        
+        # Procura por parâmetros de redirecionamento comuns
+        redirect_params = ['redirect', 'url', 'target', 'dest', 'goto', 'link']
+        
+        for param in redirect_params:
+            if param in query_params:
+                redirect_url = query_params[param][0]
+                if redirect_url.startswith('http'):
+                    logger.info(f"✅ Parâmetro de redirecionamento encontrado: {param}={redirect_url}")
+                    return redirect_url
+        
+        return None
+        
+    except Exception as e:
+        logger.warning(f"⚠️ Erro ao desembrulhar parâmetros: {e}")
         return None
 
 def _unwrap_embedded(url: str) -> Optional[str]:
@@ -156,56 +193,61 @@ async def _fetch_canonical_with_playwright(url: str, timeout_ms: int = 15000) ->
 # ---- 4) Função principal: canonicaliza SEM tocar na página quando possível ----
 async def canonicalize_amazon(url: str, associate_tag: str) -> Optional[str]:
     """
-    Retorna https://www.amazon.com.br/dp/ASIN?tag=<associate_tag>
-    sem scraping, preferindo extrair ASIN da própria URL.
-    Fallback: HEAD em encurtadores; por último: Playwright.
+    Canonicaliza URL da Amazon para formato de afiliado
+    
+    Args:
+        url: URL da Amazon
+        associate_tag: Tag de afiliado (ex: garimpeirogee-20)
+        
+    Returns:
+        URL canonicalizada ou None se falhar
     """
     if not url:
         return None
-
-    logger.info(f"🔍 Canonicalizando URL Amazon: {url[:100]}...")
-
-    # 4.1) Tenta URL direta
-    asin = extract_asin_from_url(url)
-    if asin:
-        canonical_url = f"https://www.amazon.com.br/dp/{asin}?tag={associate_tag}"
-        logger.info(f"✅ ASIN extraído diretamente: {asin}")
-        return canonical_url
-
-    # 4.2) Tenta desfazer wrappers/redirect embutido
-    unwrapped = _unwrap_embedded(url)
-    if unwrapped:
-        asin = extract_asin_from_url(unwrapped)
+    
+    try:
+        logger.info(f"🔍 Canonicalizando URL Amazon: {url}")
+        
+        # 1️⃣ Tenta extrair ASIN diretamente da URL
+        asin = extract_asin_from_url(url)
         if asin:
             canonical_url = f"https://www.amazon.com.br/dp/{asin}?tag={associate_tag}"
-            logger.info(f"✅ ASIN extraído de URL desembrulhada: {asin}")
+            logger.info(f"✅ ASIN extraído diretamente: {asin}")
             return canonical_url
-
-    # 4.3) Se for amzn.to ou similar, tenta HEAD uma vez
-    host = urlparse(url).netloc.lower()
-    if host.endswith("amzn.to") or host.endswith("amazon.com.br"):
-        logger.info(f"🔍 Expandindo redirect para: {url}")
-        final = await _expand_redirect(url)
-        if final:
-            asin = extract_asin_from_url(final)
+        
+        # 2️⃣ Se não encontrou ASIN, tenta desembrulhar parâmetros de redirecionamento
+        unwrapped_url = _unwrap_redirect_params(url)
+        if unwrapped_url and unwrapped_url != url:
+            logger.info(f"✅ URL desembrulhada: {unwrapped_url}")
+            asin = extract_asin_from_url(unwrapped_url)
             if asin:
                 canonical_url = f"https://www.amazon.com.br/dp/{asin}?tag={associate_tag}"
-                logger.info(f"✅ ASIN extraído após expandir redirect: {asin}")
+                logger.info(f"✅ ASIN extraído da URL desembrulhada: {asin}")
                 return canonical_url
-
-    # 4.4) Último recurso: Playwright para ler o canônico (evite usar em massa)
-    logger.warning(f"⚠️ Usando Playwright como último recurso para: {url}")
-    canonical = await _fetch_canonical_with_playwright(url)
-    if canonical:
-        asin = extract_asin_from_url(canonical)
-        if asin:
-            canonical_url = f"https://www.amazon.com.br/dp/{asin}?tag={associate_tag}"
-            logger.info(f"✅ ASIN extraído via Playwright: {asin}")
+        
+        # 3️⃣ Tenta desembrulhar URLs embutidas
+        unwrapped_url = _unwrap_embedded(url)
+        if unwrapped_url and unwrapped_url != url:
+            logger.info(f"✅ URL desembrulhada: {unwrapped_url}")
+            asin = extract_asin_from_url(unwrapped_url)
+            if asin:
+                canonical_url = f"https://www.amazon.com.br/dp/{asin}?tag={associate_tag}"
+                logger.info(f"✅ ASIN extraído da URL desembrulhada: {asin}")
+                return canonical_url
+        
+        # 4️⃣ Se não conseguiu extrair ASIN, adiciona tag na URL original
+        if 'amazon.com.br' in url:
+            separator = '&' if '?' in url else '?'
+            canonical_url = f"{url}{separator}tag={associate_tag}"
+            logger.info(f"✅ Tag de afiliado adicionada na URL original")
             return canonical_url
-
-    # 4.5) Não deu
-    logger.error(f"❌ Não foi possível canonicalizar: {url}")
-    return None
+        
+        logger.warning(f"⚠️ Não foi possível canonicalizar: {url}")
+        return None
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na canonicalização: {e}")
+        return None
 
 # ---- 5) Função síncrona para compatibilidade ----
 def canonicalize_amazon_sync(url: str, associate_tag: str) -> Optional[str]:
