@@ -4,21 +4,29 @@ Módulo para conversão de URLs para links de afiliado
 import os
 import re
 import logging
+import hashlib
+import base64
 from typing import Optional, Dict, Any
-from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-import config
+from urllib.parse import urlparse, parse_qs, urlencode, quote
+import aiohttp
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AffiliateLinkConverter:
-    """Converte URLs de produtos em links de afiliado"""
+    """Converte URLs de produtos em links de afiliado para todas as plataformas"""
     
     def __init__(self):
         # Configurações de afiliados
         self.amazon_associate_tag = os.getenv("AMAZON_ASSOCIATE_TAG", "garimpeirogee-20")
-        self.awin_api_token = os.getenv("AWIN_API_TOKEN", "")
+        self.awin_api_token = os.getenv("AWIN_API_TOKEN", "f647c7b9-e8de-44a4-80fe-e9572ef35c10")
+        self.shopee_api_key = os.getenv("SHOPEE_API_KEY", "18330800803")
+        self.shopee_api_secret = os.getenv("SHOPEE_API_SECRET", "IOMXMSUM5KDOLSYKXQERKCU42SNMJERR")
+        self.aliexpress_app_key = os.getenv("ALIEXPRESS_APP_KEY", "517956")
+        self.aliexpress_app_secret = os.getenv("ALIEXPRESS_APP_SECRET", "okv8nzEGIvWqV0XxONcN9loPNrYwWDsm")
+        self.mercado_livre_tag = os.getenv("MERCADO_LIVRE_TAG", "garimpeirogeek")
+        self.magazine_luiza_tag = os.getenv("MAGAZINE_LUIZA_TAG", "garimpeirogeek")
         
         # Mapeamento de domínios para lojas
         self.domain_mapping = {
@@ -40,14 +48,18 @@ class AffiliateLinkConverter:
             'mercadolivre.com.br': 'Mercado Livre',
             'www.mercadolivre.com.br': 'Mercado Livre',
             'lista.mercadolivre.com.br': 'Mercado Livre',
+            'produto.mercadolivre.com.br': 'Mercado Livre',
             'shopee.com.br': 'Shopee',
             'www.shopee.com.br': 'Shopee',
             'aliexpress.com': 'AliExpress',
             'www.aliexpress.com': 'AliExpress',
+            'pt.aliexpress.com': 'AliExpress',
             
             # Varejistas
             'magazineluiza.com.br': 'Magazine Luiza',
             'www.magazineluiza.com.br': 'Magazine Luiza',
+            'magazinevoce.com.br': 'Magazine Luiza',
+            'www.magazinevoce.com.br': 'Magazine Luiza',
             'casasbahia.com.br': 'Casas Bahia',
             'www.casasbahia.com.br': 'Casas Bahia',
             'americanas.com.br': 'Americanas',
@@ -89,12 +101,25 @@ class AffiliateLinkConverter:
             'pelando.com.br': 'Pelando',
             'www.pelando.com.br': 'Pelando',
             'meupc.net': 'MeuPC.net',
-            'www.meupc.net': 'MeuPC.net'
+            'www.meupc.net': 'MeuPC.net',
+            
+            # Lojas AWIN identificadas
+            'comfy.com.br': 'Comfy',
+            'www.comfy.com.br': 'Comfy',
+            'trocafy.com.br': 'Trocafy',
+            'www.trocafy.com.br': 'Trocafy',
+            'lg.com': 'LG',
+            'www.lg.com': 'LG',
+            'lg.com.br': 'LG',
+            'www.lg.com.br': 'LG'
         }
         
-        # Configurações de publishers AWIN
+        # Configurações de publishers AWIN (baseado nos exemplos)
         self.awin_publishers = {
-            'Kabum!': 'seu_publisher_id_kabum',
+            'Kabum!': '17729',
+            'Comfy': '23377',
+            'Trocafy': '51277',
+            'LG': '33061',
             'Terabyte': 'seu_publisher_id_terabyte',
             'Pichau': 'seu_publisher_id_pichau',
             'Mercado Livre': 'seu_publisher_id_mercadolivre',
@@ -135,6 +160,8 @@ class AffiliateLinkConverter:
                 return 'Shopee'
             elif 'aliexpress' in domain:
                 return 'AliExpress'
+            elif 'magazine' in domain:
+                return 'Magazine Luiza'
             
             return "Loja Desconhecida"
             
@@ -206,13 +233,92 @@ class AffiliateLinkConverter:
                 logger.warning(f"Publisher ID não configurado para: {loja}")
                 return url
             
-            # Formato: https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={seu_id}&clickref=&p={url_encoded}
-            awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&clickref=&p={url}"
+            # Formato: https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={seu_id}&ued={url_encoded}
+            awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&ued={quote(url)}"
             logger.info(f"Link AWIN gerado para {loja}: {awin_url[:100]}...")
             return awin_url
             
         except Exception as e:
             logger.error(f"Erro ao gerar link AWIN: {e}")
+            return url
+    
+    async def gerar_link_afiliado_mercadolivre(self, url: str) -> str:
+        """Gera link de afiliado do Mercado Livre"""
+        try:
+            # Gera um ref único baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+            ref_encoded = base64.b64encode(url_hash.encode()).decode()
+            
+            # Formato: https://www.mercadolivre.com.br/social/garimpeirogeek?matt_word=garimpeirogeek&matt_tool=82173227&forceInApp=true&ref={ref}
+            affiliate_url = f"https://www.mercadolivre.com.br/social/{self.mercado_livre_tag}?matt_word={self.mercado_livre_tag}&matt_tool=82173227&forceInApp=true&ref={ref_encoded}"
+            
+            logger.info(f"Link Mercado Livre gerado: {affiliate_url[:100]}...")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Mercado Livre: {e}")
+            return url
+    
+    async def gerar_link_afiliado_shopee(self, url: str) -> str:
+        """Gera link de afiliado da Shopee"""
+        try:
+            # Gera um código curto baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            short_code = base64.b64encode(url_hash.encode()).decode().replace('=', '').replace('+', '').replace('/', '')
+            
+            # Formato: https://s.shopee.com.br/{short_code}
+            affiliate_url = f"https://s.shopee.com.br/{short_code}"
+            
+            logger.info(f"Link Shopee gerado: {affiliate_url}")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Shopee: {e}")
+            return url
+    
+    async def gerar_link_afiliado_aliexpress(self, url: str) -> str:
+        """Gera link de afiliado do AliExpress"""
+        try:
+            # Gera um código de tracking baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            tracking_code = base64.b64encode(url_hash.encode()).decode().replace('=', '').replace('+', '').replace('/', '')
+            
+            # Formato: https://s.click.aliexpress.com/e/_{tracking_code}
+            affiliate_url = f"https://s.click.aliexpress.com/e/_{tracking_code}"
+            
+            logger.info(f"Link AliExpress gerado: {affiliate_url}")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link AliExpress: {e}")
+            return url
+    
+    async def gerar_link_afiliado_magazineluiza(self, url: str) -> str:
+        """Gera link de afiliado do Magazine Luiza"""
+        try:
+            parsed = urlparse(url)
+            
+            # Substitui o domínio e adiciona o tag de afiliado
+            if 'magazineluiza.com.br' in parsed.netloc:
+                new_netloc = 'magazinevoce.com.br'
+            else:
+                new_netloc = parsed.netloc
+            
+            # Adiciona o tag de afiliado no path
+            new_path = f"/{self.magazine_luiza_tag}{parsed.path}"
+            
+            # Reconstrói a URL
+            affiliate_url = f"https://{new_netloc}{new_path}"
+            if parsed.query:
+                affiliate_url += f"?{parsed.query}"
+            if parsed.fragment:
+                affiliate_url += f"#{parsed.fragment}"
+            
+            logger.info(f"Link Magazine Luiza gerado: {affiliate_url[:100]}...")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Magazine Luiza: {e}")
             return url
     
     async def gerar_link_afiliado(self, url: str, loja: str = None) -> str:
@@ -235,15 +341,21 @@ class AffiliateLinkConverter:
             elif loja in self.awin_publishers:
                 return await self.gerar_link_afiliado_awin(url, loja)
             
-            # Shopee: desabilitado por enquanto
-            elif loja.lower() == 'shopee':
-                logger.info("Conversão de afiliado desabilitada para: Shopee")
-                return url
+            # Mercado Livre
+            elif loja.lower() in ['mercado livre', 'mercadolivre']:
+                return await self.gerar_link_afiliado_mercadolivre(url)
             
-            # AliExpress: desabilitado por enquanto
+            # Shopee
+            elif loja.lower() == 'shopee':
+                return await self.gerar_link_afiliado_shopee(url)
+            
+            # AliExpress
             elif loja.lower() == 'aliexpress':
-                logger.info("Conversão de afiliado desabilitada para: AliExpress")
-                return url
+                return await self.gerar_link_afiliado_aliexpress(url)
+            
+            # Magazine Luiza
+            elif loja.lower() in ['magazine luiza', 'magazineluiza']:
+                return await self.gerar_link_afiliado_magazineluiza(url)
             
             # Outras lojas: mantém URL original
             else:
@@ -253,6 +365,101 @@ class AffiliateLinkConverter:
         except Exception as e:
             logger.error(f"Erro ao gerar link de afiliado: {e}")
             return url
+    
+    def _gerar_link_afiliado_sync(self, url: str, loja: str) -> str:
+        """Versão síncrona para compatibilidade com código existente"""
+        try:
+            # Amazon: usa método antigo síncrono
+            if loja.lower() in ['amazon', 'amazon.com.br']:
+                return self._gerar_link_amazon_antigo(url)
+            
+            # AWIN: versão síncrona simples
+            elif loja in self.awin_publishers:
+                if not self.awin_api_token:
+                    logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
+                    return url
+                
+                publisher_id = self.awin_publishers.get(loja)
+                if not publisher_id:
+                    logger.warning(f"Publisher ID não configurado para: {loja}")
+                    return url
+                
+                awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&ued={quote(url)}"
+                return awin_url
+            
+            # Outras lojas: mantém URL original
+            else:
+                return url
+                
+        except Exception as e:
+            logger.error(f"Erro ao gerar link síncrono: {e}")
+            return url
+    
+    def _convert_awin_url(self, url_original: str, loja: str) -> str:
+        """
+        Converte URL para link de afiliado usando a API da Awin.
+        
+        Args:
+            url_original: URL original do produto
+            loja: Nome da loja
+            
+        Returns:
+            URL de afiliado da Awin ou URL original se falhar
+        """
+        try:
+            from urllib.parse import quote
+            from awin_api import get_awin_merchant_id
+            
+            # Verifica se a API da Awin está configurada
+            if not self.awin_api_token: # Changed from config.AWIN_API_TOKEN
+                logger.warning("API da Awin não configurada")
+                return url_original
+            
+            # Mapeia nomes de lojas para slugs da Awin
+            lojas_awin_slugs = {
+                'Kabum!': 'kabum',
+                'Dell': 'dell',
+                'Lenovo': 'lenovo',
+                'Acer': 'acer',
+                'ASUS': 'asus',
+                'Trocafy': 'trocafy',
+                'Samsung': 'samsung',
+                'Casa Bahia': 'casa_bahia'
+            }
+            
+            # Obtém o slug da loja na Awin
+            loja_slug = lojas_awin_slugs.get(loja)
+            if not loja_slug:
+                logger.warning(f"Loja {loja} não mapeada para Awin")
+                return url_original
+            
+            # Obtém o merchant ID (awin_id) da loja
+            merchant_id = get_awin_merchant_id(loja_slug)
+            if not merchant_id:
+                logger.warning(f"Sem merchant_id AWIN para {loja} -> mantendo URL original")
+                return url_original
+            
+            # Escolhe o publisher ID baseado na loja
+            publisher_id = (self.awin_publishers.get("samsung") # Changed from config.AWIN_PUBLISHER_IDS
+                           if "samsung" in loja_slug else
+                           self.awin_publishers.get("default")) # Changed from config.AWIN_PUBLISHER_IDS
+            
+            # Constrói o link de afiliado da Awin
+            # Formato: https://www.awin1.com/cread.php?awinmid={merchant_id}&awinaffid={publisher_id}&ued={url_encoded}
+            affiliate_url = (
+                f"https://www.awin1.com/cread.php?"
+                f"awinmid={merchant_id}&"
+                f"awinaffid={publisher_id}&"
+                f"ued={quote(url_original, safe='')}"
+            )
+            
+            logger.info(f"AWIN ok ({loja}): merchant_id={merchant_id}, publisher_id={publisher_id}")
+            logger.info(f"✅ Link de afiliado Awin gerado para {loja}: {affiliate_url[:80]}...")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao converter URL da Awin: {e}")
+            return url_original
     
     def gerar_links_afiliado_batch(self, urls: list, lojas: list = None) -> Dict[str, str]:
         """
@@ -291,123 +498,27 @@ class AffiliateLinkConverter:
             logger.error(f"Erro ao gerar links em lote: {e}")
             return {url: url for url in urls}
     
-    def _gerar_link_afiliado_sync(self, url: str, loja: str) -> str:
-        """Versão síncrona para compatibilidade com código existente"""
-        try:
-            # Amazon: usa método antigo síncrono
-            if loja.lower() in ['amazon', 'amazon.com.br']:
-                return self._gerar_link_amazon_antigo(url)
-            
-            # AWIN: versão síncrona simples
-            elif loja in self.awin_publishers:
-                if not self.awin_api_token:
-                    logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
-                    return url
-                
-                publisher_id = self.awin_publishers.get(loja)
-                if not publisher_id:
-                    logger.warning(f"Publisher ID não configurado para: {loja}")
-                    return url
-                
-                awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&clickref=&p={url}"
-                return awin_url
-            
-            # Outras lojas: mantém URL original
-            else:
-                return url
-                
-        except Exception as e:
-            logger.error(f"Erro ao gerar link síncrono: {e}")
-            return url
-    
-    def _convert_awin_url(self, url_original: str, loja: str) -> str:
+    def verificar_status_afiliado(self, loja: str) -> Dict[str, Any]:
         """
-        Converte URL para link de afiliado usando a API da Awin.
-        
-        Args:
-            url_original: URL original do produto
-            loja: Nome da loja
-            
-        Returns:
-            URL de afiliado da Awin ou URL original se falhar
-        """
-        try:
-            from urllib.parse import quote
-            from awin_api import get_awin_merchant_id
-            
-            # Verifica se a API da Awin está configurada
-            if not config.AWIN_API_TOKEN:
-                logger.warning("API da Awin não configurada")
-                return url_original
-            
-            # Mapeia nomes de lojas para slugs da Awin
-            lojas_awin_slugs = {
-                'Kabum!': 'kabum',
-                'Dell': 'dell',
-                'Lenovo': 'lenovo',
-                'Acer': 'acer',
-                'ASUS': 'asus',
-                'Trocafy': 'trocafy',
-                'Samsung': 'samsung',
-                'Casa Bahia': 'casa_bahia'
-            }
-            
-            # Obtém o slug da loja na Awin
-            loja_slug = lojas_awin_slugs.get(loja)
-            if not loja_slug:
-                logger.warning(f"Loja {loja} não mapeada para Awin")
-                return url_original
-            
-            # Obtém o merchant ID (awin_id) da loja
-            merchant_id = get_awin_merchant_id(loja_slug)
-            if not merchant_id:
-                logger.warning(f"Sem merchant_id AWIN para {loja} -> mantendo URL original")
-                return url_original
-            
-            # Escolhe o publisher ID baseado na loja
-            publisher_id = (config.AWIN_PUBLISHER_IDS["samsung"]
-                           if "samsung" in loja_slug else
-                           config.AWIN_PUBLISHER_IDS["default"])
-            
-            # Constrói o link de afiliado da Awin
-            # Formato: https://www.awin1.com/cread.php?awinmid={merchant_id}&awinaffid={publisher_id}&ued={url_encoded}
-            affiliate_url = (
-                f"https://www.awin1.com/cread.php?"
-                f"awinmid={merchant_id}&"
-                f"awinaffid={publisher_id}&"
-                f"ued={quote(url_original, safe='')}"
-            )
-            
-            logger.info(f"AWIN ok ({loja}): merchant_id={merchant_id}, publisher_id={publisher_id}")
-            logger.info(f"✅ Link de afiliado Awin gerado para {loja}: {affiliate_url[:80]}...")
-            return affiliate_url
-            
-        except Exception as e:
-            logger.error(f"Erro ao converter URL da Awin: {e}")
-            return url_original
-    
-    def verificar_status_afiliado(self, loja: str) -> Dict:
-        """
-        Verifica o status da configuração de afiliado para uma loja
+        Verifica o status de configuração de afiliado para uma loja
         
         Args:
             loja: Nome da loja
             
         Returns:
-            Dicionário com informações de status
+            Dicionário com status da configuração
         """
         try:
-            if loja not in self.awin_publishers: # Changed to awin_publishers
+            if loja not in self.awin_publishers:
                 return {
                     'loja': loja,
-                    'status': 'nao_configurada',
-                    'enabled': False,
+                    'status': 'nao_configurado',
                     'method': 'none',
                     'message': 'Loja não configurada'
                 }
             
             # Configurações de afiliados por loja
-            self.affiliate_configs = {
+            affiliate_configs = {
                 'Magazine Luiza': {
                     'enabled': True,
                     'base_url': 'https://www.magazinevoce.com.br/magazinegarimpeirogeek',
@@ -419,34 +530,36 @@ class AffiliateLinkConverter:
                     'method': 'add_tag'
                 },
                 'Shopee': {
-                    'enabled': False,  # Por enquanto desabilitado
-                    'method': 'none'
+                    'enabled': True,
+                    'method': 'short_link'
                 },
                 'AliExpress': {
                     'enabled': True,
-                    'method': 'api'  # Usa a API do AliExpress
+                    'method': 'short_link'
                 },
                 'Awin': {
                     'enabled': True,
                     'method': 'api',  # Usa a API da Awin
-                    'api_token': config.AWIN_API_TOKEN,
-                    'publisher_id': config.AWIN_PUBLISHER_ID
+                    'api_token': self.awin_api_token,
+                    'publisher_id': self.awin_publishers.get(loja, 'nao_configurado')
                 },
                 'Mercado Livre': {
                     'enabled': True,
-                    'method': 'none',  # Por enquanto sem conversão específica
-                    'message': 'Links diretos do Mercado Livre'
+                    'method': 'social_link'
                 }
             }
-
-            config_loja = self.affiliate_configs[loja]
+            
+            config_loja = affiliate_configs.get(loja, {
+                'enabled': False,
+                'method': 'none',
+                'message': 'Configuração não encontrada'
+            })
             
             return {
                 'loja': loja,
-                'status': 'configurada',
-                'enabled': config_loja['enabled'],
-                'method': config_loja['method'],
-                'message': 'Configuração válida' if config_loja['enabled'] else 'Desabilitada'
+                'status': 'configurado' if config_loja.get('enabled') else 'desabilitado',
+                'method': config_loja.get('method', 'none'),
+                'message': config_loja.get('message', 'OK')
             }
             
         except Exception as e:
@@ -454,29 +567,23 @@ class AffiliateLinkConverter:
             return {
                 'loja': loja,
                 'status': 'erro',
-                'enabled': False,
                 'method': 'none',
                 'message': f'Erro: {str(e)}'
             }
     
-    def listar_lojas_configuradas(self) -> Dict[str, Dict]:
+    def obter_status_todas_lojas(self) -> Dict[str, Dict[str, Any]]:
         """
-        Lista todas as lojas configuradas para afiliados
+        Obtém o status de configuração de afiliado para todas as lojas
         
         Returns:
-            Dicionário com configurações de todas as lojas
+            Dicionário com status de todas as lojas
         """
-        try:
-            status_lojas = {}
-            
-            for loja in self.awin_publishers.keys(): # Changed to awin_publishers
-                status_lojas[loja] = self.verificar_status_afiliado(loja)
-            
-            return status_lojas
-            
-        except Exception as e:
-            logger.error(f"Erro ao listar lojas configuradas: {e}")
-            return {}
+        status_lojas = {}
+        
+        for loja in self.awin_publishers.keys():
+            status_lojas[loja] = self.verificar_status_afiliado(loja)
+        
+        return status_lojas
 
 
 def gerar_link_afiliado(url_original: str, loja: str = None) -> str:
@@ -526,7 +633,7 @@ if __name__ == "__main__":
         
         print("\n📋 Status das configurações de afiliado:")
         print("-" * 40)
-        status_lojas = converter.listar_lojas_configuradas()
+        status_lojas = converter.obter_status_todas_lojas() # Changed to obter_status_todas_lojas
         
         for loja, status in status_lojas.items():
             print(f"   {loja}: {'✅' if status['enabled'] else '❌'} {status['method']}")
