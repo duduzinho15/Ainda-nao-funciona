@@ -16,33 +16,36 @@ def setup_database():
         conn = sqlite3.connect(config.DB_NAME)
         cursor = conn.cursor()
         
-        # Tabela de ofertas
+        # Tabela de ofertas com esquema atualizado
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS ofertas (
-            id_produto TEXT NOT NULL,         -- ID único do produto na loja (SKU, ASIN, etc.)
-            loja TEXT NOT NULL,                -- Nome da loja (ex: 'Magazine Luiza', 'Amazon')
-            titulo TEXT NOT NULL,              -- Título do produto
-            preco TEXT NOT NULL,               -- Preço atual formatado como string
-            preco_original TEXT,               -- Preço original (antes do desconto)
-            url_produto TEXT NOT NULL,         -- URL canônica do produto
-            url_afiliado TEXT,                 -- URL de afiliado (quando aplicável)
-            url_imagem TEXT,                   -- URL da imagem do produto
-            fonte TEXT NOT NULL,               -- Fonte da oferta (ex: 'Scraper', 'Manual')
-            offer_hash TEXT,                   -- Hash único da oferta para deduplicação
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            asin TEXT,
+            url_produto TEXT NOT NULL,
+            titulo TEXT NOT NULL,
+            preco TEXT NOT NULL,
+            preco_original TEXT,
+            loja TEXT NOT NULL,
+            fonte TEXT NOT NULL,
+            url_fonte TEXT,
+            url_afiliado TEXT,
+            imagem_url TEXT,
+            offer_hash TEXT,
             data_postagem TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             data_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (id_produto, loja)     -- Chave primária composta
+            UNIQUE(url_produto),
+            UNIQUE(asin),
+            UNIQUE(offer_hash)
         )
         ''')
-        
+
         # Índices para melhorar a performance das buscas
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_loja ON ofertas(loja)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_fonte ON ofertas(fonte)')
         cursor.execute('CREATE INDEX IF NOT EXISTS idx_data_postagem ON ofertas(data_postagem)')
-        cursor.execute('CREATE INDEX IF NOT EXISTS idx_asin ON ofertas(asin)')  # Índice para buscas por ASIN
-        
-        # Índice único para offer_hash (deduplicação)
-        cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_ofertas_offer_hash ON ofertas(offer_hash)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_url_produto ON ofertas(url_produto)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_asin ON ofertas(asin)')
+        cursor.execute('CREATE INDEX IF NOT EXISTS idx_offer_hash ON ofertas(offer_hash)')
         
         # Tabela de configurações
         cursor.execute('''
@@ -97,12 +100,12 @@ def extrair_dominio_loja(url: str) -> str:
 
 def oferta_ja_existe(id_produto: str, loja: str) -> bool:
     """
-    Verifica se uma oferta já existe no banco de dados com base no ID do produto e na loja.
-    
+    Verifica se uma oferta já existe no banco de dados com base na URL do produto e na loja.
+
     Args:
-        id_produto: ID único do produto na loja
+        id_produto: URL do produto
         loja: Nome da loja (ex: 'Magazine Luiza', 'Amazon')
-        
+
     Returns:
         bool: True se a oferta já existe, False caso contrário
     """
