@@ -19,6 +19,7 @@ ENABLE_PELANDO=1
 ENABLE_SHOPEE=0
 ENABLE_AMAZON=0
 ENABLE_ALIEXPRESS=0
+ENABLE_MEPUC=0
 
 # APIs de Afiliados
 AMAZON_ASSOCIATE_TAG=garimpeirogee-20
@@ -46,6 +47,7 @@ METRICS_PORT=9308
 # Para ativar Shopee: ENABLE_SHOPEE=1
 # Para ativar Amazon: ENABLE_AMAZON=1
 # Para ativar AliExpress: ENABLE_ALIEXPRESS=1
+# Para ativar MeuPC.net: ENABLE_MEPUC=1
 
 # ===== CONFIGURAÇÕES AVANÇADAS =====
 # BACKUP_AUTO=1  # Backup automático antes de cada execução

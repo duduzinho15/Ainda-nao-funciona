@@ -22,6 +22,7 @@ ENABLE_PELANDO = os.getenv("ENABLE_PELANDO", "1") == "1"
 ENABLE_SHOPEE = os.getenv("ENABLE_SHOPEE", "0") == "1"  # Desabilitado por padrão
 ENABLE_AMAZON = os.getenv("ENABLE_AMAZON", "0") == "1"  # Desabilitado por padrão
 ENABLE_ALIEXPRESS = os.getenv("ENABLE_ALIEXPRESS", "0") == "1"  # Desabilitado por padrão
+ENABLE_MEPUC = os.getenv("ENABLE_MEPUC", "0") == "1"  # Desabilitado por padrão
 
 # Configurações da Amazon PA-API
 AMAZON_ACCESS_KEY = os.getenv("AMAZON_ACCESS_KEY", "")
@@ -86,6 +87,7 @@ def print_config_status():
     print(f"  Shopee: {'✅ ATIVO' if ENABLE_SHOPEE else '❌ DESABILITADO'}")
     print(f"  Amazon: {'✅ ATIVO' if ENABLE_AMAZON else '❌ DESABILITADO'}")
     print(f"  AliExpress: {'✅ ATIVO' if ENABLE_ALIEXPRESS else '❌ DESABILITADO'}")
+    print(f"  MeuPC.net: {'✅ ATIVO' if ENABLE_MEPUC else '❌ DESABILITADO'}")
     
     # Status das APIs
     print(f"\n🔑 APIs:")

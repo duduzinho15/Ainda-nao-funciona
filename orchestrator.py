@@ -116,6 +116,29 @@ async def scrape_amazon(limit: int = 10) -> List[Dict[str, Any]]:
         SCRAPER_ERRORS.labels(scraper_name="amazon").inc()
         return []
 
+async def scrape_mepuc(limit: int = 15) -> List[Dict[str, Any]]:
+    """Executa scraper do MeuPC.net"""
+    if not config.ENABLE_MEPUC:
+        logger.info("MeuPC.net desabilitado por configuração")
+        return []
+    
+    try:
+        from mepuc_scraper import buscar_ofertas_mepuc
+        import aiohttp
+        
+        async with aiohttp.ClientSession() as session:
+            ofertas = await buscar_ofertas_mepuc(
+                session=session,
+                max_paginas=2,
+                max_requests=5
+            )
+        SCRAPER_SUCCESS.labels(scraper_name="mepuc").inc()
+        return ofertas[:limit]
+    except Exception as e:
+        logger.error(f"Erro no scraper MeuPC.net: {e}")
+        SCRAPER_ERRORS.labels(scraper_name="mepuc").inc()
+        return []
+
 # Lista dinâmica de scrapers baseada na configuração
 def get_active_scrapers():
     """Retorna lista de scrapers ativos baseada na configuração"""
@@ -129,6 +152,8 @@ def get_active_scrapers():
         scrapers.append(("shopee", scrape_shopee))
     if config.ENABLE_AMAZON:
         scrapers.append(("amazon", scrape_amazon))
+    if config.ENABLE_MEPUC:
+        scrapers.append(("mepuc", scrape_mepuc))
     
     return scrapers
 
