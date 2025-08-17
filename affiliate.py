@@ -6,7 +6,7 @@ import re
 import logging
 import hashlib
 import base64
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse, parse_qs, urlencode, quote
 import aiohttp
 
@@ -323,7 +323,7 @@ class AffiliateLinkConverter:
             logger.error(f"Erro ao gerar link Magazine Luiza: {e}")
             return url
     
-    async def gerar_link_afiliado(self, url: str, loja: str = None) -> str:
+    async def gerar_link_afiliado(self, url: str, loja: Optional[str] = None) -> str:
         """Função principal para gerar links de afiliado"""
         if not url:
             return url
@@ -467,7 +467,7 @@ class AffiliateLinkConverter:
             logger.error(f"Erro ao converter URL da Awin: {e}")
             return url_original
     
-    def gerar_links_afiliado_batch(self, urls: list, lojas: list = None) -> Dict[str, str]:
+    def gerar_links_afiliado_batch(self, urls: List[str], lojas: Optional[List[str]] = None) -> Dict[str, str]:
         """
         Gera links de afiliado para múltiplas URLs em lote
         
@@ -592,7 +592,7 @@ class AffiliateLinkConverter:
         return status_lojas
 
 
-def gerar_link_afiliado(url_original: str, loja: str = None) -> str:
+async def gerar_link_afiliado(url_original: str, loja: Optional[str] = None) -> str:
     """
     Função principal para gerar link de afiliado
     
@@ -604,10 +604,10 @@ def gerar_link_afiliado(url_original: str, loja: str = None) -> str:
         URL de afiliado ou URL original se não for possível converter
     """
     converter = AffiliateLinkConverter()
-    return converter.gerar_link_afiliado(url_original, loja)
+    return await converter.gerar_link_afiliado(url_original, loja)
 
 
-def gerar_links_afiliado_batch(urls: list, lojas: list = None) -> Dict[str, str]:
+def gerar_links_afiliado_batch(urls: List[str], lojas: Optional[List[str]] = None) -> Dict[str, str]:
     """
     Função principal para gerar links de afiliado em lote
     
@@ -642,14 +642,15 @@ if __name__ == "__main__":
         status_lojas = converter.obter_status_todas_lojas() # Changed to obter_status_todas_lojas
         
         for loja, status in status_lojas.items():
-            print(f"   {loja}: {'✅' if status['enabled'] else '❌'} {status['method']}")
+            enabled = status.get('status') == 'configurado'
+            print(f"   {loja}: {'✅' if enabled else '❌'} {status.get('method', 'none')}")
         
         print("\n🔗 Testando conversão de URLs:")
         print("-" * 40)
         
         for url in urls_teste:
             loja = converter.detectar_loja(url) # Changed to detectar_loja
-            affiliate_url = converter.gerar_link_afiliado(url, loja)
+            affiliate_url = converter._gerar_link_afiliado_sync(url, loja)  # Usa versão síncrona para teste
             
             print(f"\n🏪 Loja: {loja}")
             print(f"   🔗 Original: {url[:60]}...")
