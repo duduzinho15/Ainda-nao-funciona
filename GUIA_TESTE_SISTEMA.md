@@ -60,7 +60,7 @@ python main.py
 
 #### **Teste Promobit:**
 ```bash
-python promobit_scraper_clean.py
+python promobit_scraper.py
 ```
 
 #### **Teste Amazon:**

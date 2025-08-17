@@ -44,7 +44,7 @@ try:
     from duplicate_prevention_system import DuplicatePreventionSystem
     # Scrapers
     from magalu_scraper import MagazineLuizaScraper
-    from promobit_scraper_clean import buscar_ofertas_promobit
+    from promobit_scraper import buscar_ofertas_promobit
     from pelando_scraper import buscar_ofertas_pelando
     from amazon_scraper import AmazonScraper
     from shopee_api_integration import ShopeeAPIIntegration

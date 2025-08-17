@@ -189,9 +189,9 @@ class EnhancedAutomationRunner:
         try:
             logger.info("🔥 Iniciando scraper Promobit...")
             
-            from promobit_scraper_final import buscar_ofertas_promobit
-            
-            ofertas = buscar_ofertas_promobit(
+            from promobit_scraper import buscar_ofertas_promobit
+
+            ofertas = await buscar_ofertas_promobit(
                 max_paginas=3,
                 min_desconto=self.scrapers_config['Promobit']['min_desconto']
             )

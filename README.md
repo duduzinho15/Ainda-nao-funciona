@@ -31,7 +31,7 @@ Sistema inteligente de postagem automática de ofertas no Telegram com cartões 
 │   ├── telegram_poster.py       # Sistema de postagem melhorado
 │   └── config.py                # Configurações e tokens
 ├── 🔍 Scrapers e APIs
-│   ├── promobit_scraper_clean.py # Scraper do Promobit (funcionando)
+│   ├── promobit_scraper.py       # Scraper do Promobit
 │   ├── amazon_api.py            # API da Amazon
 │   ├── awin_api.py              # API da AWIN corrigida
 │   ├── affiliate.py             # Sistema de afiliados unificado
@@ -101,7 +101,7 @@ python scripts/post_sample.py
 
 ### **Executar Scrapers Individualmente**
 ```bash
-python promobit_scraper_clean.py
+python promobit_scraper.py
 python amazon_api.py
 python awin_api.py
 ```
