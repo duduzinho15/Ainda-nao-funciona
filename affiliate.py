@@ -62,7 +62,24 @@ class AffiliateLinkConverter:
             'acer.com.br': 'Acer',
             'asus.com.br': 'ASUS',
             'mercadolivre.com.br': 'Mercado Livre',
-            'lista.mercadolivre.com.br': 'Mercado Livre'
+            'lista.mercadolivre.com.br': 'Mercado Livre',
+            'terabyteshop.com.br': 'Terabyte',
+            'pichau.com.br': 'Pichau',
+            'casasbahia.com.br': 'Casas Bahia',
+            'americanas.com.br': 'Americanas',
+            'submarino.com.br': 'Submarino',
+            'extra.com.br': 'Extra',
+            'fastshop.com.br': 'Fast Shop',
+            'ricardoeletro.com.br': 'Ricardo Eletro',
+            'saraiva.com.br': 'Saraiva',
+            'livrariacultura.com.br': 'Cultura',
+            'fnac.com.br': 'Fnac',
+            'walmart.com.br': 'Walmart',
+            'carrefour.com.br': 'Carrefour',
+            'paodeacucar.com': 'Pão de Açúcar',
+            'raiadrogasil.com.br': 'Raia Drogasil',
+            'drogariaspacheco.com.br': 'Drogarias Pacheco',
+            'drogariasaonjoao.com.br': 'Drogarias São João'
         }
     
     def detect_store_from_url(self, url: str) -> Optional[str]:

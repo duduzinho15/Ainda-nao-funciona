@@ -27,6 +27,14 @@ AWIN_API_TOKEN=seu_token_awin_real_aqui
 SHOPEE_API_KEY=sua_chave_shopee_real_aqui
 ALIEXPRESS_APP_KEY=sua_chave_aliexpress_real_aqui
 
+# ===== CONFIGURAÇÕES DE SCRAPING (SEM API) =====
+# Para usar scraping em vez de API, deixe as chaves vazias
+# e configure os delays para evitar bloqueios
+AMAZON_ACCESS_KEY=
+AMAZON_SECRET_KEY=
+SHOPEE_API_SECRET=
+ALIEXPRESS_APP_SECRET=
+
 # Configurações do Banco de Dados
 DB_NAME=ofertas.db
 

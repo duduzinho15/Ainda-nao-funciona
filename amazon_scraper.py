@@ -1,316 +1,353 @@
+#!/usr/bin/env python3
 """
-Scraper para a Amazon Brasil - Coleta ofertas do dia usando Selenium
+Scraper para Amazon - Garimpeiro Geek
+Extrai ofertas da Amazon via Promobit (evita bloqueios diretos)
 """
-import time
+import asyncio
+import aiohttp
 import logging
 import re
-from typing import List, Dict, Optional
-from urllib.parse import urljoin, urlparse
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
-from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
+from typing import List, Dict, Any
+from datetime import datetime
+import random
+import config
 
-# Configuração de logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("amazon_scraper")
 
 class AmazonScraper:
-    """Scraper para a Amazon Brasil usando Selenium"""
+    """Scraper para Amazon usando Promobit como fonte"""
     
-    def __init__(self, headless: bool = True):
-        self.base_url = "https://www.amazon.com.br"
-        self.ofertas_url = "https://www.amazon.com.br/deals"
-        self.headless = headless
-        self.driver = None
+    def __init__(self):
+        self.base_url = "https://www.promobit.com.br"
+        self.session = None
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+        ]
         
-    def setup_driver(self):
-        """Configura o driver do Chrome"""
+        # URLs do Promobit que filtram produtos da Amazon
+        self.amazon_urls = [
+            "/ofertas",
+            "/ofertas/",
+            "/"
+        ]
+    
+    async def __aenter__(self):
+        """Context manager entry"""
+        timeout = aiohttp.ClientTimeout(total=30)
+        self.session = aiohttp.ClientSession(
+            timeout=timeout,
+            headers={
+                "User-Agent": random.choice(self.user_agents),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive",
+                "Upgrade-Insecure-Requests": "1"
+            }
+        )
+        return self
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit"""
+        if self.session:
+            await self.session.close()
+    
+    async def buscar_ofertas(self, max_paginas: int = 2, max_requests: int = 4) -> List[Dict[str, Any]]:
+        """Busca ofertas da Amazon via Promobit"""
+        logger.info(f"🚀 Iniciando busca de ofertas da Amazon via Promobit (max_paginas={max_paginas})")
+        
+        all_ofertas = []
+        request_count = 0
+        
         try:
-            chrome_options = Options()
-            if self.headless:
-                chrome_options.add_argument("--headless")
+            # Busca em URLs específicas da Amazon no Promobit
+            for url_suffix in self.amazon_urls[:max_paginas]:
+                if request_count >= max_requests:
+                    break
+                
+                try:
+                    url = f"{self.base_url}{url_suffix}"
+                    logger.info(f"📄 Buscando em: {url}")
+                    
+                    ofertas = await self._scrape_pagina(url)
+                    # Filtra apenas ofertas da Amazon
+                    amazon_ofertas = [o for o in ofertas if "amazon" in o.get("loja", "").lower()]
+                    all_ofertas.extend(amazon_ofertas)
+                    request_count += 1
+                    
+                    # Delay entre requests
+                    await asyncio.sleep(random.uniform(2, 4))
+                    
+                except Exception as e:
+                    logger.error(f"❌ Erro ao buscar em {url_suffix}: {e}")
+                    continue
             
-            chrome_options.add_argument("--no-sandbox")
-            chrome_options.add_argument("--disable-dev-shm-usage")
-            chrome_options.add_argument("--disable-gpu")
-            chrome_options.add_argument("--window-size=1920,1080")
-            chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+            # Se não encontrou ofertas específicas da Amazon, busca em categorias gerais
+            if not all_ofertas:
+                logger.info("🔍 Buscando ofertas da Amazon em categorias gerais...")
+                general_urls = [
+                    "/ofertas",
+                    "/"
+                ]
+                
+                for url_suffix in general_urls:
+                    if request_count >= max_requests:
+                        break
+                    
+                    try:
+                        url = f"{self.base_url}{url_suffix}"
+                        logger.info(f"📄 Buscando em: {url}")
+                        
+                        ofertas = await self._scrape_pagina(url)
+                        # Filtra apenas ofertas da Amazon
+                        amazon_ofertas = [o for o in ofertas if "amazon" in o.get("loja", "").lower()]
+                        all_ofertas.extend(amazon_ofertas)
+                        request_count += 1
+                        
+                        await asyncio.sleep(random.uniform(2, 4))
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Erro ao buscar em {url_suffix}: {e}")
+                        continue
             
-            # Desabilita imagens para melhor performance
-            prefs = {"profile.managed_default_content_settings.images": 2}
-            chrome_options.add_experimental_option("prefs", prefs)
-            
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            logger.info("✅ Driver do Chrome configurado com sucesso")
-            return True
+            logger.info(f"✅ Busca concluída. Total de ofertas da Amazon encontradas: {len(all_ofertas)}")
+            return all_ofertas
             
         except Exception as e:
-            logger.error(f"❌ Erro ao configurar driver: {e}")
-            return False
+            logger.error(f"❌ Erro geral na busca: {e}")
+            return []
     
-    def close_driver(self):
-        """Fecha o driver do Chrome"""
-        if self.driver:
-            try:
-                self.driver.quit()
-                logger.info("✅ Driver do Chrome fechado")
-            except Exception as e:
-                logger.error(f"❌ Erro ao fechar driver: {e}")
-    
-    def wait_for_page_load(self, timeout: int = 30):
-        """Aguarda o carregamento da página"""
+    async def _scrape_pagina(self, url: str) -> List[Dict[str, Any]]:
+        """Scrapa uma página específica do Promobit"""
         try:
-            WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_element_located((By.TAG_NAME, "body"))
-            )
-            time.sleep(3)  # Aguarda JavaScript carregar
-            return True
-        except TimeoutException:
-            logger.warning("⚠️ Timeout aguardando carregamento da página")
-            return False
-    
-    def scroll_page(self, scroll_pause: float = 2.0):
-        """Faz scroll da página para carregar conteúdo dinâmico"""
-        try:
-            # Scroll para baixo
-            self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(scroll_pause)
-            
-            # Scroll para cima
-            self.driver.execute_script("window.scrollTo(0, 0);")
-            time.sleep(scroll_pause)
-            
-            logger.info("✅ Scroll da página realizado")
-            return True
+            async with self.session.get(url) as response:
+                response.raise_for_status()
+                html = await response.text()
+                
+                # Salva HTML para debug
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"amazon_via_promobit_{timestamp}.html"
+                with open(filename, "w", encoding="utf-8") as f:
+                    f.write(html)
+                logger.debug(f"HTML salvo em {filename}")
+                
+                return self._parse_ofertas(html, url)
+                
         except Exception as e:
-            logger.error(f"❌ Erro ao fazer scroll: {e}")
-            return False
+            logger.error(f"❌ Erro ao fazer request para {url}: {e}")
+            return []
     
-    def extract_product_info(self, product_element) -> Optional[Dict]:
-        """Extrai informações de um produto"""
+    def _parse_ofertas(self, html: str, source_url: str) -> List[Dict[str, Any]]:
+        """Parseia o HTML para extrair ofertas do Promobit"""
         try:
-            # Tenta diferentes seletores para o título
-            titulo = None
+            soup = BeautifulSoup(html, "html.parser")
+            ofertas = []
+            
+            # Busca por cards de ofertas (mesmo padrão do Promobit)
+            offer_cards = soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner')
+            
+            if not offer_cards:
+                # Fallback para outros seletores
+                offer_cards = soup.select('.card, .offer, .product, article')
+            
+            # Se ainda não encontrou, tenta seletores mais genéricos
+            if not offer_cards:
+                offer_cards = soup.select('div[class*="card"], div[class*="offer"], div[class*="product"], div[class*="item"]')
+            
+            # Último fallback: busca por elementos que contenham preços
+            if not offer_cards:
+                price_elements = soup.find_all(text=re.compile(r"R\$\s*\d"))
+                if price_elements:
+                    for price_elem in price_elements:
+                        parent = price_elem.parent
+                        if parent and parent.name:
+                            offer_cards.append(parent)
+            
+            logger.info(f"🔍 Encontrados {len(offer_cards)} cards de oferta em {source_url}")
+            
+            for card in offer_cards:
+                try:
+                    oferta = self._extrair_oferta(card, source_url)
+                    if oferta:
+                        ofertas.append(oferta)
+                        logger.debug(f"Oferta extraída: {oferta['titulo'][:50]}... - {oferta['preco']}")
+                except Exception as e:
+                    logger.warning(f"⚠️ Erro ao extrair oferta: {e}")
+                    continue
+            
+            logger.info(f"📊 Página {source_url}: {len(ofertas)} ofertas extraídas")
+            return ofertas
+            
+        except Exception as e:
+            logger.error(f"❌ Erro ao fazer parse do HTML: {e}")
+            return []
+    
+    def _extrair_oferta(self, card, source_url: str) -> Dict[str, Any] | None:
+        """Extrai dados de uma oferta individual"""
+        try:
+            # Título da oferta - busca em múltiplos elementos
+            titulo = ""
             titulo_selectors = [
-                'h2', 'h3', 'h4', 
-                '[data-testid="product-title"]',
-                '.product-title',
-                '.product-name',
-                '[class*="title"]'
+                'h2 a span', '.a-text-normal', '.a-size-base-plus', '.titulo', '.title',
+                'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+                'a[title]', 'a[alt]', 'div[title]', 'span[title]',
+                'div.titulo', 'div.title', 'span.titulo', 'span.title'
             ]
             
             for selector in titulo_selectors:
-                try:
-                    titulo_elem = product_element.find_element(By.CSS_SELECTOR, selector)
-                    if titulo_elem:
-                        titulo = titulo_elem.text.strip()
+                elem = card.select_one(selector)
+                if elem:
+                    titulo = elem.get_text(strip=True)
+                    if titulo and len(titulo) > 10:
                         break
-                except NoSuchElementException:
-                    continue
             
+            # Se não encontrou título, tenta extrair do texto do card
             if not titulo:
-                # Fallback: procura por qualquer texto que pareça título
-                try:
-                    titulo_elem = product_element.find_element(By.CSS_SELECTOR, '[class*="title"], [class*="name"]')
-                    if titulo_elem:
-                        titulo = titulo_elem.text.strip()
-                except NoSuchElementException:
-                    pass
+                text_elements = card.find_all(string=True)
+                for text in text_elements:
+                    text = text.strip()
+                    if (len(text) > 15 and 
+                        not re.search(r"R\$\s*\d", text) and
+                        not re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", text)):
+                        titulo = text
+                        break
             
-            # Extrai preço
-            preco = None
+            if not titulo or len(titulo) < 10:
+                return None
+            
+            # Preço atual - busca em múltiplos elementos
+            preco = ""
             preco_selectors = [
-                '[data-testid="price-value"]',
-                '.price-value',
-                '.price',
-                '[class*="price"]',
-                '.a-price-whole'
+                '.a-price-whole', '.a-price .a-offscreen', '.preco', '.price',
+                'span[class*="price"]', 'span[class*="preco"]', 'span[class*="valor"]',
+                'div[class*="price"]', 'div[class*="preco"]', 'div[class*="valor"]',
+                'strong', 'b', 'span.preco', 'div.preco'
             ]
             
             for selector in preco_selectors:
-                try:
-                    preco_elem = product_element.find_element(By.CSS_SELECTOR, selector)
-                    if preco_elem:
-                        preco_text = preco_elem.text.strip()
-                        # Remove caracteres não numéricos exceto vírgula e ponto
-                        preco = re.sub(r'[^\d,.]', '', preco_text)
+                elem = card.select_one(selector)
+                if elem:
+                    text = elem.get_text(strip=True)
+                    if self._is_valid_price(text):
+                        preco = text
                         break
-                except NoSuchElementException:
-                    continue
             
-            # Extrai link do produto
-            link = None
-            try:
-                link_elem = product_element.find_element(By.CSS_SELECTOR, 'a[href*="/dp/"]')
-                if link_elem:
-                    link = link_elem.get_attribute('href')
-                    if link and not link.startswith('http'):
-                        link = urljoin(self.base_url, link)
-            except NoSuchElementException:
-                pass
+            # Se não encontrou preço, busca no texto do card
+            if not preco:
+                price_match = re.search(r"R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}", card.get_text())
+                if price_match:
+                    preco = price_match.group(0)
             
-            # Extrai imagem
-            imagem = None
-            try:
-                img_elem = product_element.find_element(By.CSS_SELECTOR, 'img')
-                if img_elem:
-                    imagem = img_elem.get_attribute('src')
-            except NoSuchElementException:
-                pass
+            if not self._is_valid_price(preco):
+                return None
             
-            # Extrai desconto
-            desconto = None
-            desconto_selectors = [
-                '[class*="discount"]',
-                '[class*="off"]',
-                '.badge',
-                '.a-badge-text'
+            # Preço original (se houver desconto)
+            preco_original = ""
+            original_selectors = [
+                '.a-text-strike', '.a-price.a-text-price .a-offscreen', '.preco-original',
+                'span[class*="original"]', 'span[class*="old"]', 'span[class*="antigo"]',
+                'del', 's', 'strike'
             ]
             
-            for selector in desconto_selectors:
-                try:
-                    desconto_elem = product_element.find_element(By.CSS_SELECTOR, selector)
-                    if desconto_elem:
-                        desconto_text = desconto_elem.text.strip()
-                        # Extrai números do texto de desconto
-                        desconto_match = re.search(r'(\d+)%?', desconto_text)
-                        if desconto_match:
-                            desconto = int(desconto_match.group(1))
+            for selector in original_selectors:
+                elem = card.select_one(selector)
+                if elem:
+                    text = elem.get_text(strip=True)
+                    if self._is_valid_price(text):
+                        preco_original = text
                         break
-                except NoSuchElementException:
-                    continue
             
-            if titulo and preco:  # Produto válido deve ter pelo menos título e preço
-                return {
-                    'titulo': titulo,
-                    'preco': preco,
-                    'link': link,
-                    'imagem': imagem,
-                    'desconto': desconto,
-                    'loja': 'Amazon Brasil',
-                    'categoria': 'Ofertas do Dia'
-                }
+            # Calcula desconto
+            desconto = 0
+            if preco_original and self._is_valid_price(preco_original):
+                try:
+                    preco_atual = float(re.sub(r"[^\d,]", "", preco).replace(",", "."))
+                    preco_orig = float(re.sub(r"[^\d,]", "", preco_original).replace(",", "."))
+                    if preco_orig > preco_atual:
+                        desconto = int(((preco_orig - preco_atual) / preco_orig) * 100)
+                except:
+                    pass
             
-            return None
+            # URL do produto
+            url_produto = ""
+            link_elem = card.select_one('a[href*="/dp/"], a[href*="amazon"], a[href]')
+            if link_elem and link_elem.get('href'):
+                href = link_elem['href']
+                if href.startswith('/'):
+                    url_produto = f"{self.base_url}{href}"
+                elif href.startswith('http'):
+                    url_produto = href
+                else:
+                    url_produto = f"{self.base_url}/{href}"
+            
+            if not url_produto:
+                url_produto = source_url
+            
+            # Imagem do produto
+            imagem_url = ""
+            img_elem = card.select_one('img[src*="images"], .s-image, img')
+            if img_elem and img_elem.get('src'):
+                imagem_url = img_elem['src']
+            
+            # Loja (deve ser Amazon)
+            loja = "Amazon"
+            
+            return {
+                "titulo": titulo,
+                "preco": preco,
+                "preco_original": preco_original,
+                "desconto": desconto,
+                "url_produto": url_produto,
+                "imagem_url": imagem_url,
+                "loja": loja,
+                "fonte": "amazon_scraper",
+                "categoria": "hardware",
+                "timestamp": datetime.now().isoformat()
+            }
             
         except Exception as e:
-            logger.error(f"❌ Erro ao extrair informações do produto: {e}")
+            logger.warning(f"⚠️ Erro ao extrair oferta: {e}")
             return None
     
-    def buscar_ofertas(self, max_paginas: int = 3) -> List[Dict]:
-        """Busca ofertas da Amazon Brasil"""
-        ofertas = []
+    def _is_valid_price(self, price_str: str) -> bool:
+        """Valida se o preço é válido"""
+        if not price_str:
+            return False
         
-        try:
-            if not self.setup_driver():
-                return ofertas
-            
-            logger.info(f"🔍 Acessando: {self.ofertas_url}")
-            self.driver.get(self.ofertas_url)
-            
-            if not self.wait_for_page_load():
-                logger.warning("⚠️ Página não carregou completamente")
-            
-            # Faz scroll para carregar conteúdo dinâmico
-            self.scroll_page()
-            
-            # Procura por produtos
-            logger.info("🔍 Procurando por produtos...")
-            
-            # Tenta diferentes seletores para encontrar produtos
-            product_selectors = [
-                '[data-testid="product-card"]',
-                'div[class*="product"]',
-                'div[class*="deal"]',
-                'div[class*="card"]',
-                '.product-card',
-                '.deal-card'
-            ]
-            
-            produtos_encontrados = []
-            for selector in product_selectors:
-                try:
-                    produtos = self.driver.find_elements(By.CSS_SELECTOR, selector)
-                    if produtos:
-                        produtos_encontrados = produtos
-                        logger.info(f"✅ Encontrados {len(produtos)} produtos com seletor: {selector}")
-                        break
-                except Exception:
-                    continue
-            
-            if not produtos_encontrados:
-                # Fallback: procura por qualquer elemento que contenha link de produto
-                try:
-                    links_produto = self.driver.find_elements(By.CSS_SELECTOR, 'a[href*="/dp/"]')
-                    if links_produto:
-                        # Agrupa links por produto pai
-                        produtos_encontrados = []
-                        for link in links_produto:
-                            try:
-                                produto_pai = link.find_element(By.XPATH, './ancestor::*[contains(@class, "card") or contains(@class, "item") or contains(@class, "product") or contains(@class, "deal")]')
-                                if produto_pai and produto_pai not in produtos_encontrados:
-                                    produtos_encontrados.append(produto_pai)
-                            except NoSuchElementException:
-                                continue
-                        logger.info(f"✅ Encontrados {len(produtos_encontrados)} produtos via fallback")
-                except Exception as e:
-                    logger.warning(f"⚠️ Fallback falhou: {e}")
-            
-            # Extrai informações dos produtos
-            if produtos_encontrados:
-                logger.info(f"📋 Extraindo informações de {len(produtos_encontrados)} produtos...")
-                
-                for i, produto in enumerate(produtos_encontrados):
-                    try:
-                        info_produto = self.extract_product_info(produto)
-                        if info_produto:
-                            ofertas.append(info_produto)
-                            logger.info(f"✅ Produto {i+1}: {info_produto['titulo'][:50]}...")
-                        else:
-                            logger.warning(f"⚠️ Produto {i+1}: Não foi possível extrair informações")
-                    except Exception as e:
-                        logger.error(f"❌ Erro ao processar produto {i+1}: {e}")
-                        continue
-                    
-                    # Limita o número de produtos para evitar sobrecarga
-                    if len(ofertas) >= 50:
-                        logger.info("🛑 Limite de 50 produtos atingido")
-                        break
-            
-            logger.info(f"🎯 Total de ofertas extraídas: {len(ofertas)}")
-            
-        except Exception as e:
-            logger.error(f"❌ Erro geral na busca de ofertas: {e}")
-            import traceback
-            traceback.print_exc()
+        # Remove espaços e normaliza
+        price_str = price_str.strip()
         
-        finally:
-            self.close_driver()
+        # Padrões de preço brasileiro
+        patterns = [
+            r"R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}",  # R$ 1.234,56
+            r"R\$\s*\d+,\d{2}",                   # R$ 123,45
+            r"R\$\s*\d+",                         # R$ 123
+            r"\d{1,3}(?:\.\d{3})*,\d{2}",        # 1.234,56
+            r"\d+,\d{2}"                          # 123,45
+        ]
         
-        return ofertas
+        for pattern in patterns:
+            if re.match(pattern, price_str):
+                return True
+        
+        return False
 
-def main():
-    """Função principal para teste"""
-    scraper = AmazonScraper(headless=False)  # False para debug
-    ofertas = scraper.buscar_ofertas()
-    
-    print(f"\n🎯 RESULTADO: {len(ofertas)} ofertas encontradas")
-    print("=" * 60)
-    
-    for i, oferta in enumerate(ofertas[:5], 1):  # Mostra apenas as primeiras 5
-        print(f"\n{i}. {oferta['titulo']}")
-        print(f"   💰 Preço: {oferta['preco']}")
-        if oferta.get('desconto'):
-            print(f"   🏷️ Desconto: {oferta['desconto']}%")
-        print(f"   🔗 Link: {oferta.get('link', 'N/A')}")
-        print(f"   🏪 Loja: {oferta['loja']}")
+async def buscar_ofertas_amazon(session: aiohttp.ClientSession | None = None, max_paginas: int = 2, max_requests: int = 4) -> List[Dict[str, Any]]:
+    """Função principal para buscar ofertas da Amazon via Promobit"""
+    async with AmazonScraper() as scraper:
+        return await scraper.buscar_ofertas(max_paginas=max_paginas, max_requests=max_requests)
 
+# Teste direto
 if __name__ == "__main__":
-    main()
+    async def main():
+        logging.basicConfig(level=logging.INFO)
+        ofertas = await buscar_ofertas_amazon(max_paginas=1, max_requests=2)
+        
+        print(f"\n📊 RESULTADO: {len(ofertas)} ofertas da Amazon encontradas")
+        for i, oferta in enumerate(ofertas[:5], 1):
+            print(f"{i}. {oferta['titulo'][:60]}... - {oferta['preco']}")
+    
+    asyncio.run(main())

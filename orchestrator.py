@@ -94,27 +94,29 @@ async def scrape_shopee(limit: int = 10) -> List[Dict[str, Any]]:
         return []
 
 async def scrape_amazon(limit: int = 10) -> List[Dict[str, Any]]:
-    """Executa scraper da Amazon"""
+    """Executa scraper da Amazon usando método de scraping"""
     if not config.ENABLE_AMAZON:
         logger.info("Amazon desabilitado por configuração")
         return []
     
     try:
-        # Simula busca por produtos populares
-        ofertas = [{
-            "titulo": "📚 Livro Teste Amazon",
-            "preco": "R$ 29,90",
-            "url_produto": "https://www.amazon.com.br/teste",
-            "loja": "Amazon",
-            "fonte": "amazon_scraper",
-            "imagem_url": "https://picsum.photos/400/300?random=amazon"
-        }]
+        from amazon_scraper import buscar_ofertas_amazon
+        import aiohttp
+        
+        async with aiohttp.ClientSession() as session:
+            ofertas = await buscar_ofertas_amazon(
+                session=session,
+                max_paginas=1,
+                max_requests=2
+            )
         SCRAPER_SUCCESS.labels(scraper_name="amazon").inc()
         return ofertas[:limit]
     except Exception as e:
         logger.error(f"Erro no scraper Amazon: {e}")
         SCRAPER_ERRORS.labels(scraper_name="amazon").inc()
         return []
+    
+
 
 async def scrape_mepuc(limit: int = 15) -> List[Dict[str, Any]]:
     """Executa scraper do MeuPC.net"""

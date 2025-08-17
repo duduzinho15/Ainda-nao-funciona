@@ -106,6 +106,72 @@ class MeuPCScraper:
             logger.error(f"❌ Erro ao fazer request para {url}: {e}")
             return []
     
+    async def _get_real_store_url(self, meupuc_link: str) -> str:
+        """Extrai URL real da loja a partir do link interno do MeuPC.net"""
+        try:
+            if not meupuc_link.startswith("https://meupc.net/link/"):
+                return meupuc_link
+            
+            # Faz request para o link interno para extrair URL real
+            async with self.session.get(meupuc_link, allow_redirects=False) as response:
+                if response.status == 302:  # Redirecionamento
+                    real_url = response.headers.get('Location', '')
+                    if real_url:
+                        logger.debug(f"✅ URL real extraída: {meupuc_link} -> {real_url}")
+                        return real_url
+                
+                # Se não há redirecionamento, tenta extrair do HTML
+                html = await response.text()
+                soup = BeautifulSoup(html, "html.parser")
+                
+                # Busca por meta refresh ou link direto
+                meta_refresh = soup.find('meta', attrs={'http-equiv': 'refresh'})
+                if meta_refresh:
+                    content = meta_refresh.get('content', '')
+                    if 'url=' in content:
+                        real_url = content.split('url=')[1]
+                        logger.debug(f"✅ URL real extraída via meta refresh: {real_url}")
+                        return real_url
+                
+                # Busca por link direto da loja
+                store_link = soup.find('a', href=True, target='_blank')
+                if store_link:
+                    real_url = store_link['href']
+                    if real_url.startswith('http'):
+                        logger.debug(f"✅ URL real extraída via link direto: {real_url}")
+                        return real_url
+                
+                logger.warning(f"⚠️ Não foi possível extrair URL real de: {meupuc_link}")
+                return meupuc_link
+                
+        except Exception as e:
+            logger.error(f"❌ Erro ao extrair URL real de {meupuc_link}: {e}")
+            return meupuc_link
+    
+    def _detectar_loja_real(self, url: str) -> str:
+        """Detecta a loja real baseada na URL"""
+        url_lower = url.lower()
+        
+        lojas = {
+            "amazon": "Amazon",
+            "kabum": "Kabum!",
+            "terabyteshop": "Terabyte",
+            "pichau": "Pichau",
+            "mercadolivre": "Mercado Livre",
+            "shopee": "Shopee",
+            "aliexpress": "AliExpress",
+            "magazineluiza": "Magazine Luiza",
+            "casasbahia": "Casas Bahia",
+            "americanas": "Americanas",
+            "submarino": "Submarino"
+        }
+        
+        for dominio, nome_loja in lojas.items():
+            if dominio in url_lower:
+                return nome_loja
+        
+        return "Loja Desconhecida"
+    
     def _parse_ofertas(self, html: str, source_url: str) -> List[Dict[str, Any]]:
         """Parseia o HTML para extrair ofertas"""
         try:
@@ -233,6 +299,9 @@ class MeuPCScraper:
                 # Se não tem URL específica, usa a URL da página
                 url_produto = source_url
             
+            # Detecta loja real baseada na URL
+            loja_real = self._detectar_loja_real(url_produto)
+            
             # Imagem
             imagem_url = ""
             img_elem = card.find("img")
@@ -279,7 +348,7 @@ class MeuPCScraper:
                 "desconto": desconto,
                 "url_produto": url_produto,
                 "imagem_url": imagem_url,
-                "loja": "MeuPC.net",
+                "loja": loja_real,  # Usa loja real detectada
                 "fonte": "mepuc_scraper",
                 "categoria": self._detectar_categoria(titulo),
                 "timestamp": datetime.now().isoformat()
