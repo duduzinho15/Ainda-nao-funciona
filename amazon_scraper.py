@@ -73,8 +73,8 @@ class AmazonScraper:
                     logger.info(f"📄 Buscando em: {url}")
                     
                     ofertas = await self._scrape_pagina(url)
-                    # Filtra apenas ofertas da Amazon
-                    amazon_ofertas = [o for o in ofertas if "amazon" in o.get("loja", "").lower()]
+                    # Filtra apenas ofertas válidas e da Amazon
+                    amazon_ofertas = [o for o in ofertas if o and o.get("loja") and "amazon" in o.get("loja", "").lower()]
                     all_ofertas.extend(amazon_ofertas)
                     request_count += 1
                     
@@ -102,8 +102,8 @@ class AmazonScraper:
                         logger.info(f"📄 Buscando em: {url}")
                         
                         ofertas = await self._scrape_pagina(url)
-                        # Filtra apenas ofertas da Amazon
-                        amazon_ofertas = [o for o in ofertas if "amazon" in o.get("loja", "").lower()]
+                        # Filtra apenas ofertas válidas e da Amazon
+                        amazon_ofertas = [o for o in ofertas if o and o.get("loja") and "amazon" in o.get("loja", "").lower()]
                         all_ofertas.extend(amazon_ofertas)
                         request_count += 1
                         
@@ -171,7 +171,7 @@ class AmazonScraper:
             for card in offer_cards:
                 try:
                     oferta = self._extrair_oferta(card, source_url)
-                    if oferta:
+                    if oferta and isinstance(oferta, dict):
                         ofertas.append(oferta)
                         logger.debug(f"Oferta extraída: {oferta['titulo'][:50]}... - {oferta['preco']}")
                 except Exception as e:
