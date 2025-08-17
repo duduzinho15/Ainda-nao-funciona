@@ -19,14 +19,14 @@ class AffiliateLinkConverter:
     
     def __init__(self):
         # Configurações de afiliados
-        self.amazon_associate_tag = os.getenv("AMAZON_ASSOCIATE_TAG", "garimpeirogee-20")
-        self.awin_api_token = os.getenv("AWIN_API_TOKEN", "f647c7b9-e8de-44a4-80fe-e9572ef35c10")
-        self.shopee_api_key = os.getenv("SHOPEE_API_KEY", "18330800803")
-        self.shopee_api_secret = os.getenv("SHOPEE_API_SECRET", "IOMXMSUM5KDOLSYKXQERKCU42SNMJERR")
-        self.aliexpress_app_key = os.getenv("ALIEXPRESS_APP_KEY", "517956")
-        self.aliexpress_app_secret = os.getenv("ALIEXPRESS_APP_SECRET", "okv8nzEGIvWqV0XxONcN9loPNrYwWDsm")
-        self.mercado_livre_tag = os.getenv("MERCADO_LIVRE_TAG", "garimpeirogeek")
-        self.magazine_luiza_tag = os.getenv("MAGAZINE_LUIZA_TAG", "garimpeirogeek")
+        self.amazon_associate_tag = os.getenv("AMAZON_ASSOCIATE_TAG", "")
+        self.awin_api_token = os.getenv("AWIN_API_TOKEN", "")
+        self.shopee_api_key = os.getenv("SHOPEE_API_KEY", "")
+        self.shopee_api_secret = os.getenv("SHOPEE_API_SECRET", "")
+        self.aliexpress_app_key = os.getenv("ALIEXPRESS_APP_KEY", "")
+        self.aliexpress_app_secret = os.getenv("ALIEXPRESS_APP_SECRET", "")
+        self.mercado_livre_tag = os.getenv("MERCADO_LIVRE_TAG", "")
+        self.magazine_luiza_tag = os.getenv("MAGAZINE_LUIZA_TAG", "")
         
         # Mapeamento de domínios para lojas
         self.domain_mapping = {

@@ -1,0 +1,138 @@
+#!/usr/bin/env python3
+"""
+Teste Detalhado de Execução da Aplicação Flet
+Verifica se há erros em tempo de execução
+"""
+
+import sys
+import os
+import subprocess
+import time
+import threading
+
+def test_flet_execution():
+    """Testa execução da aplicação Flet"""
+    try:
+        print("🔍 Testando execução da aplicação Flet...")
+        
+        # Executa a aplicação usando o comando flet correto
+        process = subprocess.Popen([
+            'flet', 'run', 'app_flet_fixed.py'
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        # Aguarda um pouco para ver se há erros imediatos
+        time.sleep(5)
+        
+        # Verifica se o processo ainda está rodando
+        if process.poll() is None:
+            print("✅ Aplicação Flet iniciou sem erros imediatos")
+            
+            # Para o processo
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+            
+            return True
+        else:
+            # Processo terminou, verifica saída
+            stdout, stderr = process.communicate()
+            if stderr:
+                print(f"❌ Erro na execução: {stderr}")
+                return False
+            else:
+                print("✅ Aplicação executou sem erros")
+                return True
+                
+    except Exception as e:
+        print(f"❌ Erro ao testar execução: {e}")
+        return False
+
+def test_file_content():
+    """Testa conteúdo do arquivo para problemas"""
+    try:
+        print("\n🔍 Verificando conteúdo do arquivo...")
+        
+        with open('app_flet_fixed.py', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Verifica se há problemas conhecidos
+        problems = []
+        
+        # Verifica se há referências problemáticas
+        if 'ft.colors.PRIMARY' in content:
+            problems.append("ft.colors.PRIMARY ainda presente")
+        if 'ft.colors.SURFACE_VARIANT' in content:
+            problems.append("ft.colors.SURFACE_VARIANT ainda presente")
+        if 'ft.colors.OUTLINE' in content:
+            problems.append("ft.colors.OUTLINE ainda presente")
+        
+        if problems:
+            print(f"⚠️ Problemas encontrados: {problems}")
+            return False
+        else:
+            print("✅ Nenhum problema conhecido encontrado no código")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Erro ao verificar arquivo: {e}")
+        return False
+
+def test_flet_version():
+    """Testa versão do Flet"""
+    try:
+        print("\n🔍 Verificando versão do Flet...")
+        
+        # Verifica versão via pip
+        result = subprocess.run(['pip', 'show', 'flet'], 
+                              capture_output=True, text=True)
+        
+        if result.returncode == 0:
+            for line in result.stdout.split('\n'):
+                if line.startswith('Version:'):
+                    version = line.split(':')[1].strip()
+                    print(f"✅ Flet versão: {version}")
+                    break
+        
+        # Verifica se ft.Colors está disponível
+        import flet as ft
+        if hasattr(ft, 'Colors'):
+            print("✅ ft.Colors disponível")
+            return True
+        else:
+            print("⚠️ ft.Colors não disponível nesta versão")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Erro ao verificar versão: {e}")
+        return False
+
+def main():
+    """Função principal de teste"""
+    print("🚀 TESTE DETALHADO DE EXECUÇÃO - APLICAÇÃO FLET")
+    print("=" * 60)
+    
+    # Testa versão do Flet
+    version_ok = test_flet_version()
+    
+    # Testa conteúdo do arquivo
+    content_ok = test_file_content()
+    
+    # Testa execução
+    execution_ok = test_flet_execution()
+    
+    print("\n" + "=" * 60)
+    
+    if version_ok and content_ok and execution_ok:
+        print("🎉 TODOS OS TESTES PASSARAM!")
+        print("✅ Aplicação Flet está funcionando perfeitamente")
+    else:
+        print("❌ ALGUNS TESTES FALHARAM")
+        print("⚠️ Verifique os problemas identificados acima")
+    
+    print("\n💡 Para executar manualmente:")
+    print("   flet run app_flet_fixed.py")
+
+if __name__ == "__main__":
+    main()

@@ -92,3 +92,30 @@ shopee_debug_*.png
 relatorio_*.json
 relatorio_*.txt
 resultado_*.json
+
+# Test files
+test_*.py
+*_test.py
+*_test_*.py
+
+# Debug and temporary files
+debug_*.py
+debug_*.log
+debug_*.html
+debug_*.png
+
+# Analysis and check files
+analyze_*.py
+check_*.py
+inspect_*.py
+
+# Results and reports
+*_results_*.json
+*_results_*.txt
+ofertas_*.json
+ofertas_*.txt
+
+# Backup files
+backups/
+*.bak
+*.backup

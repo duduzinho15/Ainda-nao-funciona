@@ -1,0 +1,158 @@
+[1mdiff --git a/README.md b/README.md[m
+[1mindex ddfa56a..8685dee 100644[m
+[1m--- a/README.md[m
+[1m+++ b/README.md[m
+[36m@@ -5,18 +5,21 @@[m [mSistema inteligente de postagem automática de ofertas no Telegram com cartões[m
+ ## ✨ **Características Principais**[m
+ [m
+ ### 🖼️ **Sistema de Cartão com Imagem Grande**[m
+[32m+[m
+ - **Download via bytes**: Imagens baixadas para evitar hotlinking[m
+ - **Fallback robusto**: Sistema de fallback em 3 níveis (bytes → URL → texto)[m
+ - **OG Image**: Extração automática de imagens de páginas web[m
+ - **Formatação HTML**: Títulos em negrito, preços destacados, emojis[m
+ [m
+ ### 🔗 **Integração com Afiliados**[m
+[32m+[m
+ - **AWIN**: IDs corretos (merchant vs publisher) configurados[m
+ - **Amazon**: Canonicalização de URLs e tags de afiliado[m
+ - **AliExpress**: API de afiliados integrada[m
+ - **Mercado Livre**: Sistema de afiliados configurado[m
+ [m
+ ### 🤖 **Bot do Telegram**[m
+[32m+[m
+ - **Cartões visuais**: Ofertas com imagem grande e formatação profissional[m
+ - **Botões inline**: "🛒 Comprar agora" e botões extras[m
+ - **Postagem automática**: Sistema de scraping e postagem automática[m
+[36m@@ -24,7 +27,7 @@[m [mSistema inteligente de postagem automática de ofertas no Telegram com cartões[m
+ [m
+ ## 🏗️ **Arquitetura do Sistema**[m
+ [m
+[31m-```[m
+[32m+[m[32m```text[m
+ 📁 Sistema de Recomendações de Ofertas Telegram/[m
+ ├── 🤖 Bot Principal[m
+ │   ├── main_simples.py          # Bot principal com polling manual[m
+[36m@@ -48,12 +51,14 @@[m [mSistema inteligente de postagem automática de ofertas no Telegram com cartões[m
+ ## 🚀 **Instalação e Configuração**[m
+ [m
+ ### **1. Clone o repositório**[m
+[32m+[m
+ ```bash[m
+ git clone https://github.com/seu-usuario/sistema-recomendacoes-ofertas-telegram.git[m
+ cd sistema-recomendacoes-ofertas-telegram[m
+ ```[m
+ [m
+ ### **2. Crie um ambiente virtual**[m
+[32m+[m
+ ```bash[m
+ python -m venv venv[m
+ venv\Scripts\activate  # Windows[m
+[36m@@ -61,12 +66,15 @@[m [msource venv/bin/activate  # Linux/Mac[m
+ ```[m
+ [m
+ ### **3. Instale as dependências**[m
+[32m+[m
+ ```bash[m
+ pip install -r requirements.txt[m
+ ```[m
+ [m
+ ### **4. Configure as variáveis de ambiente**[m
+[32m+[m
+ Crie um arquivo `.env` na raiz do projeto:[m
+[32m+[m
+ ```env[m
+ # Telegram[m
+ TELEGRAM_BOT_TOKEN=seu_token_aqui[m
+[36m@@ -90,16 +98,19 @@[m [mSHOPEE_PARTNER_ID=seu_partner_id[m
+ ## 🎯 **Como Usar**[m
+ [m
+ ### **Executar o Bot Principal**[m
+[32m+[m
+ ```bash[m
+ python main_simples.py[m
+ ```[m
+ [m
+ ### **Testar o Sistema de Postagem**[m
+[32m+[m
+ ```bash[m
+ python scripts/post_sample.py[m
+ ```[m
+ [m
+ ### **Executar Scrapers Individualmente**[m
+[32m+[m
+ ```bash[m
+ python promobit_scraper_clean.py[m
+ python amazon_api.py[m
+[36m@@ -109,6 +120,7 @@[m [mpython awin_api.py[m
+ ## 🔧 **Funcionalidades Implementadas**[m
+ [m
+ ### ✅ **Sistema de Postagem**[m
+[32m+[m
+ - [x] Cartões com imagem grande via `sendPhoto`[m
+ - [x] Download de imagens para bytes (anti-hotlinking)[m
+ - [x] Fallback para OG images[m
+[36m@@ -117,25 +129,28 @@[m [mpython awin_api.py[m
+ - [x] Botões inline "🛒 Comprar agora"[m
+ [m
+ ### ✅ **Integração AWIN**[m
+[32m+[m
+ - [x] IDs corretos (merchant vs publisher)[m
+ - [x] Mapeamento de lojas por slug[m
+ - [x] Helper `get_awin_merchant_id()`[m
+ - [x] Conversão automática de URLs[m
+ [m
+ ### ✅ **Scrapers Funcionais**[m
+[32m+[m
+ - [x] **Promobit**: 21 ofertas com preços e descontos[m
+ - [x] **Amazon**: API configurada[m
+ - [x] **AliExpress**: Sistema de afiliados[m
+ - [x] **Telegram**: Bot funcionando perfeitamente[m
+ [m
+ ### ✅ **Sistema de Fallback**[m
+[32m+[m
+ - [x] **Nível 1**: Imagem via bytes (mais robusto)[m
+ - [x] **Nível 2**: Imagem via URL direta[m
+ - [x] **Nível 3**: Texto sem preview[m
+ [m
+ ## 📊 **Exemplo de Oferta Postada**[m
+ [m
+[31m-```[m
+[32m+[m[32m```text[m
+ 🔥 Smartphone Motorola Edge 60 Pro 512GB Cinza 5G 24GB RAM 6,7"[m
+ [m
+ 💰 Preço: R$3.419,10[m
+[36m@@ -150,16 +165,19 @@[m [mpython awin_api.py[m
+ ## 🧪 **Testes**[m
+ [m
+ ### **Teste de Postagem**[m
+[32m+[m
+ ```bash[m
+ python scripts/post_sample.py[m
+ ```[m
+ [m
+ Este script testa:[m
+[32m+[m
+ 1. **Oferta com imagem explícita** → Imagem via bytes[m
+ 2. **Oferta sem imagem mas com OG** → OG image extraída[m
+ 3. **Oferta sem imagem/OG** → Texto sem preview[m
+ [m
+ ### **Teste do Sistema Completo**[m
+[32m+[m
+ ```bash[m
+ python teste_sistema_final.py[m
+ ```[m
+[36m@@ -167,6 +185,7 @@[m [mpython teste_sistema_final.py[m
+ ## 🔍 **Logs e Monitoramento**[m
+ [m
+ O sistema registra:[m
+[32m+[m
+ - **Origem da imagem**: 'offer', 'og:image', 'fallback:text'[m
+ - **IDs AWIN**: merchant_id e publisher_id usados[m
+ - **Status de postagem**: Sucesso/falha com detalhes[m
+[36m@@ -216,4 +235,4 @@[m [mEste projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh[m
+ [m
+ ---[m
+ [m
+[31m-**Desenvolvido com ❤️ para o canal @garimpeirogeek**[m
+[32m+[m[32m## 🎯 **Desenvolvido com ❤️ para o canal @garimpeirogeek**[m

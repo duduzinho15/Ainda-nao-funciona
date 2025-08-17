@@ -1,0 +1,49 @@
+# ===== CONFIGURAÇÕES DO BOT TELEGRAM =====
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+TELEGRAM_CHAT_ID=seu_chat_id_aqui
+ADMIN_USER_ID=seu_user_id_aqui
+
+# ===== CONFIGURAÇÕES DE RATE LIMITING =====
+POST_RATE_DELAY_MS=250
+
+# ===== CONFIGURAÇÕES DO BANCO DE DADOS =====
+DB_NAME=ofertas.db
+
+# ===== FLAGS DE CONTROLE PARA SCRAPERS =====
+ENABLE_PROMOBIT=1
+ENABLE_PELANDO=1
+ENABLE_SHOPEE=0
+ENABLE_AMAZON=0
+ENABLE_ALIEXPRESS=0
+ENABLE_MEPUC=0
+
+# ===== CONFIGURAÇÕES DA AMAZON PA-API =====
+AMAZON_ACCESS_KEY=sua_access_key_aqui
+AMAZON_SECRET_KEY=sua_secret_key_aqui
+AMAZON_ASSOCIATE_TAG=garimpeirogee-20
+AMAZON_REGION=us-east-1
+
+# ===== CONFIGURAÇÕES DA API DA SHOPEE =====
+SHOPEE_API_KEY=sua_api_key_aqui
+SHOPEE_API_SECRET=sua_api_secret_aqui
+
+# ===== CONFIGURAÇÕES DA API DA ALIEXPRESS =====
+ALIEXPRESS_APP_KEY=sua_app_key_aqui
+ALIEXPRESS_APP_SECRET=sua_app_secret_aqui
+
+# ===== CONFIGURAÇÕES DA AWIN =====
+AWIN_API_TOKEN=seu_token_awin_aqui
+
+# ===== CONFIGURAÇÕES DE AFILIADOS =====
+MERCADO_LIVRE_TAG=garimpeirogeek
+MAGAZINE_LUIZA_TAG=garimpeirogeek
+
+# ===== CONFIGURAÇÕES DE MÉTRICAS =====
+METRICS=0
+METRICS_PORT=9308
+
+# ===== INSTRUÇÕES =====
+# 1. Copie este arquivo para .env
+# 2. Preencha com suas credenciais reais
+# 3. NUNCA commite o arquivo .env no Git
+# 4. Mantenha este arquivo env_template.txt atualizado
