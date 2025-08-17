@@ -1,9 +1,10 @@
 """
 Módulo para conversão de URLs para links de afiliado
 """
+import os
 import re
 import logging
-from typing import Dict, Optional
+from typing import Optional, Dict, Any
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 import config
 
@@ -12,331 +13,312 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class AffiliateLinkConverter:
-    """Conversor de links para afiliados"""
+    """Converte URLs de produtos em links de afiliado"""
     
     def __init__(self):
-        """Inicializa o conversor de links de afiliado"""
-        # Configurações de afiliados por loja
-        self.affiliate_configs = {
-            'Magazine Luiza': {
-                'enabled': True,
-                'base_url': 'https://www.magazinevoce.com.br/magazinegarimpeirogeek',
-                'method': 'replace_domain'
-            },
-            'Amazon': {
-                'enabled': True,
-                'tag': 'garimpeirogee-20',  # Tag de afiliado da Amazon
-                'method': 'add_tag'
-            },
-            'Shopee': {
-                'enabled': False,  # Por enquanto desabilitado
-                'method': 'none'
-            },
-            'AliExpress': {
-                'enabled': True,
-                'method': 'api'  # Usa a API do AliExpress
-            },
-            'Awin': {
-                'enabled': True,
-                'method': 'api',  # Usa a API da Awin
-                'api_token': config.AWIN_API_TOKEN,
-                'publisher_id': config.AWIN_PUBLISHER_ID
-            },
-            'Mercado Livre': {
-                'enabled': True,
-                'method': 'none',  # Por enquanto sem conversão específica
-                'message': 'Links diretos do Mercado Livre'
-            }
+        # Configurações de afiliados
+        self.amazon_associate_tag = os.getenv("AMAZON_ASSOCIATE_TAG", "garimpeirogee-20")
+        self.awin_api_token = os.getenv("AWIN_API_TOKEN", "")
+        
+        # Mapeamento de domínios para lojas
+        self.domain_mapping = {
+            # Amazon
+            'amazon.com.br': 'Amazon',
+            'www.amazon.com.br': 'Amazon',
+            'amzn.to': 'Amazon',
+            'www.amzn.to': 'Amazon',
+            
+            # Lojas brasileiras de hardware
+            'kabum.com.br': 'Kabum!',
+            'www.kabum.com.br': 'Kabum!',
+            'terabyteshop.com.br': 'Terabyte',
+            'www.terabyteshop.com.br': 'Terabyte',
+            'pichau.com.br': 'Pichau',
+            'www.pichau.com.br': 'Pichau',
+            
+            # Marketplaces
+            'mercadolivre.com.br': 'Mercado Livre',
+            'www.mercadolivre.com.br': 'Mercado Livre',
+            'lista.mercadolivre.com.br': 'Mercado Livre',
+            'shopee.com.br': 'Shopee',
+            'www.shopee.com.br': 'Shopee',
+            'aliexpress.com': 'AliExpress',
+            'www.aliexpress.com': 'AliExpress',
+            
+            # Varejistas
+            'magazineluiza.com.br': 'Magazine Luiza',
+            'www.magazineluiza.com.br': 'Magazine Luiza',
+            'casasbahia.com.br': 'Casas Bahia',
+            'www.casasbahia.com.br': 'Casas Bahia',
+            'americanas.com.br': 'Americanas',
+            'www.americanas.com.br': 'Americanas',
+            'submarino.com.br': 'Submarino',
+            'www.submarino.com.br': 'Submarino',
+            'extra.com.br': 'Extra',
+            'www.extra.com.br': 'Extra',
+            'fastshop.com.br': 'Fast Shop',
+            'www.fastshop.com.br': 'Fast Shop',
+            
+            # Especializadas
+            'ricardoeletro.com.br': 'Ricardo Eletro',
+            'www.ricardoeletro.com.br': 'Ricardo Eletro',
+            'saraiva.com.br': 'Saraiva',
+            'www.saraiva.com.br': 'Saraiva',
+            'livrariacultura.com.br': 'Cultura',
+            'www.livrariacultura.com.br': 'Cultura',
+            'fnac.com.br': 'Fnac',
+            'www.fnac.com.br': 'Fnac',
+            
+            # Supermercados e farmácias
+            'walmart.com.br': 'Walmart',
+            'www.walmart.com.br': 'Walmart',
+            'carrefour.com.br': 'Carrefour',
+            'www.carrefour.com.br': 'Carrefour',
+            'paodeacucar.com': 'Pão de Açúcar',
+            'www.paodeacucar.com': 'Pão de Açúcar',
+            'raiadrogasil.com.br': 'Raia Drogasil',
+            'www.raiadrogasil.com.br': 'Raia Drogasil',
+            'drogariaspacheco.com.br': 'Drogarias Pacheco',
+            'www.drogariaspacheco.com.br': 'Drogarias Pacheco',
+            'drogariasaonjoao.com.br': 'Drogarias São João',
+            'www.drogariasaonjoao.com.br': 'Drogarias São João',
+            
+            # Outras lojas
+            'promobit.com.br': 'Promobit',
+            'www.promobit.com.br': 'Promobit',
+            'pelando.com.br': 'Pelando',
+            'www.pelando.com.br': 'Pelando',
+            'meupc.net': 'MeuPC.net',
+            'www.meupc.net': 'MeuPC.net'
         }
         
-        # Mapeamento de domínios para nomes de lojas
-        self.domain_mapping = {
-            'magazineluiza.com.br': 'Magazine Luiza',
-            'amazon.com.br': 'Amazon',
-            'shopee.com.br': 'Shopee',
-            'aliexpress.com': 'AliExpress',
-            'pt.aliexpress.com': 'AliExpress',
-            'kabum.com.br': 'Kabum!',
-            'dell.com.br': 'Dell',
-            'lenovo.com.br': 'Lenovo',
-            'acer.com.br': 'Acer',
-            'asus.com.br': 'ASUS',
-            'mercadolivre.com.br': 'Mercado Livre',
-            'lista.mercadolivre.com.br': 'Mercado Livre',
-            'terabyteshop.com.br': 'Terabyte',
-            'pichau.com.br': 'Pichau',
-            'casasbahia.com.br': 'Casas Bahia',
-            'americanas.com.br': 'Americanas',
-            'submarino.com.br': 'Submarino',
-            'extra.com.br': 'Extra',
-            'fastshop.com.br': 'Fast Shop',
-            'ricardoeletro.com.br': 'Ricardo Eletro',
-            'saraiva.com.br': 'Saraiva',
-            'livrariacultura.com.br': 'Cultura',
-            'fnac.com.br': 'Fnac',
-            'walmart.com.br': 'Walmart',
-            'carrefour.com.br': 'Carrefour',
-            'paodeacucar.com': 'Pão de Açúcar',
-            'raiadrogasil.com.br': 'Raia Drogasil',
-            'drogariaspacheco.com.br': 'Drogarias Pacheco',
-            'drogariasaonjoao.com.br': 'Drogarias São João'
+        # Configurações de publishers AWIN
+        self.awin_publishers = {
+            'Kabum!': 'seu_publisher_id_kabum',
+            'Terabyte': 'seu_publisher_id_terabyte',
+            'Pichau': 'seu_publisher_id_pichau',
+            'Mercado Livre': 'seu_publisher_id_mercadolivre',
+            'Shopee': 'seu_publisher_id_shopee',
+            'AliExpress': 'seu_publisher_id_aliexpress'
         }
     
-    def detect_store_from_url(self, url: str) -> Optional[str]:
-        """
-        Detecta a loja a partir da URL
+    def detectar_loja(self, url: str) -> str:
+        """Detecta a loja baseada no domínio da URL"""
+        if not url:
+            return "Loja Desconhecida"
         
-        Args:
-            url: URL do produto
-            
-        Returns:
-            Nome da loja ou None se não reconhecida
-        """
         try:
-            parsed_url = urlparse(url)
-            domain = parsed_url.netloc.lower()
+            parsed = urlparse(url)
+            domain = parsed.netloc.lower()
             
-            # Remove www. se existir
+            # Remove www. se presente
             if domain.startswith('www.'):
                 domain = domain[4:]
             
-            # Procura por correspondência exata
-            if domain in self.domain_mapping:
-                return self.domain_mapping[domain]
+            # Busca no mapeamento
+            for mapped_domain, loja in self.domain_mapping.items():
+                if mapped_domain == domain:
+                    return loja
             
-            # Procura por correspondência parcial
-            for domain_pattern, store_name in self.domain_mapping.items():
-                if domain_pattern in domain or domain in domain_pattern:
-                    return store_name
+            # Fallback: tenta extrair do domínio
+            if 'amazon' in domain:
+                return 'Amazon'
+            elif 'kabum' in domain:
+                return 'Kabum!'
+            elif 'terabyte' in domain:
+                return 'Terabyte'
+            elif 'pichau' in domain:
+                return 'Pichau'
+            elif 'mercadolivre' in domain:
+                return 'Mercado Livre'
+            elif 'shopee' in domain:
+                return 'Shopee'
+            elif 'aliexpress' in domain:
+                return 'AliExpress'
             
-            logger.warning(f"Loja não reconhecida para o domínio: {domain}")
-            return None
-            
-        except Exception as e:
-            logger.error(f"Erro ao detectar loja da URL {url}: {e}")
-            return None
-    
-    def _convert_magalu_url(self, url: str) -> str:
-        """
-        Converte URL do Magazine Luiza para link de afiliado
-        
-        Args:
-            url: URL original do Magazine Luiza
-            
-        Returns:
-            URL de afiliado do Magazine Luiza
-        """
-        try:
-            parsed_url = urlparse(url)
-            
-            # Constrói a nova URL de afiliado
-            affiliate_url = f"{self.affiliate_configs['Magazine Luiza']['base_url']}{parsed_url.path}"
-            
-            # Adiciona parâmetros de consulta se existirem
-            if parsed_url.query:
-                affiliate_url += f"?{parsed_url.query}"
-            
-            # Adiciona fragmento se existir
-            if parsed_url.fragment:
-                affiliate_url += f"#{parsed_url.fragment}"
-            
-            logger.info(f"URL do Magazine Luiza convertida: {url} -> {affiliate_url}")
-            return affiliate_url
+            return "Loja Desconhecida"
             
         except Exception as e:
-            logger.error(f"Erro ao converter URL do Magazine Luiza: {e}")
-            return url
+            logger.error(f"Erro ao detectar loja de {url}: {e}")
+            return "Loja Desconhecida"
     
-    def _convert_amazon_url(self, url: str) -> str:
-        """
-        Converte URL da Amazon para link de afiliado
-        
-        Args:
-            url: URL original da Amazon
-            
-        Returns:
-            URL de afiliado da Amazon
-        """
+    async def gerar_link_afiliado_amazon(self, url: str) -> str:
+        """Gera link de afiliado da Amazon usando extração de ASIN (método principal)"""
         try:
-            parsed_url = urlparse(url)
-            query_params = parse_qs(parsed_url.query)
+            from utils.amazon_link import canonicalize_amazon
             
-            # Extrai ASIN da URL se possível
-            asin = None
-            path_parts = parsed_url.path.split('/')
+            # Tenta canonicalizar usando ASIN
+            canonical_url = await canonicalize_amazon(url, self.amazon_associate_tag)
             
-            # Procura por ASIN no path (formato /dp/ASIN ou /gp/product/ASIN)
-            for i, part in enumerate(path_parts):
-                if part in ['dp', 'gp', 'product'] and i + 1 < len(path_parts):
-                    potential_asin = path_parts[i + 1]
-                    if len(potential_asin) == 10 and potential_asin.isalnum():
-                        asin = potential_asin
-                        break
-            
-            # Se encontrou ASIN, canonicaliza para formato /dp/ASIN
-            if asin:
-                canonical_path = f"/dp/{asin}"
-                logger.info(f"ASIN extraído: {asin}")
+            if canonical_url:
+                logger.info(f"✅ Link Amazon canonicalizado via ASIN: {canonical_url}")
+                return canonical_url
             else:
-                canonical_path = parsed_url.path
-                logger.info("ASIN não encontrado, mantendo path original")
-            
-            # Adiciona ou atualiza o tag de afiliado
-            affiliate_tag = self.affiliate_configs['Amazon']['tag']
-            query_params['tag'] = [affiliate_tag]
-            
-            # Mantém apenas parâmetros úteis
-            useful_params = ['ref', 'th', 'psc', 'qid', 'sr']
-            filtered_params = {k: v for k, v in query_params.items() 
-                             if k in useful_params or k == 'tag'}
-            
-            # Reconstrói a URL com path canonicalizado e parâmetros filtrados
-            new_query = urlencode(filtered_params, doseq=True)
-            affiliate_url = urlunparse((
-                parsed_url.scheme,
-                parsed_url.netloc,
-                canonical_path,
-                parsed_url.params,
-                new_query,
-                parsed_url.fragment
-            ))
-            
-            logger.info(f"URL da Amazon convertida: {url} -> {affiliate_url}")
-            return affiliate_url
-            
+                logger.warning(f"⚠️ Falha na canonicalização via ASIN, mantendo URL original: {url}")
+                return url
+                
+        except ImportError:
+            logger.warning("⚠️ Módulo amazon_link não encontrado, usando método antigo")
+            return self._gerar_link_amazon_antigo(url)
         except Exception as e:
-            logger.error(f"Erro ao converter URL da Amazon: {e}")
+            logger.error(f"❌ Erro na canonicalização Amazon: {e}")
             return url
     
-    def _convert_shopee_url(self, url: str) -> str:
-        """
-        Converte URL da Shopee para link de afiliado (por enquanto retorna a original)
-        
-        Args:
-            url: URL original da Shopee
-            
-        Returns:
-            URL original (conversão não implementada ainda)
-        """
-        logger.info("Conversão de afiliado da Shopee não implementada ainda")
-        return url
-    
-    def _convert_aliexpress_url(self, url: str) -> str:
-        """
-        Converte URL do AliExpress para link de afiliado (usa API)
-        
-        Args:
-            url: URL original do AliExpress
-            
-        Returns:
-            URL de afiliado do AliExpress
-        """
+    def _gerar_link_amazon_antigo(self, url: str) -> str:
+        """Método antigo de conversão da Amazon (fallback)"""
         try:
-            # Por enquanto, retorna a URL original
-            # A conversão real será feita pela API do AliExpress
-            logger.info("Conversão do AliExpress será feita pela API")
+            # Extrai ASIN da URL usando regex simples
+            asin_patterns = [
+                r'/dp/([A-Z0-9]{10})',
+                r'/gp/product/([A-Z0-9]{10})',
+                r'/product/([A-Z0-9]{10})',
+                r'[?&]asin=([A-Z0-9]{10})'
+            ]
+            
+            for pattern in asin_patterns:
+                match = re.search(pattern, url, re.IGNORECASE)
+                if match:
+                    asin = match.group(1)
+                    affiliate_url = f"https://www.amazon.com.br/dp/{asin}?tag={self.amazon_associate_tag}"
+                    logger.info(f"ASIN extraído: {asin}")
+                    return affiliate_url
+            
+            # Se não encontrou ASIN, adiciona tag na URL original
+            if 'amazon.com.br' in url:
+                separator = '&' if '?' in url else '?'
+                return f"{url}{separator}tag={self.amazon_associate_tag}"
+            
             return url
             
         except Exception as e:
-            logger.error(f"Erro ao converter URL do AliExpress: {e}")
+            logger.error(f"Erro ao gerar link Amazon: {e}")
             return url
     
-    def gerar_link_afiliado(self, url_original: str, loja: str = None) -> str:
-        """
-        Gera link de afiliado para uma URL
+    async def gerar_link_afiliado_awin(self, url: str, loja: str) -> str:
+        """Gera link de afiliado via AWIN"""
+        if not self.awin_api_token:
+            logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
+            return url
         
-        Args:
-            url_original: URL original do produto
-            loja: Nome da loja (opcional, será detectada automaticamente se não fornecida)
-            
-        Returns:
-            URL de afiliado ou URL original se não for possível converter
-        """
         try:
-            if not url_original:
-                logger.warning("URL original não fornecida")
-                return ""
+            publisher_id = self.awin_publishers.get(loja)
+            if not publisher_id:
+                logger.warning(f"Publisher ID não configurado para: {loja}")
+                return url
             
-            # Detecta a loja se não fornecida
-            if not loja:
-                detected_loja = self.detect_store_from_url(url_original)
-                if not detected_loja:
-                    logger.warning(f"Loja não reconhecida para a URL: {url_original}")
-                    return url_original
-                loja = detected_loja
+            # Formato: https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={seu_id}&clickref=&p={url_encoded}
+            awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&clickref=&p={url}"
+            logger.info(f"Link AWIN gerado para {loja}: {awin_url[:100]}...")
+            return awin_url
             
-            # Verifica se a conversão está habilitada para esta loja
-            if loja not in self.affiliate_configs:
-                logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
-                return url_original
+        except Exception as e:
+            logger.error(f"Erro ao gerar link AWIN: {e}")
+            return url
+    
+    async def gerar_link_afiliado(self, url: str, loja: str = None) -> str:
+        """Função principal para gerar links de afiliado"""
+        if not url:
+            return url
+        
+        # Detecta loja se não fornecida
+        if not loja:
+            loja = self.detectar_loja(url)
+        
+        logger.info(f"Gerando link de afiliado para {loja}: {url[:100]}...")
+        
+        try:
+            # Amazon: usa extração de ASIN
+            if loja.lower() in ['amazon', 'amazon.com.br']:
+                return await self.gerar_link_afiliado_amazon(url)
             
-            # Obtém a configuração da loja
-            config_loja = self.affiliate_configs[loja]
+            # AWIN: usa sistema de publishers
+            elif loja in self.awin_publishers:
+                return await self.gerar_link_afiliado_awin(url, loja)
             
-            # Verifica se está habilitada
-            if not config_loja.get('enabled', False):
-                logger.info(f"Conversão de afiliado desabilitada para: {loja}")
-                return url_original
+            # Shopee: desabilitado por enquanto
+            elif loja.lower() == 'shopee':
+                logger.info("Conversão de afiliado desabilitada para: Shopee")
+                return url
             
-            # Aplica o método de conversão apropriado
-            method = config_loja.get('method', 'none')
+            # AliExpress: desabilitado por enquanto
+            elif loja.lower() == 'aliexpress':
+                logger.info("Conversão de afiliado desabilitada para: AliExpress")
+                return url
             
-            if method == 'replace_domain':
-                return self._convert_magalu_url(url_original)
-            elif method == 'add_tag':
-                return self._convert_amazon_url(url_original)
-            elif method == 'api':
-                if loja == 'Awin':
-                    return self._convert_awin_url(url_original, loja)
-                elif loja == 'AliExpress':
-                    return self._convert_aliexpress_url(url_original)
-                else:
-                    logger.warning(f"Método API não implementado para: {loja}")
-                    return url_original
-            elif method == 'none':
-                logger.info(f"Conversão não implementada para: {loja}")
-                return url_original
+            # Outras lojas: mantém URL original
             else:
-                logger.warning(f"Método de conversão desconhecido para {loja}: {method}")
-                return url_original
-            
+                logger.info(f"Conversão de afiliado não configurada para: {loja}")
+                return url
+                
         except Exception as e:
             logger.error(f"Erro ao gerar link de afiliado: {e}")
-            return url_original
+            return url
     
     def gerar_links_afiliado_batch(self, urls: list, lojas: list = None) -> Dict[str, str]:
         """
-        Gera links de afiliado para uma lista de URLs
+        Gera links de afiliado para múltiplas URLs em lote
         
         Args:
-            urls: Lista de URLs para converter
-            lojas: Lista de nomes de lojas (opcional)
+            urls: Lista de URLs
+            lojas: Lista de lojas (opcional)
             
         Returns:
-            Dicionário com URLs originais como chaves e URLs de afiliado como valores
+            Dicionário com URLs originais e convertidas
         """
         try:
             if not urls:
-                logger.warning("Lista de URLs vazia")
                 return {}
             
-            if lojas and len(urls) != len(lojas):
-                logger.warning("Número de URLs e lojas não corresponde")
-                return {}
+            if not lojas:
+                lojas = [self.detectar_loja(url) for url in urls]
             
             results = {}
+            for url, loja in zip(urls, lojas):
+                if loja:  # Verifica se loja não é None
+                    # Para compatibilidade, usa versão síncrona temporariamente
+                    try:
+                        affiliate_url = self._gerar_link_afiliado_sync(url, loja)
+                        results[url] = affiliate_url
+                    except Exception as e:
+                        logger.error(f"Erro ao converter {url}: {e}")
+                        results[url] = url
+                else:
+                    results[url] = url
             
-            for i, url in enumerate(urls):
-                loja = lojas[i] if lojas else None
-                affiliate_url = self.gerar_link_afiliado(url, loja)
-                results[url] = affiliate_url
-            
-            logger.info(f"Convertidas {len(urls)} URLs para links de afiliado")
             return results
             
         except Exception as e:
-            logger.error(f"Erro ao gerar links de afiliado em lote: {e}")
-            return {}
+            logger.error(f"Erro ao gerar links em lote: {e}")
+            return {url: url for url in urls}
+    
+    def _gerar_link_afiliado_sync(self, url: str, loja: str) -> str:
+        """Versão síncrona para compatibilidade com código existente"""
+        try:
+            # Amazon: usa método antigo síncrono
+            if loja.lower() in ['amazon', 'amazon.com.br']:
+                return self._gerar_link_amazon_antigo(url)
+            
+            # AWIN: versão síncrona simples
+            elif loja in self.awin_publishers:
+                if not self.awin_api_token:
+                    logger.warning(f"Configuração de afiliado não encontrada para: {loja}")
+                    return url
+                
+                publisher_id = self.awin_publishers.get(loja)
+                if not publisher_id:
+                    logger.warning(f"Publisher ID não configurado para: {loja}")
+                    return url
+                
+                awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&clickref=&p={url}"
+                return awin_url
+            
+            # Outras lojas: mantém URL original
+            else:
+                return url
+                
+        except Exception as e:
+            logger.error(f"Erro ao gerar link síncrono: {e}")
+            return url
     
     def _convert_awin_url(self, url_original: str, loja: str) -> str:
         """
@@ -415,7 +397,7 @@ class AffiliateLinkConverter:
             Dicionário com informações de status
         """
         try:
-            if loja not in self.affiliate_configs:
+            if loja not in self.awin_publishers: # Changed to awin_publishers
                 return {
                     'loja': loja,
                     'status': 'nao_configurada',
@@ -424,6 +406,39 @@ class AffiliateLinkConverter:
                     'message': 'Loja não configurada'
                 }
             
+            # Configurações de afiliados por loja
+            self.affiliate_configs = {
+                'Magazine Luiza': {
+                    'enabled': True,
+                    'base_url': 'https://www.magazinevoce.com.br/magazinegarimpeirogeek',
+                    'method': 'replace_domain'
+                },
+                'Amazon': {
+                    'enabled': True,
+                    'tag': 'garimpeirogee-20',  # Tag de afiliado da Amazon
+                    'method': 'add_tag'
+                },
+                'Shopee': {
+                    'enabled': False,  # Por enquanto desabilitado
+                    'method': 'none'
+                },
+                'AliExpress': {
+                    'enabled': True,
+                    'method': 'api'  # Usa a API do AliExpress
+                },
+                'Awin': {
+                    'enabled': True,
+                    'method': 'api',  # Usa a API da Awin
+                    'api_token': config.AWIN_API_TOKEN,
+                    'publisher_id': config.AWIN_PUBLISHER_ID
+                },
+                'Mercado Livre': {
+                    'enabled': True,
+                    'method': 'none',  # Por enquanto sem conversão específica
+                    'message': 'Links diretos do Mercado Livre'
+                }
+            }
+
             config_loja = self.affiliate_configs[loja]
             
             return {
@@ -454,7 +469,7 @@ class AffiliateLinkConverter:
         try:
             status_lojas = {}
             
-            for loja in self.affiliate_configs.keys():
+            for loja in self.awin_publishers.keys(): # Changed to awin_publishers
                 status_lojas[loja] = self.verificar_status_afiliado(loja)
             
             return status_lojas
@@ -520,7 +535,7 @@ if __name__ == "__main__":
         print("-" * 40)
         
         for url in urls_teste:
-            loja = converter.detect_store_from_url(url)
+            loja = converter.detectar_loja(url) # Changed to detectar_loja
             affiliate_url = converter.gerar_link_afiliado(url, loja)
             
             print(f"\n🏪 Loja: {loja}")

@@ -225,8 +225,27 @@ async def _gen_affiliate(o: Dict[str, Any]) -> Dict[str, Any]:
     """Gera link de afiliado para a oferta"""
     try:
         converter = AffiliateLinkConverter()
-        o["url_afiliado"] = converter.gerar_link_afiliado(o.get("url_produto"), o.get("loja"))
+        
+        # Para Amazon, usa sistema de ASIN
+        if o.get("loja", "").lower() in ["amazon", "amazon.com.br"]:
+            try:
+                from utils.amazon_link import canonicalize_amazon
+                amazon_tag = os.getenv("AMAZON_ASSOCIATE_TAG", "garimpeirogee-20")
+                o["url_afiliado"] = await canonicalize_amazon(o.get("url_produto"), amazon_tag)
+                
+                if not o["url_afiliado"]:
+                    # Fallback para método antigo
+                    o["url_afiliado"] = converter._gerar_link_amazon_antigo(o.get("url_produto"))
+                    
+            except ImportError:
+                logger.warning("Módulo amazon_link não encontrado, usando método antigo")
+                o["url_afiliado"] = converter._gerar_link_amazon_antigo(o.get("url_produto"))
+        else:
+            # Para outras lojas, usa método síncrono
+            o["url_afiliado"] = converter._gerar_link_afiliado_sync(o.get("url_produto"), o.get("loja"))
+        
         logger.debug(f"Link de afiliado gerado para {o.get('loja')}: {o['url_afiliado'][:50]}...")
+        
     except Exception as e:
         logger.warning(f"Erro ao gerar link de afiliado para {o.get('loja')}: {e}")
         o["url_afiliado"] = o.get("url_produto")  # Fallback para URL original
