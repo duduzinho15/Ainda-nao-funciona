@@ -1,0 +1,481 @@
+"""
+Sistema de Métricas de Performance - Sistema Garimpeiro Geek
+"""
+import os
+import time
+import logging
+import asyncio
+import json
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+from collections import defaultdict, deque
+import threading
+
+# Configuração de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class PerformanceMetrics:
+    """Coletor de métricas de performance do sistema"""
+    
+    def __init__(self):
+        self.metrics = {
+            'scrapers': defaultdict(lambda: {
+                'requests': 0,
+                'success': 0,
+                'errors': 0,
+                'response_times': deque(maxlen=100),
+                'last_request': None,
+                'avg_response_time': 0.0
+            }),
+            'telegram': {
+                'messages_sent': 0,
+                'messages_failed': 0,
+                'last_message': None,
+                'avg_send_time': 0.0
+            },
+            'database': {
+                'queries': 0,
+                'slow_queries': 0,
+                'errors': 0,
+                'avg_query_time': 0.0
+            },
+            'system': {
+                'start_time': time.time(),
+                'uptime': 0,
+                'memory_usage': 0.0,
+                'cpu_usage': 0.0,
+                'disk_usage': 0.0
+            }
+        }
+        
+        # Configurações
+        self.metrics_retention_hours = int(os.getenv('METRICS_RETENTION_HOURS', '24'))
+        self.alert_thresholds = {
+            'response_time_ms': int(os.getenv('ALERT_RESPONSE_TIME_MS', '5000')),
+            'error_rate_percent': float(os.getenv('ALERT_ERROR_RATE_PERCENT', '10.0')),
+            'memory_usage_percent': float(os.getenv('ALERT_MEMORY_USAGE_PERCENT', '85.0'))
+        }
+        
+        # Histórico de métricas
+        self.history = deque(maxlen=1000)
+        
+        # Thread de limpeza automática
+        self._cleanup_thread = None
+        self._stop_cleanup = False
+        self._start_cleanup_thread()
+    
+    def _start_cleanup_thread(self):
+        """Inicia thread de limpeza automática"""
+        def cleanup_worker():
+            while not self._stop_cleanup:
+                try:
+                    self._cleanup_old_metrics()
+                    time.sleep(3600)  # Limpa a cada hora
+                except Exception as e:
+                    logger.error(f"Cleanup thread error: {e}")
+        
+        self._cleanup_thread = threading.Thread(target=cleanup_worker, daemon=True)
+        self._cleanup_thread.start()
+    
+    def _cleanup_old_metrics(self):
+        """Remove métricas antigas"""
+        try:
+            cutoff_time = time.time() - (self.metrics_retention_hours * 3600)
+            self.history = deque(
+                [m for m in self.history if m.get('timestamp', 0) > cutoff_time],
+                maxlen=1000
+            )
+            logger.info("Old metrics cleaned up")
+        except Exception as e:
+            logger.error(f"Failed to cleanup old metrics: {e}")
+    
+    def record_scraper_request(self, scraper_name: str, success: bool, 
+                              response_time_ms: float, error: Optional[str] = None):
+        """Registra métrica de requisição do scraper"""
+        try:
+            scraper_metrics = self.metrics['scrapers'][scraper_name]
+            
+            scraper_metrics['requests'] += 1
+            if success:
+                scraper_metrics['success'] += 1
+            else:
+                scraper_metrics['errors'] += 1
+                if error:
+                    logger.warning(f"Scraper {scraper_name} error: {error}")
+            
+            scraper_metrics['response_times'].append(response_time_ms)
+            scraper_metrics['last_request'] = datetime.now().isoformat()
+            
+            # Calcula tempo médio de resposta
+            if scraper_metrics['response_times']:
+                scraper_metrics['avg_response_time'] = sum(scraper_metrics['response_times']) / len(scraper_metrics['response_times'])
+            
+            # Verifica alertas
+            self._check_scraper_alerts(scraper_name, scraper_metrics)
+            
+            # Salva no histórico
+            self._save_to_history('scraper', {
+                'name': scraper_name,
+                'success': success,
+                'response_time_ms': response_time_ms,
+                'error': error
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to record scraper metrics: {e}")
+    
+    def record_telegram_message(self, success: bool, send_time_ms: float, error: Optional[str] = None):
+        """Registra métrica de mensagem do Telegram"""
+        try:
+            telegram_metrics = self.metrics['telegram']
+            
+            if success:
+                telegram_metrics['messages_sent'] += 1
+            else:
+                telegram_metrics['messages_failed'] += 1
+                if error:
+                    logger.warning(f"Telegram message error: {error}")
+            
+            telegram_metrics['last_message'] = datetime.now().isoformat()
+            
+            # Atualiza tempo médio de envio
+            if success:
+                current_avg = telegram_metrics['avg_send_time']
+                total_sent = telegram_metrics['messages_sent']
+                telegram_metrics['avg_send_time'] = ((current_avg * (total_sent - 1)) + send_time_ms) / total_sent
+            
+            # Salva no histórico
+            self._save_to_history('telegram', {
+                'success': success,
+                'send_time_ms': send_time_ms,
+                'error': error
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to record telegram metrics: {e}")
+    
+    def record_database_query(self, success: bool, query_time_ms: float, 
+                             slow_query: bool = False, error: Optional[str] = None):
+        """Registra métrica de query do banco de dados"""
+        try:
+            db_metrics = self.metrics['database']
+            
+            db_metrics['queries'] += 1
+            if slow_query:
+                db_metrics['slow_queries'] += 1
+            if not success:
+                db_metrics['errors'] += 1
+                if error:
+                    logger.warning(f"Database query error: {error}")
+            
+            # Atualiza tempo médio de query
+            current_avg = db_metrics['avg_query_time']
+            total_queries = db_metrics['queries']
+            db_metrics['avg_query_time'] = ((current_avg * (total_queries - 1)) + query_time_ms) / total_queries
+            
+            # Salva no histórico
+            self._save_to_history('database', {
+                'success': success,
+                'query_time_ms': query_time_ms,
+                'slow_query': slow_query,
+                'error': error
+            })
+            
+        except Exception as e:
+            logger.error(f"Failed to record database metrics: {e}")
+    
+    def update_system_metrics(self):
+        """Atualiza métricas do sistema"""
+        try:
+            import psutil
+            
+            system_metrics = self.metrics['system']
+            
+            # Uptime
+            system_metrics['uptime'] = time.time() - system_metrics['start_time']
+            
+            # Uso de memória
+            memory = psutil.virtual_memory()
+            system_metrics['memory_usage'] = memory.percent
+            
+            # Uso de CPU
+            system_metrics['cpu_usage'] = psutil.cpu_percent(interval=1)
+            
+            # Uso de disco
+            disk = psutil.disk_usage('/')
+            system_metrics['disk_usage'] = (disk.used / disk.total) * 100
+            
+            # Verifica alertas do sistema
+            self._check_system_alerts(system_metrics)
+            
+        except ImportError:
+            logger.warning("psutil not available for system metrics")
+        except Exception as e:
+            logger.error(f"Failed to update system metrics: {e}")
+    
+    def _check_scraper_alerts(self, scraper_name: str, metrics: Dict[str, Any]):
+        """Verifica alertas do scraper"""
+        try:
+            # Alerta de tempo de resposta
+            if metrics['avg_response_time'] > self.alert_thresholds['response_time_ms']:
+                logger.warning(f"Scraper {scraper_name} slow response: {metrics['avg_response_time']:.2f}ms")
+            
+            # Alerta de taxa de erro
+            if metrics['requests'] > 0:
+                error_rate = (metrics['errors'] / metrics['requests']) * 100
+                if error_rate > self.alert_thresholds['error_rate_percent']:
+                    logger.warning(f"Scraper {scraper_name} high error rate: {error_rate:.1f}%")
+                    
+        except Exception as e:
+            logger.error(f"Failed to check scraper alerts: {e}")
+    
+    def _check_system_alerts(self, metrics: Dict[str, Any]):
+        """Verifica alertas do sistema"""
+        try:
+            # Alerta de uso de memória
+            if metrics['memory_usage'] > self.alert_thresholds['memory_usage_percent']:
+                logger.warning(f"High memory usage: {metrics['memory_usage']:.1f}%")
+            
+            # Alerta de uso de CPU
+            if metrics['cpu_usage'] > 90:
+                logger.warning(f"High CPU usage: {metrics['cpu_usage']:.1f}%")
+                
+        except Exception as e:
+            logger.error(f"Failed to check system alerts: {e}")
+    
+    def _save_to_history(self, metric_type: str, data: Dict[str, Any]):
+        """Salva métrica no histórico"""
+        try:
+            history_entry = {
+                'timestamp': time.time(),
+                'type': metric_type,
+                'data': data
+            }
+            self.history.append(history_entry)
+        except Exception as e:
+            logger.error(f"Failed to save to history: {e}")
+    
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        """Retorna resumo das métricas"""
+        try:
+            summary = {
+                'timestamp': datetime.now().isoformat(),
+                'system': {
+                    'uptime_seconds': self.metrics['system']['uptime'],
+                    'uptime_formatted': str(timedelta(seconds=int(self.metrics['system']['uptime']))),
+                    'memory_usage_percent': self.metrics['system']['memory_usage'],
+                    'cpu_usage_percent': self.metrics['system']['cpu_usage'],
+                    'disk_usage_percent': self.metrics['system']['disk_usage']
+                },
+                'scrapers': {},
+                'telegram': {
+                    'total_messages': self.metrics['telegram']['messages_sent'] + self.metrics['telegram']['messages_failed'],
+                    'success_rate': self._calculate_success_rate(
+                        self.metrics['telegram']['messages_sent'],
+                        self.metrics['telegram']['messages_failed']
+                    ),
+                    'avg_send_time_ms': self.metrics['telegram']['avg_send_time']
+                },
+                'database': {
+                    'total_queries': self.metrics['database']['queries'],
+                    'success_rate': self._calculate_success_rate(
+                        self.metrics['database']['queries'] - self.metrics['database']['errors'],
+                        self.metrics['database']['errors']
+                    ),
+                    'avg_query_time_ms': self.metrics['database']['avg_query_time'],
+                    'slow_queries_count': self.metrics['database']['slow_queries']
+                }
+            }
+            
+            # Métricas dos scrapers
+            for scraper_name, scraper_metrics in self.metrics['scrapers'].items():
+                summary['scrapers'][scraper_name] = {
+                    'total_requests': scraper_metrics['requests'],
+                    'success_rate': self._calculate_success_rate(
+                        scraper_metrics['success'],
+                        scraper_metrics['errors']
+                    ),
+                    'avg_response_time_ms': scraper_metrics['avg_response_time'],
+                    'last_request': scraper_metrics['last_request']
+                }
+            
+            return summary
+            
+        except Exception as e:
+            logger.error(f"Failed to get metrics summary: {e}")
+            return {'error': str(e)}
+    
+    def _calculate_success_rate(self, success_count: int, error_count: int) -> float:
+        """Calcula taxa de sucesso"""
+        total = success_count + error_count
+        if total == 0:
+            return 100.0
+        return (success_count / total) * 100
+    
+    def export_prometheus_metrics(self) -> str:
+        """Exporta métricas no formato Prometheus"""
+        try:
+            metrics = []
+            
+            # Métricas do sistema
+            metrics.append(f"# HELP garimpeiro_geek_system_uptime_seconds System uptime in seconds")
+            metrics.append(f"# TYPE garimpeiro_geek_system_uptime_seconds counter")
+            metrics.append(f"garimpeiro_geek_system_uptime_seconds {self.metrics['system']['uptime']}")
+            
+            metrics.append(f"# HELP garimpeiro_geek_system_memory_usage_percent System memory usage percentage")
+            metrics.append(f"# TYPE garimpeiro_geek_system_memory_usage_percent gauge")
+            metrics.append(f"garimpeiro_geek_system_memory_usage_percent {self.metrics['system']['memory_usage']}")
+            
+            metrics.append(f"# HELP garimpeiro_geek_system_cpu_usage_percent System CPU usage percentage")
+            metrics.append(f"# TYPE garimpeiro_geek_system_cpu_usage_percent gauge")
+            metrics.append(f"garimpeiro_geek_system_cpu_usage_percent {self.metrics['system']['cpu_usage']}")
+            
+            # Métricas dos scrapers
+            for scraper_name, scraper_metrics in self.metrics['scrapers'].items():
+                metrics.append(f"# HELP garimpeiro_geek_scraper_requests_total Total requests by scraper")
+                metrics.append(f"# TYPE garimpeiro_geek_scraper_requests_total counter")
+                metrics.append(f"garimpeiro_geek_scraper_requests_total{{scraper=\"{scraper_name}\"}} {scraper_metrics['requests']}")
+                
+                metrics.append(f"# HELP garimpeiro_geek_scraper_success_total Total successful requests by scraper")
+                metrics.append(f"# TYPE garimpeiro_geek_scraper_success_total counter")
+                metrics.append(f"garimpeiro_geek_scraper_success_total{{scraper=\"{scraper_name}\"}} {scraper_metrics['success']}")
+                
+                metrics.append(f"# HELP garimpeiro_geek_scraper_errors_total Total errors by scraper")
+                metrics.append(f"# TYPE garimpeiro_geek_scraper_errors_total counter")
+                metrics.append(f"garimpeiro_geek_scraper_errors_total{{scraper=\"{scraper_name}\"}} {scraper_metrics['errors']}")
+                
+                metrics.append(f"# HELP garimpeiro_geek_scraper_response_time_ms Average response time by scraper")
+                metrics.append(f"# TYPE garimpeiro_geek_scraper_response_time_ms gauge")
+                metrics.append(f"garimpeiro_geek_scraper_response_time_ms{{scraper=\"{scraper_name}\"}} {scraper_metrics['avg_response_time']}")
+            
+            # Métricas do Telegram
+            metrics.append(f"# HELP garimpeiro_geek_telegram_messages_total Total Telegram messages")
+            metrics.append(f"# TYPE garimpeiro_geek_telegram_messages_total counter")
+            metrics.append(f"garimpeiro_geek_telegram_messages_total {self.metrics['telegram']['messages_sent'] + self.metrics['telegram']['messages_failed']}")
+            
+            metrics.append(f"# HELP garimpeiro_geek_telegram_success_rate_percent Telegram message success rate")
+            metrics.append(f"# TYPE garimpeiro_geek_telegram_success_rate_percent gauge")
+            success_rate = self._calculate_success_rate(
+                self.metrics['telegram']['messages_sent'],
+                self.metrics['telegram']['messages_failed']
+            )
+            metrics.append(f"garimpeiro_geek_telegram_success_rate_percent {success_rate}")
+            
+            # Métricas do banco de dados
+            metrics.append(f"# HELP garimpeiro_geek_database_queries_total Total database queries")
+            metrics.append(f"# TYPE garimpeiro_geek_database_queries_total counter")
+            metrics.append(f"garimpeiro_geek_database_queries_total {self.metrics['database']['queries']}")
+            
+            metrics.append(f"# HELP garimpeiro_geek_database_avg_query_time_ms Average database query time")
+            metrics.append(f"# TYPE garimpeiro_geek_database_avg_query_time_ms gauge")
+            metrics.append(f"garimpeiro_geek_database_avg_query_time_ms {self.metrics['database']['avg_query_time']}")
+            
+            return "\n".join(metrics)
+            
+        except Exception as e:
+            logger.error(f"Failed to export Prometheus metrics: {e}")
+            return f"# Error exporting metrics: {e}"
+    
+    def save_metrics_to_file(self, filename: str = None):
+        """Salva métricas em arquivo JSON"""
+        try:
+            if not filename:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"metrics_{timestamp}.json"
+            
+            metrics_data = {
+                'timestamp': datetime.now().isoformat(),
+                'metrics': self.metrics,
+                'summary': self.get_metrics_summary(),
+                'history_count': len(self.history)
+            }
+            
+            with open(filename, 'w', encoding='utf-8') as f:
+                json.dump(metrics_data, f, indent=2, ensure_ascii=False)
+            
+            logger.info(f"Metrics saved to {filename}")
+            return filename
+            
+        except Exception as e:
+            logger.error(f"Failed to save metrics to file: {e}")
+            return None
+    
+    def stop(self):
+        """Para o sistema de métricas"""
+        self._stop_cleanup = True
+        if self._cleanup_thread:
+            self._cleanup_thread.join(timeout=5)
+
+
+async def main():
+    """Função principal para teste das métricas"""
+    metrics = PerformanceMetrics()
+    
+    print("📊 Iniciando sistema de métricas de performance...")
+    
+    # Simula algumas métricas
+    print("\n🔍 Simulando métricas de scrapers...")
+    metrics.record_scraper_request("promobit", True, 1500)
+    metrics.record_scraper_request("promobit", True, 1200)
+    metrics.record_scraper_request("promobit", False, 5000, "Timeout error")
+    
+    metrics.record_scraper_request("pelando", True, 800)
+    metrics.record_scraper_request("pelando", True, 900)
+    
+    print("📱 Simulando métricas do Telegram...")
+    metrics.record_telegram_message(True, 200)
+    metrics.record_telegram_message(True, 180)
+    metrics.record_telegram_message(False, 5000, "Network error")
+    
+    print("🗄️ Simulando métricas do banco...")
+    metrics.record_database_query(True, 50)
+    metrics.record_database_query(True, 30)
+    metrics.record_database_query(True, 8000, True)  # Query lenta
+    metrics.record_database_query(False, 100, False, "Connection failed")
+    
+    print("💻 Atualizando métricas do sistema...")
+    metrics.update_system_metrics()
+    
+    # Exibe resumo
+    print("\n📈 Resumo das Métricas:")
+    summary = metrics.get_metrics_summary()
+    
+    print(f"⏱️  Uptime: {summary['system']['uptime_formatted']}")
+    print(f"💾 Memória: {summary['system']['memory_usage_percent']:.1f}%")
+    print(f"🖥️  CPU: {summary['system']['cpu_usage_percent']:.1f}%")
+    
+    print(f"\n📱 Telegram:")
+    print(f"   Mensagens: {summary['telegram']['total_messages']}")
+    print(f"   Taxa de sucesso: {summary['telegram']['success_rate']:.1f}%")
+    print(f"   Tempo médio: {summary['telegram']['avg_send_time_ms']:.1f}ms")
+    
+    print(f"\n🗄️ Banco de Dados:")
+    print(f"   Queries: {summary['database']['total_queries']}")
+    print(f"   Taxa de sucesso: {summary['database']['success_rate']:.1f}%")
+    print(f"   Tempo médio: {summary['database']['avg_query_time_ms']:.1f}ms")
+    print(f"   Queries lentas: {summary['database']['slow_queries_count']}")
+    
+    print(f"\n🕷️ Scrapers:")
+    for scraper_name, scraper_data in summary['scrapers'].items():
+        print(f"   {scraper_name}:")
+        print(f"     Requisições: {scraper_data['total_requests']}")
+        print(f"     Taxa de sucesso: {scraper_data['success_rate']:.1f}%")
+        print(f"     Tempo médio: {scraper_data['avg_response_time_ms']:.1f}ms")
+    
+    # Exporta métricas
+    print(f"\n📊 Métricas Prometheus:")
+    print(metrics.export_prometheus_metrics())
+    
+    # Salva em arquivo
+    filename = metrics.save_metrics_to_file()
+    if filename:
+        print(f"\n💾 Métricas salvas em: {filename}")
+    
+    # Para o sistema
+    metrics.stop()
+    print("\n✅ Sistema de métricas finalizado!")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

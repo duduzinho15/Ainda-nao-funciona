@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-08-17T00:40:57.101718",
+  "metrics": {
+    "scrapers": {
+      "promobit": {
+        "requests": 3,
+        "success": 2,
+        "errors": 1,
+        "response_times": 
