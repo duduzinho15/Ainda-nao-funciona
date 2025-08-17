@@ -10,7 +10,7 @@ import aiohttp
 async def run_promobit() -> List[Dict[str, Any]]:
     """Adaptador para o scraper do Promobit"""
     try:
-        from promobit_scraper_clean import buscar_ofertas_promobit
+        from promobit_scraper import buscar_ofertas_promobit
         
         # Cria sessão HTTP para o scraper
         async with aiohttp.ClientSession() as session:

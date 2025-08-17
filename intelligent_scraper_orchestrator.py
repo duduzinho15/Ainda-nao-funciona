@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from duplicate_prevention_system import DuplicatePreventionSystem
 
 # Scrapers
-from promobit_scraper_fixed import buscar_ofertas_promobit
+from promobit_scraper import buscar_ofertas_promobit
 from pelando_scraper_fixed import buscar_ofertas_pelando
 from zoom_scraper import ZoomScraper
 from meupc_scraper import buscar_ofertas_meupc
