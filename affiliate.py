@@ -111,7 +111,13 @@ class AffiliateLinkConverter:
             'lg.com': 'LG',
             'www.lg.com': 'LG',
             'lg.com.br': 'LG',
-            'www.lg.com.br': 'LG'
+            'www.lg.com.br': 'LG',
+            'samsung.com': 'Samsung',
+            'www.samsung.com': 'Samsung',
+            'samsung.com.br': 'Samsung',
+            'www.samsung.com.br': 'Samsung',
+            'shop.samsung.com': 'Samsung',
+            'www.shop.samsung.com': 'Samsung'
         }
         
         # Configurações de publishers AWIN (baseado nos exemplos)
@@ -120,11 +126,7 @@ class AffiliateLinkConverter:
             'Comfy': '23377',
             'Trocafy': '51277',
             'LG': '33061',
-            'Terabyte': 'seu_publisher_id_terabyte',
-            'Pichau': 'seu_publisher_id_pichau',
-            'Mercado Livre': 'seu_publisher_id_mercadolivre',
-            'Shopee': 'seu_publisher_id_shopee',
-            'AliExpress': 'seu_publisher_id_aliexpress'
+            'Samsung': '25539'  # Sua afiliação Samsung
         }
     
     def detectar_loja(self, url: str) -> str:
@@ -337,23 +339,27 @@ class AffiliateLinkConverter:
             if loja.lower() in ['amazon', 'amazon.com.br']:
                 return await self.gerar_link_afiliado_amazon(url)
             
-            # AWIN: usa sistema de publishers
+            # Samsung: usa AWIN (conforme sua conta)
+            elif loja.lower() in ['samsung', 'samsung.com.br']:
+                return await self.gerar_link_afiliado_awin(url, 'Samsung')
+            
+            # AWIN: usa sistema de publishers para lojas parceiras
             elif loja in self.awin_publishers:
                 return await self.gerar_link_afiliado_awin(url, loja)
             
-            # Mercado Livre
+            # Mercado Livre: usa sistema próprio (não AWIN)
             elif loja.lower() in ['mercado livre', 'mercadolivre']:
                 return await self.gerar_link_afiliado_mercadolivre(url)
             
-            # Shopee
+            # Shopee: usa API própria (não AWIN)
             elif loja.lower() == 'shopee':
                 return await self.gerar_link_afiliado_shopee(url)
             
-            # AliExpress
+            # AliExpress: usa API própria (não AWIN)
             elif loja.lower() == 'aliexpress':
                 return await self.gerar_link_afiliado_aliexpress(url)
             
-            # Magazine Luiza
+            # Magazine Luiza: usa sistema próprio
             elif loja.lower() in ['magazine luiza', 'magazineluiza']:
                 return await self.gerar_link_afiliado_magazineluiza(url)
             
