@@ -79,11 +79,6 @@ debug_*.png
 cache/
 duplicate_cache.json
 
-# Test files
-teste_*.py
-test_*.py
-*_test.py
-
 # Backup files
 *.bak
 *.backup
