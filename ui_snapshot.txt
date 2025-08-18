@@ -21,3 +21,5 @@ CHECKS:
 - ofertas_tem_numero: OK
 - lojas_tem_numero: OK
 - grafico_tem_conteudo: OK
+- cards_titulos_ok: OK
+- preco_valido: OK

@@ -97,6 +97,35 @@ def _acceptance_checks(idx: Dict[str, Any], nodes: List) -> Dict[str, bool]:
         chart_texts = [n for n in _flatten(chart) if n.__class__.__name__ == "Text"]
         checks["grafico_tem_conteudo"] = len(chart_texts) >= 2  # título + placeholder
     
+    # Checks semânticos mais robustos
+    # Validar títulos dos cards
+    expected_titles = {"Ofertas", "Lojas Ativas", "Preço Médio", "Período"}
+    card_titles = set()
+    
+    # Extrair títulos dos cards
+    for card_key in ["card_ofertas", "card_lojas", "card_preco", "card_periodo"]:
+        card = idx.get(card_key)
+        if card:
+            text_nodes = [n for n in _flatten(card) if n.__class__.__name__ == "Text"]
+            for text_node in text_nodes:
+                value = str(getattr(text_node, "value", "") or "")
+                if value and any(title.lower() in value.lower() for title in expected_titles):
+                    card_titles.add(value)
+    
+    checks["cards_titulos_ok"] = len(card_titles) >= 3  # pelo menos 3 títulos corretos
+    
+    # Validação semântica do preço
+    if preco_card:
+        preco_txt = ""
+        text_nodes = [n for n in _flatten(preco_card) if n.__class__.__name__ == "Text"]
+        for text_node in text_nodes:
+            value = str(getattr(text_node, "value", "") or "")
+            if "R$" in value:
+                preco_txt = value
+                break
+        
+        checks["preco_valido"] = preco_txt.startswith("R$") and any(ch.isdigit() for ch in preco_txt)
+    
     return checks
 
 def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:

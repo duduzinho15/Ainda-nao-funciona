@@ -3,15 +3,21 @@ on: [push, pull_request]
 
 jobs:
   ui-check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ['3.11', '3.12']
+    
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         
-      - name: Setup Python 3.11
+      - name: Setup Python ${{ matrix.python }}
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: ${{ matrix.python }}
           
       - name: Install dependencies
         run: |
@@ -20,19 +26,19 @@ jobs:
           
       - name: Run UI Reporter
         run: |
-          python -m app.dashboard --report --json --junit --strict --exit-after-report > ui_summary.json
-          
-      - name: Verify snapshot baseline
-        run: |
+          set -e
+          export GG_REPORT=1 GG_STRICT=1 GG_JUNIT=1 GG_SEED=1337 GG_FREEZE_TIME=2025-01-01T00:00:00Z
+          python -m app.dashboard --report --json --junit --strict --exit-after-report | tee ui_summary.json
           python diagnostics/verify_snapshot.py
           
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ui-reporter-artifacts
+          name: ui-reporter-${{ matrix.os }}-py${{ matrix.python }}
           path: |
             ui_snapshot.txt
+            ui_snapshot.diff
             ui_summary.json
             ui_reporter.junit.xml
           retention-days: 30
@@ -40,15 +46,14 @@ jobs:
       - name: Resumo no PR
         if: always()
         run: |
-          echo "## UI Reporter" >> $GITHUB_STEP_SUMMARY
+          echo "## UI Reporter (${{ matrix.os }} / py${{ matrix.python }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Checks: " >> $GITHUB_STEP_SUMMARY
-          python -c "import json, pathlib; p=pathlib.Path('ui_summary.json'); s=json.loads(p.read_text()) if p.exists() else {'checks': {}}; ok=s.get('checks', {}); total=len(ok); passed=sum(1 for v in ok.values() if v); print(f'- {passed}/{total} checks passaram'); [print(f'- {\"✅\" if v else \"❌\"} {k}') for k,v in ok.items()]"
+          python -c "import json, pathlib; p=pathlib.Path('ui_summary.json'); s=json.loads(p.read_text()) if p.exists() else {'checks': {}}; chk=s.get('checks', {}); total=len(chk); passed=sum(map(int, chk.values())); print(f'- {passed}/{total} checks passaram'); [print(f'- {\"✅\" if v else \"❌\"} {k}') for k,v in chk.items()]"
           
       - name: Show summary
         if: always()
         run: |
-          echo "=== UI Reporter Summary ==="
+          echo "=== UI Reporter Summary (${{ matrix.os }} / py${{ matrix.python }}) ==="
           if [ -f ui_summary.json ]; then
             echo "✅ UI Reporter executado com sucesso"
             echo "📊 Checks realizados:"

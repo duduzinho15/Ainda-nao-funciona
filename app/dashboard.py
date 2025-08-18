@@ -3,6 +3,21 @@ from __future__ import annotations
 from typing import Callable
 import flet as ft
 import os, sys
+import random
+from datetime import datetime, timezone
+
+# Determinismo para CI: congelar seed e tempo
+SEED = int(os.getenv("GG_SEED", "1337"))
+random.seed(SEED)
+
+def now():
+    """Retorna tempo atual ou tempo congelado para CI"""
+    freeze = os.getenv("GG_FREEZE_TIME")  # ex: 2025-01-01T00:00:00Z
+    if freeze:
+        return datetime.fromisoformat(freeze.replace("Z","+00:00"))
+    return datetime.now(timezone.utc)
+
+# use `now()` onde você gera timestamps / "última atualização"
 
 # ---------- Design tokens ----------
 PRIMARY = ft.Colors.BLUE
