@@ -10,7 +10,7 @@ import logging
 import re
 from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast, Sequence
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout, ClientResponse
@@ -80,6 +80,21 @@ class AmazonScraper:
         if self.session is not None:
             await self.session.close()
             self.session = None
+    
+    def _safe_select(self, soup: BeautifulSoup, selector: str) -> List[Tag]:
+        """Função helper tipada para o método select do BeautifulSoup"""
+        try:
+            result = soup.select(selector)
+            # Garante que o resultado seja uma lista de Tags
+            if isinstance(result, ResultSet):
+                return list(result)
+            elif isinstance(result, (list, tuple)):
+                return [item for item in result if isinstance(item, Tag)]
+            else:
+                return []
+        except Exception as e:
+            logger.warning(f"⚠️ Erro ao usar selector '{selector}': {e}")
+            return []
     
     async def buscar_ofertas(self, max_paginas: int = 2, max_requests: int = 4) -> List[OfertaDict]:
         """Busca ofertas da Amazon via Promobit"""
@@ -179,17 +194,16 @@ class AmazonScraper:
             soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
             ofertas: List[OfertaDict] = []
             
-            # Busca por cards de ofertas (mesmo padrão do Promobit)
-            # Usa cast para resolver o problema de tipagem do método select
-            offer_cards: ResultSet[Tag] = cast(ResultSet[Tag], soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner'))
+            # Busca por cards de ofertas usando a função helper tipada
+            offer_cards: List[Tag] = self._safe_select(soup, 'div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner')
             
             if not offer_cards:
                 # Fallback para outros seletores
-                offer_cards = cast(ResultSet[Tag], soup.select('.card, .offer, .product, article'))
+                offer_cards = self._safe_select(soup, '.card, .offer, .product, article')
             
             # Se ainda não encontrou, tenta seletores mais genéricos
             if not offer_cards:
-                offer_cards = cast(ResultSet[Tag], soup.select('div[class*="card"], div[class*="offer"], div[class*="product"], div[class*="item"]'))
+                offer_cards = self._safe_select(soup, 'div[class*="card"], div[class*="offer"], div[class*="product"], div[class*="item"]')
             
             # Último fallback: busca por elementos que contenham preços
             if not offer_cards:
