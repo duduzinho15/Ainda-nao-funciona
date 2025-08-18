@@ -1,6 +1,7 @@
 # flet_app/ui_tokens.py
 from dataclasses import dataclass
 
+
 @dataclass
 class Tokens:
     bg: str
@@ -14,6 +15,7 @@ class Tokens:
     success: str
     warning: str
 
+
 LIGHT = Tokens(
     bg="#F5F7FA",
     surface="#FFFFFF",
@@ -21,7 +23,7 @@ LIGHT = Tokens(
     text="#111827",
     text_muted="#6B7280",
     border="#E5E7EB",
-    primary="#0EA5E9",   # azul/teal suave
+    primary="#0EA5E9",  # azul/teal suave
     danger="#DC2626",
     success="#16A34A",
     warning="#F59E0B",
@@ -34,11 +36,12 @@ DARK = Tokens(
     text="#E5E7EB",
     text_muted="#9CA3AF",
     border="#1F2937",
-    primary="#22D3EE",   # teal claro (bom contraste no escuro)
+    primary="#22D3EE",  # teal claro (bom contraste no escuro)
     danger="#F87171",
     success="#22C55E",
     warning="#FBBF24",
 )
+
 
 def tokens(mode: str) -> Tokens:
     """mode: 'light' ou 'dark'"""

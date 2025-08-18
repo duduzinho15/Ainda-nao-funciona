@@ -5,16 +5,19 @@ from typing import Dict, Any, List, Tuple
 MAX_CAPTION = 900
 ELLIPSIS = "…"
 
+
 def esc(s: Any) -> str:
     if s is None:
         return ""
     s = str(s)
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
+
 def truncate(text: str, limit: int = MAX_CAPTION) -> str:
     if len(text) <= limit:
         return text
     return text[: max(0, limit - 1)] + ELLIPSIS
+
 
 def slugify_store(name: str | None) -> str:
     if not name:
@@ -32,13 +35,16 @@ def slugify_store(name: str | None) -> str:
     }
     return aliases.get(s, s)
 
+
 def fmt_price(offer: Dict[str, Any]) -> str:
     return esc(offer.get("price_formatted") or offer.get("price") or "—")
+
 
 def bullets(features: List[str] | None, max_items: int = 4) -> List[str]:
     if not features:
         return []
     return [f"• {esc(x)}" for x in features[:max_items] if x]
+
 
 def render_badges(offer: Dict[str, Any]) -> List[str]:
     types = set(offer.get("types", []))
@@ -65,6 +71,7 @@ def render_badges(offer: Dict[str, Any]) -> List[str]:
             pass
     return out
 
+
 def base_lines(offer: Dict[str, Any], store_icon: str, store_name: str) -> List[str]:
     title = esc(offer.get("title", "Oferta"))
     lines = [f"{store_icon} <b>{title}</b>"]
@@ -75,10 +82,14 @@ def base_lines(offer: Dict[str, Any], store_icon: str, store_name: str) -> List[
     lines.append(price_line)
     return lines
 
+
 def tpl_default(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🔥", esc(offer.get("store", "Loja")))
-    lines.append(f"🏷 {esc(offer.get('store', 'Loja'))} | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
+    lines.append(
+        f"🏷 {esc(offer.get('store', 'Loja'))} | {esc(offer.get('origin', 'Garimpeiro Geek'))}"
+    )
     return lines
+
 
 def tpl_amazon(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟧", "Amazon")
@@ -86,6 +97,7 @@ def tpl_amazon(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🚚 Prime: {prime}")
     lines.append(f"🏷 Amazon | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
+
 
 def tpl_shopee(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟠", "Shopee")
@@ -98,6 +110,7 @@ def tpl_shopee(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🏷 Shopee | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_aliexpress(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟥", "AliExpress")
     if offer.get("taxes_info"):
@@ -109,6 +122,7 @@ def tpl_aliexpress(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🏷 AliExpress | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_magalu(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🔵", "Magalu")
     if offer.get("parcelamento"):
@@ -117,6 +131,7 @@ def tpl_magalu(offer: Dict[str, Any]) -> List[str]:
         lines.append(f"💸 Cashback: {esc(offer['cashback'])}")
     lines.append(f"🏷 Magalu | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
+
 
 def tpl_ml(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟡", "Mercado Livre")
@@ -127,6 +142,7 @@ def tpl_ml(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🏷 Mercado Livre | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_kabum(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟣", "KaBuM!")
     if offer.get("pix_discount"):
@@ -135,6 +151,7 @@ def tpl_kabum(offer: Dict[str, Any]) -> List[str]:
         lines.append(f"⏳ Termina em: {esc(offer['deal_ends_in'])}")
     lines.append(f"🏷 KaBuM | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
+
 
 def tpl_samsung(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🔵", "Samsung")
@@ -145,6 +162,7 @@ def tpl_samsung(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🏷 Samsung | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_lg(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟩", "LG")
     if offer.get("parcelamento"):
@@ -154,15 +172,18 @@ def tpl_lg(offer: Dict[str, Any]) -> List[str]:
     lines.append(f"🏷 LG | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_comfy(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟦", "Comfy")
     lines.append(f"🏷 Comfy | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
 
+
 def tpl_trocafy(offer: Dict[str, Any]) -> List[str]:
     lines = base_lines(offer, "🟪", "Trocafy")
     lines.append(f"🏷 Trocafy | {esc(offer.get('origin', 'Garimpeiro Geek'))}")
     return lines
+
 
 STORE_TEMPLATES = {
     "amazon": tpl_amazon,
@@ -176,6 +197,7 @@ STORE_TEMPLATES = {
     "comfy": tpl_comfy,
     "trocafy": tpl_trocafy,
 }
+
 
 def build_buttons(offer: Dict[str, Any]) -> List[Dict[str, str]]:
     buttons: List[Dict[str, str]] = []
@@ -192,7 +214,10 @@ def build_buttons(offer: Dict[str, Any]) -> List[Dict[str, str]]:
                 break
     return buttons[:3]
 
-def render_caption_and_buttons(offer: Dict[str, Any]) -> Tuple[str, List[Dict[str, str]]]:
+
+def render_caption_and_buttons(
+    offer: Dict[str, Any],
+) -> Tuple[str, List[Dict[str, str]]]:
     store = slugify_store(offer.get("store"))
     tpl = STORE_TEMPLATES.get(store, tpl_default)
     lines: List[str] = []

@@ -71,19 +71,10 @@ ALERT_COOLDOWN_HOURS = 6
 # ============================================================================
 
 # Categorias que recebem prioridade máxima
-PRIORITY_CATEGORIES = [
-    "smartphone",
-    "notebook", 
-    "gaming",
-    "tech_accessories"
-]
+PRIORITY_CATEGORIES = ["smartphone", "notebook", "gaming", "tech_accessories"]
 
 # Categorias com critérios mais flexíveis
-FLEXIBLE_CATEGORIES = [
-    "anime_manga",
-    "smart_home",
-    "wearables"
-]
+FLEXIBLE_CATEGORIES = ["anime_manga", "smart_home", "wearables"]
 
 # ============================================================================
 # 🏪 PLATAFORMAS E PESOS
@@ -123,14 +114,28 @@ MAX_PRICE = None
 
 # Palavras-chave que aumentam prioridade
 BOOST_KEYWORDS = [
-    "gamer", "gaming", "pro", "premium", "ultra", "max",
-    "limited", "exclusive", "deal", "oferta", "promoção"
+    "gamer",
+    "gaming",
+    "pro",
+    "premium",
+    "ultra",
+    "max",
+    "limited",
+    "exclusive",
+    "deal",
+    "oferta",
+    "promoção",
 ]
 
 # Palavras-chave que diminuem prioridade
 REDUCE_KEYWORDS = [
-    "usado", "seminovo", "recondicionado", "defeito",
-    "garantia", "warranty", "importado"
+    "usado",
+    "seminovo",
+    "recondicionado",
+    "defeito",
+    "garantia",
+    "warranty",
+    "importado",
 ]
 
 # ============================================================================
@@ -147,7 +152,7 @@ MAX_ALERTS_PER_HOUR = 10
 ALERT_START_HOUR = 6  # 6:00
 
 # Horário de fim para alertas (formato 24h)
-ALERT_END_HOUR = 23   # 23:00
+ALERT_END_HOUR = 23  # 23:00
 
 # ============================================================================
 # 📊 CONFIGURAÇÕES DE BANCO DE DADOS
@@ -195,6 +200,7 @@ INCLUDE_COMPETITOR_COMPARISON = False
 # 🎯 FUNÇÃO PARA OBTER CONFIGURAÇÃO
 # ============================================================================
 
+
 def get_alert_config():
     """Retorna dicionário com todas as configurações"""
     return {
@@ -222,7 +228,7 @@ def get_alert_config():
             "shopee": SHOPEE_WEIGHT,
             "aliexpress": ALIEXPRESS_WEIGHT,
             "amazon": AMAZON_WEIGHT,
-            "mercadolivre": MERCADOLIVRE_WEIGHT
+            "mercadolivre": MERCADOLIVRE_WEIGHT,
         },
         "min_rating": MIN_RATING,
         "min_reviews": MIN_REVIEWS,
@@ -243,13 +249,14 @@ def get_alert_config():
         "alert_message_format": ALERT_MESSAGE_FORMAT,
         "include_stats_in_message": INCLUDE_STATS_IN_MESSAGE,
         "include_price_history": INCLUDE_PRICE_HISTORY,
-        "include_competitor_comparison": INCLUDE_COMPETITOR_COMPARISON
+        "include_competitor_comparison": INCLUDE_COMPETITOR_COMPARISON,
     }
+
 
 def print_config_summary():
     """Imprime resumo das configurações ativas"""
     config = get_alert_config()
-    
+
     print("🎯 CONFIGURAÇÃO DOS CRITÉRIOS DE ALERTA")
     print("=" * 50)
     print(f"📊 Desconto mínimo: {config['discount_threshold']:.0%}")
@@ -259,6 +266,7 @@ def print_config_summary():
     print(f"🚨 Máximo de alertas por dia: {config['max_alerts_per_day']}")
     print(f"🎮 Categorias prioritárias: {', '.join(config['priority_categories'])}")
     print("=" * 50)
+
 
 if __name__ == "__main__":
     print_config_summary()

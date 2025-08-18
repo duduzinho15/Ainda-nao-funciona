@@ -228,8 +228,3 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 - ✅ **Sem crashes** ou problemas de compatibilidade
 
 **🎉 O usuário agora tem um dashboard completo e profissional para gerenciar o sistema Garimpeiro Geek!**
-
-
-
-
-

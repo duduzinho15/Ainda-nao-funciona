@@ -3,12 +3,14 @@
 RELATÓRIO FINAL DO SISTEMA DE AFILIADOS
 Status atual de todos os sistemas implementados
 """
+
 import json
 from datetime import datetime
 
+
 class RelatorioFinalSistemaAfiliados:
     """Gera relatório final do sistema de afiliados"""
-    
+
     def __init__(self):
         self.data_geracao = datetime.now()
         self.relatorio = {
@@ -19,9 +21,9 @@ class RelatorioFinalSistemaAfiliados:
             "sistemas_implementados": {},
             "funcionalidades_ativas": {},
             "estatisticas_coleta": {},
-            "recomendacoes": []
+            "recomendacoes": [],
         }
-    
+
     def gerar_relatorio(self):
         """Gera o relatório completo"""
         self._adicionar_empresas_integradas()
@@ -29,9 +31,9 @@ class RelatorioFinalSistemaAfiliados:
         self._adicionar_funcionalidades_ativas()
         self._adicionar_estatisticas_coleta()
         self._adicionar_recomendacoes()
-        
+
         return self.relatorio
-    
+
     def _adicionar_empresas_integradas(self):
         """Adiciona informações sobre empresas integradas"""
         self.relatorio["empresas_integradas"] = {
@@ -47,11 +49,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Geração automática de links de afiliado",
                     "Extração de ASIN das URLs",
                     "Dados completos de produtos",
-                    "Preços em tempo real"
+                    "Preços em tempo real",
                 ],
                 "limites": "5.000 requests/dia (gratuito)",
                 "prioridade": "ALTA",
-                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.amazon.com.br/dp/B0BSHF8V7K?tag=garimpeirogee-20"
+                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.amazon.com.br/dp/B0BSHF8V7K?tag=garimpeirogee-20",
             },
             "aliexpress": {
                 "nome": "AliExpress",
@@ -65,11 +67,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Geração automática de links de afiliado",
                     "Filtros por categoria e preço",
                     "Dados de produtos e avaliações",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Sem limite conhecido",
                 "prioridade": "ALTA",
-                "ultimo_teste": "✅ SUCESSO - Link gerado: https://pt.aliexpress.com/item/1005001234567890.html?src=affiliate&tracking_id=telegram"
+                "ultimo_teste": "✅ SUCESSO - Link gerado: https://pt.aliexpress.com/item/1005001234567890.html?src=affiliate&tracking_id=telegram",
             },
             "shopee": {
                 "nome": "Shopee Brasil",
@@ -83,11 +85,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Ofertas relâmpago",
                     "Geração automática de links de afiliado",
                     "Dados de produtos e preços",
-                    "Filtros por relevância"
+                    "Filtros por relevância",
                 ],
                 "limites": "Sem limite conhecido",
                 "prioridade": "ALTA",
-                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.shopee.com.br/notebook-gamer-acer-nitro-5?affiliate_id=18330800803"
+                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.shopee.com.br/notebook-gamer-acer-nitro-5?affiliate_id=18330800803",
             },
             "mercado_livre": {
                 "nome": "Mercado Livre",
@@ -99,11 +101,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas",
                     "Dados de produtos",
                     "Preços e imagens",
-                    "Sistema de afiliados pendente"
+                    "Sistema de afiliados pendente",
                 ],
                 "limites": "Respeita robots.txt",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "⚠️ PENDENTE - Sistema de afiliados não implementado"
+                "ultimo_teste": "⚠️ PENDENTE - Sistema de afiliados não implementado",
             },
             "kabum": {
                 "nome": "Kabum!",
@@ -116,11 +118,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Dados de produtos",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.kabum.com.br/mouse-gamer-logitech-g502?awin=1&pub=2510157&store=kabum"
+                "ultimo_teste": "✅ SUCESSO - Link gerado: https://www.kabum.com.br/mouse-gamer-logitech-g502?awin=1&pub=2510157&store=kabum",
             },
             "dell": {
                 "nome": "Dell",
@@ -133,11 +135,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Produtos de tecnologia",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando"
+                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando",
             },
             "lenovo": {
                 "nome": "Lenovo",
@@ -150,11 +152,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Notebooks e produtos Lenovo",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando"
+                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando",
             },
             "acer": {
                 "nome": "Acer",
@@ -167,11 +169,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Notebooks e produtos Acer",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando"
+                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando",
             },
             "asus": {
                 "nome": "ASUS",
@@ -184,11 +186,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Placas-mãe e produtos ASUS",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando"
+                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando",
             },
             "samsung": {
                 "nome": "Samsung",
@@ -201,14 +203,14 @@ class RelatorioFinalSistemaAfiliados:
                     "Coleta de ofertas via Awin",
                     "Geração automática de links de afiliado",
                     "Smartphones e produtos Samsung",
-                    "Sistema de tracking"
+                    "Sistema de tracking",
                 ],
                 "limites": "Via Awin",
                 "prioridade": "MÉDIA",
-                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando"
-            }
+                "ultimo_teste": "✅ SUCESSO - Sistema de filtros funcionando",
+            },
         }
-    
+
     def _adicionar_sistemas_implementados(self):
         """Adiciona informações sobre sistemas implementados"""
         self.relatorio["sistemas_implementados"] = {
@@ -217,32 +219,32 @@ class RelatorioFinalSistemaAfiliados:
                     "status": "✅ FUNCIONANDO",
                     "produtos_coletados": "18 por execução",
                     "funcionalidade": "Coleta ofertas de lojas parceiras",
-                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação"
+                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação",
                 },
                 "pelando": {
                     "status": "✅ FUNCIONANDO",
                     "produtos_coletados": "3 por execução",
                     "funcionalidade": "Coleta ofertas de lojas parceiras",
-                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação"
+                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação",
                 },
                 "meupc_net": {
                     "status": "✅ FUNCIONANDO",
                     "produtos_coletados": "14 por execução",
                     "funcionalidade": "Coleta ofertas de lojas parceiras",
-                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação"
+                    "filtro_afiliados": "✅ ATIVO - Só produtos de lojas com afiliação",
                 },
                 "buscape": {
                     "status": "✅ FUNCIONANDO",
                     "produtos_coletados": "30 por execução",
                     "funcionalidade": "Histórico de preços (não afiliados)",
-                    "filtro_afiliados": "❌ NÃO APLICÁVEL - Apenas histórico"
+                    "filtro_afiliados": "❌ NÃO APLICÁVEL - Apenas histórico",
                 },
                 "magazine_luiza": {
                     "status": "✅ FUNCIONANDO",
                     "produtos_coletados": "50 por execução",
                     "funcionalidade": "Ofertas do dia",
-                    "filtro_afiliados": "❌ NÃO APLICÁVEL - Sem sistema de afiliados"
-                }
+                    "filtro_afiliados": "❌ NÃO APLICÁVEL - Sem sistema de afiliados",
+                },
             },
             "sistema_anti_duplicatas": {
                 "status": "✅ IMPLEMENTADO E FUNCIONANDO",
@@ -250,9 +252,9 @@ class RelatorioFinalSistemaAfiliados:
                     "Prevenção de produtos duplicados",
                     "Cache persistente",
                     "Controle de frequência de processamento",
-                    "Hash único por produto"
+                    "Hash único por produto",
                 ],
-                "cache_atual": "129 produtos armazenados"
+                "cache_atual": "129 produtos armazenados",
             },
             "orquestrador_inteligente": {
                 "status": "✅ IMPLEMENTADO E FUNCIONANDO",
@@ -261,8 +263,8 @@ class RelatorioFinalSistemaAfiliados:
                     "Controle de concorrência",
                     "Tratamento de erros",
                     "Estatísticas em tempo real",
-                    "Execução forçada inicial"
-                ]
+                    "Execução forçada inicial",
+                ],
             },
             "sistema_de_postagem": {
                 "status": "✅ IMPLEMENTADO E FUNCIONANDO",
@@ -271,11 +273,11 @@ class RelatorioFinalSistemaAfiliados:
                     "Score de relevância",
                     "Geração automática de links de afiliado",
                     "Postagem no Telegram",
-                    "Prevenção de duplicatas"
-                ]
-            }
+                    "Prevenção de duplicatas",
+                ],
+            },
         }
-    
+
     def _adicionar_funcionalidades_ativas(self):
         """Adiciona informações sobre funcionalidades ativas"""
         self.relatorio["funcionalidades_ativas"] = {
@@ -284,22 +286,22 @@ class RelatorioFinalSistemaAfiliados:
                 "aliexpress": "✅ FUNCIONANDO - Tracking ID e parâmetros de afiliado",
                 "shopee": "✅ FUNCIONANDO - Partner ID e parâmetros de afiliado",
                 "mercado_livre": "❌ PENDENTE - Sistema não implementado",
-                "awin": "✅ FUNCIONANDO - Publisher ID e parâmetros de afiliado"
+                "awin": "✅ FUNCIONANDO - Publisher ID e parâmetros de afiliado",
             },
             "filtros_ativos": {
                 "produtos_geek_tech": "✅ ATIVO - 25+ palavras-chave",
                 "lojas_com_afiliacao": "✅ ATIVO - Para Promobit, Pelando e MeuPC.net",
                 "prevencao_duplicatas": "✅ ATIVO - Sistema de cache e hash",
-                "score_relevancia": "✅ ATIVO - Ordenação inteligente"
+                "score_relevancia": "✅ ATIVO - Ordenação inteligente",
             },
             "integracao_telegram": {
                 "bot": "✅ CONFIGURADO",
                 "canal": "✅ CONFIGURADO",
                 "postagem_automatica": "✅ IMPLEMENTADO",
-                "formato_mensagens": "✅ IMPLEMENTADO"
-            }
+                "formato_mensagens": "✅ IMPLEMENTADO",
+            },
         }
-    
+
     def _adicionar_estatisticas_coleta(self):
         """Adiciona estatísticas de coleta"""
         self.relatorio["estatisticas_coleta"] = {
@@ -309,13 +311,13 @@ class RelatorioFinalSistemaAfiliados:
                 "meupc_net": "14 produtos",
                 "buscape": "30 produtos",
                 "magazine_luiza": "50 produtos",
-                "total": "115 produtos"
+                "total": "115 produtos",
             },
             "produtos_filtrados": "5 produtos selecionados para postagem",
             "cache_atual": "129 produtos únicos armazenados",
-            "sites_registrados": "10 sites configurados"
+            "sites_registrados": "10 sites configurados",
         }
-    
+
     def _adicionar_recomendacoes(self):
         """Adiciona recomendações para melhorias"""
         self.relatorio["recomendacoes"] = [
@@ -326,26 +328,28 @@ class RelatorioFinalSistemaAfiliados:
             "📱 Implementar notificações push para usuários",
             "🔄 Otimizar frequência de execução dos scrapers",
             "📈 Adicionar métricas de conversão de afiliados",
-            "🌐 Implementar interface web para configurações"
+            "🌐 Implementar interface web para configurações",
         ]
-    
-    def salvar_relatorio_json(self, arquivo: str = "relatorio_final_sistema_afiliados.json"):
+
+    def salvar_relatorio_json(
+        self, arquivo: str = "relatorio_final_sistema_afiliados.json"
+    ):
         """Salva o relatório em formato JSON"""
         try:
-            with open(arquivo, 'w', encoding='utf-8') as f:
+            with open(arquivo, "w", encoding="utf-8") as f:
                 json.dump(self.relatorio, f, indent=2, ensure_ascii=False)
             print(f"✅ Relatório salvo em: {arquivo}")
         except Exception as e:
             print(f"❌ Erro ao salvar relatório: {e}")
-    
+
     def imprimir_relatorio(self):
         """Imprime o relatório formatado"""
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("🔗 RELATÓRIO FINAL DO SISTEMA DE AFILIADOS")
-        print("="*80)
+        print("=" * 80)
         print(f"📅 Data de geração: {self.relatorio['data_geracao']}")
         print(f"🎯 Status Geral: {self.relatorio['status_geral']}")
-        
+
         print("\n🏢 EMPRESAS INTEGRADAS:")
         print("-" * 80)
         for empresa_id, empresa in self.relatorio["empresas_integradas"].items():
@@ -358,19 +362,21 @@ class RelatorioFinalSistemaAfiliados:
             if "ultimo_teste" in empresa:
                 print(f"   Teste: {empresa['ultimo_teste']}")
             print()
-        
+
         print("🔧 SISTEMAS IMPLEMENTADOS:")
         print("-" * 80)
         for sistema, info in self.relatorio["sistemas_implementados"].items():
             if sistema == "scrapers":
                 print(f"📦 {sistema.upper()}:")
                 for scraper, scraper_info in info.items():
-                    print(f"   {scraper_info['status']} {scraper.replace('_', ' ').title()}")
+                    print(
+                        f"   {scraper_info['status']} {scraper.replace('_', ' ').title()}"
+                    )
                     print(f"      {scraper_info['funcionalidade']}")
             else:
                 print(f"⚙️ {sistema.replace('_', ' ').title()}: {info['status']}")
         print()
-        
+
         print("📊 ESTATÍSTICAS DE COLETA:")
         print("-" * 80)
         stats = self.relatorio["estatisticas_coleta"]
@@ -379,31 +385,33 @@ class RelatorioFinalSistemaAfiliados:
         print(f"💾 Cache atual: {stats['cache_atual']} produtos únicos")
         print(f"🌐 Sites registrados: {stats['sites_registrados']}")
         print()
-        
+
         print("💡 RECOMENDAÇÕES:")
         print("-" * 80)
         for i, recomendacao in enumerate(self.relatorio["recomendacoes"], 1):
             print(f"   {i}. {recomendacao}")
-        
-        print("\n" + "="*80)
+
+        print("\n" + "=" * 80)
         print("🎉 SISTEMA COMPLETAMENTE IMPLEMENTADO E FUNCIONANDO!")
-        print("="*80)
+        print("=" * 80)
+
 
 def main():
     """Função principal"""
     print("🚀 GERANDO RELATÓRIO FINAL DO SISTEMA DE AFILIADOS")
-    
+
     # Cria relatório
     relatorio = RelatorioFinalSistemaAfiliados()
     relatorio_completo = relatorio.gerar_relatorio()
-    
+
     # Imprime relatório
     relatorio.imprimir_relatorio()
-    
+
     # Salva em JSON
     relatorio.salvar_relatorio_json()
-    
+
     print("\n✅ Relatório final gerado com sucesso!")
+
 
 if __name__ == "__main__":
     main()

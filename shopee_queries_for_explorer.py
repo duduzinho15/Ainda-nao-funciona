@@ -53,9 +53,7 @@ query ProductOfferQuery($limit: Int) {
 """
 
 # Variáveis para a query de ofertas
-VARIABLES_PRODUCT_OFFERS = {
-  "limit": 10
-}
+VARIABLES_PRODUCT_OFFERS = {"limit": 10}
 
 # ============================================================
 # QUERY 3: BUSCAR PRODUTOS POR PALAVRA-CHAVE
@@ -80,10 +78,7 @@ query SearchProducts($keyword: String!, $limit: Int) {
 """
 
 # Variáveis para a query de busca
-VARIABLES_SEARCH_PRODUCTS = {
-  "keyword": "notebook",
-  "limit": 5
-}
+VARIABLES_SEARCH_PRODUCTS = {"keyword": "notebook", "limit": 5}
 
 # ============================================================
 # QUERY 4: EXPLORAR SCHEMA COMPLETO
@@ -162,7 +157,7 @@ query ProductDetails($itemId: String!) {
 
 # Variáveis para detalhes do produto
 VARIABLES_PRODUCT_DETAILS = {
-  "itemId": "123456789"  # Substitua pelo ID real do produto
+    "itemId": "123456789"  # Substitua pelo ID real do produto
 }
 
 # ============================================================
@@ -190,10 +185,7 @@ query CategoryProducts($category: String!, $limit: Int) {
 """
 
 # Variáveis para busca por categoria
-VARIABLES_CATEGORY_PRODUCTS = {
-  "category": "electronics",
-  "limit": 20
-}
+VARIABLES_CATEGORY_PRODUCTS = {"category": "electronics", "limit": 20}
 
 # ============================================================
 # QUERY 7: PRODUTOS EM PROMOÇÃO
@@ -221,9 +213,7 @@ query PromotionProducts($limit: Int) {
 """
 
 # Variáveis para produtos em promoção
-VARIABLES_PROMOTION_PRODUCTS = {
-  "limit": 15
-}
+VARIABLES_PROMOTION_PRODUCTS = {"limit": 15}
 
 # ============================================================
 # INSTRUÇÕES DE USO NO EXPLORER
@@ -252,46 +242,49 @@ INSTRUCTIONS = """
 - Copie e cole as queries diretamente no explorer
 """
 
+
 # ============================================================
 # EXEMPLO DE USO RÁPIDO
 # ============================================================
 def print_queries_for_explorer():
     """Imprime todas as queries formatadas para uso no explorer"""
-    
+
     print("=" * 80)
     print("🚀 QUERIES GRAPHQL PARA O EXPLORER DA SHOPEE")
     print("=" * 80)
     print()
-    
+
     print("1️⃣ QUERY DE TESTE (Cole no explorer):")
     print("-" * 50)
     print(QUERY_TEST_CONNECTION)
     print()
-    
+
     print("2️⃣ QUERY DE OFERTAS (Cole no explorer):")
     print("-" * 50)
     print(QUERY_PRODUCT_OFFERS)
     print()
-    
+
     print("3️⃣ VARIÁVEIS PARA OFERTAS (Cole no campo Variables):")
     print("-" * 50)
     print(json.dumps(VARIABLES_PRODUCT_OFFERS, indent=2))
     print()
-    
+
     print("4️⃣ QUERY DE BUSCA (Cole no explorer):")
     print("-" * 50)
     print(QUERY_SEARCH_PRODUCTS)
     print()
-    
+
     print("5️⃣ VARIÁVEIS PARA BUSCA (Cole no campo Variables):")
     print("-" * 50)
     print(json.dumps(VARIABLES_SEARCH_PRODUCTS, indent=2))
     print()
-    
+
     print("=" * 80)
     print("📱 ACESSE: https://open-api.affiliate.shopee.com.br/explorer")
     print("=" * 80)
 
+
 if __name__ == "__main__":
     import json
+
     print_queries_for_explorer()

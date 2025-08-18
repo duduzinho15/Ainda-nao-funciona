@@ -1,43 +1,36 @@
 repos:
-  - repo: https://github.com/psf/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        language_version: python3
-        args: [--line-length=88, --target-version=py313]
-
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.5
+    rev: v0.1.0
     hooks:
       - id: ruff
-        args: [--fix, --exit-non-zero-on-fix]
-        language_version: python3
-
-  - repo: https://github.com/charliermarsh/pyright-python
-    rev: v1.1.377
-    hooks:
-      - id: pyright
-        args: [--project=pyrightconfig.json]
-        language_version: python3
-
-  - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.39.0
-    hooks:
-      - id: markdownlint
         args: [--fix]
-        files: \.md$
+      - id: ruff-format
 
-  - repo: local
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
     hooks:
-      - id: python-import-sort
-        name: Sort Python imports
-        entry: python -m isort
-        language: system
-        types: [python]
-        args: [--profile=black]
-
+      - id: end-of-file-fixer
       - id: trailing-whitespace
-        name: Trim trailing whitespace
-        entry: trailing-whitespace-fixer
-        language: system
-        types: [text]
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-toml
+      - id: check-vcs-permalinks
+      - id: debug-statements
+      - id: detect-private-key
+      - id: fix-byte-order-marker
+      - id: mixed-line-ending
+      - id: name-tests-test
+      - id: no-commit-to-branch
+      - id: requirements-txt-fixer
+      - id: sort-simple-yaml
+      - id: validate-json
+      - id: validate-pyproject
+      - id: validate-toml
+      - id: validate-xml
+      - id: yaml-docstring

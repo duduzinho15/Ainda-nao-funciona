@@ -1,20 +1,14 @@
 """
 Sistema de Recomendações de Ofertas Telegram - Garimpeiro Geek
-
-Este arquivo __init__.py define as informações básicas do projeto
-sem modificar o Python path ou executar código automaticamente.
 """
 
-# Versão do projeto
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "Garimpeiro Geek Team"
-__description__ = "Bot do Telegram para busca automática de ofertas"
+__description__ = "Sistema inteligente de busca e postagem de ofertas"
 
-# Informações do projeto
-__all__ = [
-    "affiliate",
-    "config", 
-    "database",
-    "telegram_poster",
-    "orchestrator"
-]
+# Módulos principais
+from . import core
+from . import ui
+from . import app
+
+__all__ = ["core", "ui", "app"]
