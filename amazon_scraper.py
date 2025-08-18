@@ -3,42 +3,67 @@
 Scraper para Amazon - Garimpeiro Geek
 Extrai ofertas da Amazon via Promobit (evita bloqueios diretos)
 """
+from __future__ import annotations
+
 import asyncio
-import aiohttp
 import logging
 import re
-from bs4 import BeautifulSoup
-from typing import List, Dict, Any
 from datetime import datetime
 import random
+from typing import Any, Dict, List, Optional, TypedDict, Union
+
+import aiohttp
+from aiohttp import ClientSession, ClientTimeout, ClientResponse
+from bs4 import BeautifulSoup, Tag
+from bs4.element import ResultSet
+
 import config
 
 logger = logging.getLogger("amazon_scraper")
 
+# Tipos tipados para ofertas
+class OfertaDict(TypedDict):
+    titulo: str
+    preco: str
+    preco_original: str
+    desconto: int
+    url_produto: str
+    imagem_url: str
+    loja: str
+    fonte: str
+    categoria: str
+    timestamp: str
+
 class AmazonScraper:
     """Scraper para Amazon usando Promobit como fonte"""
     
-    def __init__(self):
-        self.base_url = "https://www.promobit.com.br"
-        self.session = None
-        self.user_agents = [
+    def __init__(self) -> None:
+        self.base_url: str = "https://www.promobit.com.br"
+        self.session: Optional[ClientSession] = None
+        self.timeout: ClientTimeout = ClientTimeout(total=30)
+        self.user_agents: List[str] = [
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         ]
         
         # URLs do Promobit que filtram produtos da Amazon
-        self.amazon_urls = [
+        self.amazon_urls: List[str] = [
             "/ofertas",
             "/ofertas/",
             "/"
         ]
     
-    async def __aenter__(self):
+    def _ensure_session(self) -> ClientSession:
+        """Garante que a sessão está disponível"""
+        if self.session is None:
+            raise RuntimeError("ClientSession ainda não inicializada. Use o contexto ou chame start().")
+        return self.session
+    
+    async def __aenter__(self) -> AmazonScraper:
         """Context manager entry"""
-        timeout = aiohttp.ClientTimeout(total=30)
-        self.session = aiohttp.ClientSession(
-            timeout=timeout,
+        self.session = ClientSession(
+            timeout=self.timeout,
             headers={
                 "User-Agent": random.choice(self.user_agents),
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -50,16 +75,17 @@ class AmazonScraper:
         )
         return self
     
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Any) -> None:
         """Context manager exit"""
-        if self.session:
+        if self.session is not None:
             await self.session.close()
+            self.session = None
     
-    async def buscar_ofertas(self, max_paginas: int = 2, max_requests: int = 4) -> List[Dict[str, Any]]:
+    async def buscar_ofertas(self, max_paginas: int = 2, max_requests: int = 4) -> List[OfertaDict]:
         """Busca ofertas da Amazon via Promobit"""
         logger.info(f"🚀 Iniciando busca de ofertas da Amazon via Promobit (max_paginas={max_paginas})")
         
-        all_ofertas = []
+        all_ofertas: List[OfertaDict] = []
         request_count = 0
         
         try:
@@ -74,7 +100,10 @@ class AmazonScraper:
                     
                     ofertas = await self._scrape_pagina(url)
                     # Filtra apenas ofertas válidas e da Amazon
-                    amazon_ofertas = [o for o in ofertas if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()]
+                    amazon_ofertas: List[OfertaDict] = [
+                        o for o in ofertas 
+                        if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()
+                    ]
                     all_ofertas.extend(amazon_ofertas)
                     request_count += 1
                     
@@ -88,7 +117,7 @@ class AmazonScraper:
             # Se não encontrou ofertas específicas da Amazon, busca em categorias gerais
             if not all_ofertas:
                 logger.info("🔍 Buscando ofertas da Amazon em categorias gerais...")
-                general_urls = [
+                general_urls: List[str] = [
                     "/ofertas",
                     "/"
                 ]
@@ -103,7 +132,10 @@ class AmazonScraper:
                         
                         ofertas = await self._scrape_pagina(url)
                         # Filtra apenas ofertas válidas e da Amazon
-                        amazon_ofertas = [o for o in ofertas if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()]
+                        amazon_ofertas = [
+                            o for o in ofertas 
+                            if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()
+                        ]
                         all_ofertas.extend(amazon_ofertas)
                         request_count += 1
                         
@@ -120,34 +152,35 @@ class AmazonScraper:
             logger.error(f"❌ Erro geral na busca: {e}")
             return []
     
-    async def _scrape_pagina(self, url: str) -> List[Dict[str, Any]]:
+    async def _scrape_pagina(self, url: str) -> List[OfertaDict]:
         """Scrapa uma página específica do Promobit"""
         try:
-            async with self.session.get(url) as response:
+            session = self._ensure_session()
+            async with session.get(url) as response:
                 response.raise_for_status()
-                html = await response.text()
+                html_text: str = await response.text()
                 
                 # Salva HTML para debug
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 filename = f"amazon_via_promobit_{timestamp}.html"
                 with open(filename, "w", encoding="utf-8") as f:
-                    f.write(html)
+                    f.write(html_text)
                 logger.debug(f"HTML salvo em {filename}")
                 
-                return self._parse_ofertas(html, url)
+                return self._parse_ofertas(html_text, url)
                 
         except Exception as e:
             logger.error(f"❌ Erro ao fazer request para {url}: {e}")
             return []
     
-    def _parse_ofertas(self, html: str, source_url: str) -> List[Dict[str, Any]]:
+    def _parse_ofertas(self, html: str, source_url: str) -> List[OfertaDict]:
         """Parseia o HTML para extrair ofertas do Promobit"""
         try:
-            soup = BeautifulSoup(html, "html.parser")
-            ofertas = []
+            soup: BeautifulSoup = BeautifulSoup(html, "html.parser")
+            ofertas: List[OfertaDict] = []
             
             # Busca por cards de ofertas (mesmo padrão do Promobit)
-            offer_cards = soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner')
+            offer_cards: ResultSet[Tag] = soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner')
             
             if not offer_cards:
                 # Fallback para outros seletores
@@ -159,7 +192,7 @@ class AmazonScraper:
             
             # Último fallback: busca por elementos que contenham preços
             if not offer_cards:
-                price_elements = soup.find_all(text=re.compile(r"R\$\s*\d"))
+                price_elements: List[Any] = soup.find_all(text=re.compile(r"R\$\s*\d"))
                 if price_elements:
                     for price_elem in price_elements:
                         parent = price_elem.parent
@@ -185,12 +218,12 @@ class AmazonScraper:
             logger.error(f"❌ Erro ao fazer parse do HTML: {e}")
             return []
     
-    def _extrair_oferta(self, card, source_url: str) -> Dict[str, Any] | None:
+    def _extrair_oferta(self, card: Tag, source_url: str) -> Optional[OfertaDict]:
         """Extrai dados de uma oferta individual"""
         try:
             # Título da oferta - busca em múltiplos elementos
-            titulo = ""
-            titulo_selectors = [
+            titulo: str = ""
+            titulo_selectors: List[str] = [
                 'h2 a span', '.a-text-normal', '.a-size-base-plus', '.titulo', '.title',
                 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
                 'a[title]', 'a[alt]', 'div[title]', 'span[title]',
@@ -198,29 +231,30 @@ class AmazonScraper:
             ]
             
             for selector in titulo_selectors:
-                elem = card.select_one(selector)
+                elem: Optional[Tag] = card.select_one(selector)
                 if elem:
-                    titulo = elem.get_text(strip=True)
+                    titulo_raw = elem.get_text(strip=True)
+                    titulo = titulo_raw if isinstance(titulo_raw, str) else ""
                     if titulo and len(titulo) > 10:
                         break
             
             # Se não encontrou título, tenta extrair do texto do card
             if not titulo:
-                text_elements = card.find_all(string=True)
+                text_elements: List[Any] = card.find_all(string=True)
                 for text in text_elements:
-                    text = text.strip()
-                    if (len(text) > 15 and 
-                        not re.search(r"R\$\s*\d", text) and
-                        not re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", text)):
-                        titulo = text
+                    text_str: str = text.strip() if isinstance(text, str) else ""
+                    if (len(text_str) > 15 and 
+                        not re.search(r"R\$\s*\d", text_str) and
+                        not re.search(r"\d{1,3}(?:\.\d{3})*,\d{2}", text_str)):
+                        titulo = text_str
                         break
             
             if not titulo or len(titulo) < 10:
                 return None
             
             # Preço atual - busca em múltiplos elementos
-            preco = ""
-            preco_selectors = [
+            preco: str = ""
+            preco_selectors: List[str] = [
                 '.a-price-whole', '.a-price .a-offscreen', '.preco', '.price',
                 'span[class*="price"]', 'span[class*="preco"]', 'span[class*="valor"]',
                 'div[class*="price"]', 'div[class*="preco"]', 'div[class*="valor"]',
@@ -230,14 +264,16 @@ class AmazonScraper:
             for selector in preco_selectors:
                 elem = card.select_one(selector)
                 if elem:
-                    text = elem.get_text(strip=True)
+                    text_raw = elem.get_text(strip=True)
+                    text: str = text_raw if isinstance(text_raw, str) else ""
                     if self._is_valid_price(text):
                         preco = text
                         break
             
             # Se não encontrou preço, busca no texto do card
             if not preco:
-                price_match = re.search(r"R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}", card.get_text())
+                card_text: str = card.get_text() or ""
+                price_match = re.search(r"R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}", card_text)
                 if price_match:
                     preco = price_match.group(0)
             
@@ -245,8 +281,8 @@ class AmazonScraper:
                 return None
             
             # Preço original (se houver desconto)
-            preco_original = ""
-            original_selectors = [
+            preco_original: str = ""
+            original_selectors: List[str] = [
                 '.a-text-strike', '.a-price.a-text-price .a-offscreen', '.preco-original',
                 'span[class*="original"]', 'span[class*="old"]', 'span[class*="antigo"]',
                 'del', 's', 'strike'
@@ -255,13 +291,14 @@ class AmazonScraper:
             for selector in original_selectors:
                 elem = card.select_one(selector)
                 if elem:
-                    text = elem.get_text(strip=True)
+                    text_raw = elem.get_text(strip=True)
+                    text = text_raw if isinstance(text_raw, str) else ""
                     if self._is_valid_price(text):
                         preco_original = text
                         break
             
             # Calcula desconto
-            desconto = 0
+            desconto: int = 0
             if preco_original and self._is_valid_price(preco_original):
                 try:
                     preco_atual = float(re.sub(r"[^\d,]", "", preco).replace(",", "."))
@@ -272,28 +309,39 @@ class AmazonScraper:
                     pass
             
             # URL do produto
-            url_produto = ""
-            link_elem = card.select_one('a[href*="/dp/"], a[href*="amazon"], a[href]')
+            url_produto: str = ""
+            link_elem: Optional[Tag] = card.select_one('a[href*="/dp/"], a[href*="amazon"], a[href]')
             if link_elem and link_elem.get('href'):
-                href = link_elem['href']
-                if href.startswith('/'):
-                    url_produto = f"{self.base_url}{href}"
-                elif href.startswith('http'):
-                    url_produto = href
+                href_raw = link_elem['href']
+                # Garante que href seja uma string
+                if isinstance(href_raw, list):
+                    href: str = href_raw[0] if href_raw else ""
                 else:
+                    href: str = str(href_raw)
+                
+                if href and href.startswith('/'):
+                    url_produto = f"{self.base_url}{href}"
+                elif href and href.startswith('http'):
+                    url_produto = href
+                elif href:
                     url_produto = f"{self.base_url}/{href}"
             
             if not url_produto:
                 url_produto = source_url
             
             # Imagem do produto
-            imagem_url = ""
-            img_elem = card.select_one('img[src*="images"], .s-image, img')
+            imagem_url: str = ""
+            img_elem: Optional[Tag] = card.select_one('img[src*="images"], .s-image, img')
             if img_elem and img_elem.get('src'):
-                imagem_url = img_elem['src']
+                src_raw = img_elem['src']
+                # Garante que src seja uma string
+                if isinstance(src_raw, list):
+                    imagem_url = src_raw[0] if src_raw else ""
+                else:
+                    imagem_url = str(src_raw)
             
             # Loja (deve ser Amazon)
-            loja = "Amazon"
+            loja: str = "Amazon"
             
             return {
                 "titulo": titulo,
@@ -321,7 +369,7 @@ class AmazonScraper:
         price_str = price_str.strip()
         
         # Padrões de preço brasileiro
-        patterns = [
+        patterns: List[str] = [
             r"R\$\s*\d{1,3}(?:\.\d{3})*,\d{2}",  # R$ 1.234,56
             r"R\$\s*\d+,\d{2}",                   # R$ 123,45
             r"R\$\s*\d+",                         # R$ 123
@@ -335,14 +383,14 @@ class AmazonScraper:
         
         return False
 
-async def buscar_ofertas_amazon(session: aiohttp.ClientSession | None = None, max_paginas: int = 2, max_requests: int = 4) -> List[Dict[str, Any]]:
+async def buscar_ofertas_amazon(session: Optional[ClientSession] = None, max_paginas: int = 2, max_requests: int = 4) -> List[OfertaDict]:
     """Função principal para buscar ofertas da Amazon via Promobit"""
     async with AmazonScraper() as scraper:
         return await scraper.buscar_ofertas(max_paginas=max_paginas, max_requests=max_requests)
 
 # Teste direto
 if __name__ == "__main__":
-    async def main():
+    async def main() -> None:
         logging.basicConfig(level=logging.INFO)
         ofertas = await buscar_ofertas_amazon(max_paginas=1, max_requests=2)
         
