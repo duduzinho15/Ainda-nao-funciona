@@ -306,6 +306,17 @@ def main(page: ft.Page):
                 print("[UI-REPORTER] Falha: checks reprovados.")
                 os._exit(2)  # código != 0 para quebrar o CI
                 
+            # Exportar JUnit XML se solicitado
+            want_junit = ("--junit" in sys.argv) or os.getenv("GG_JUNIT") == "1"
+            if want_junit:
+                try:
+                    from diagnostics.ui_reporter import emit_junit_xml
+                    junit_path = os.getenv("GG_JUNIT_PATH", "ui_reporter.junit.xml")
+                    emit_junit_xml(summary, junit_path)
+                    print(f"[UI-REPORTER] JUnit XML salvo em: {junit_path}")
+                except Exception as e:
+                    print(f"[UI-REPORTER] Erro ao gerar JUnit: {e}")
+                    
         except Exception as e:
             print(f"[UI-REPORTER] erro: {e}")
             if strict:

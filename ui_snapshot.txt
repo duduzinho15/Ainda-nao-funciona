@@ -20,3 +20,4 @@ CHECKS:
 - preco_tem_prefixo_moeda: OK
 - ofertas_tem_numero: OK
 - lojas_tem_numero: OK
+- grafico_tem_conteudo: OK

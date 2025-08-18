@@ -90,6 +90,13 @@ def _acceptance_checks(idx: Dict[str, Any], nodes: List) -> Dict[str, bool]:
         text_nodes = [n for n in _flatten(lojas_card) if n.__class__.__name__ == "Text"]
         checks["lojas_tem_numero"] = any(str(getattr(t, "value", "") or "").isdigit() for t in text_nodes)
     
+    # Gráfico tem conteúdo mínimo
+    chart = idx.get("chart")
+    if chart:
+        # Verificar se há texto no gráfico (indicando conteúdo)
+        chart_texts = [n for n in _flatten(chart) if n.__class__.__name__ == "Text"]
+        checks["grafico_tem_conteudo"] = len(chart_texts) >= 2  # título + placeholder
+    
     return checks
 
 def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
@@ -141,6 +148,28 @@ def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
     if "logs" in idx:
         print("+ Logs: painel encontrado", file=buf)
     return buf.getvalue()
+
+def emit_junit_xml(summary: dict, path: str) -> None:
+    """Exporta resultados como JUnit XML para integração com CI"""
+    import xml.etree.ElementTree as ET
+    from datetime import datetime
+
+    checks = summary.get("checks", {})
+    ts = ET.Element(
+        "testsuite",
+        {
+            "name": "UIReporter",
+            "tests": str(len(checks)),
+            "failures": str(sum(0 if v else 1 for v in checks.values())),
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+        },
+    )
+    for name, ok in checks.items():
+        tc = ET.SubElement(ts, "testcase", {"classname": "UI", "name": name})
+        if not ok:
+            fail = ET.SubElement(tc, "failure", {"message": f"check '{name}' failed"})
+            fail.text = summary.get("snapshot", "")[:50000]  # snapshot parcial ajuda no debug
+    ET.ElementTree(ts).write(path, encoding="utf-8", xml_declaration=True)
 
 def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_snapshot.txt") -> Dict[str, Any]:
     nodes = []

@@ -20,7 +20,7 @@ jobs:
           
       - name: Run UI Reporter
         run: |
-          python -m app.dashboard --report --json --strict --exit-after-report > ui_summary.json
+          python -m app.dashboard --report --json --junit --strict --exit-after-report > ui_summary.json
           
       - name: Verify snapshot baseline
         run: |
@@ -34,7 +34,16 @@ jobs:
           path: |
             ui_snapshot.txt
             ui_summary.json
+            ui_reporter.junit.xml
           retention-days: 30
+          
+      - name: Resumo no PR
+        if: always()
+        run: |
+          echo "## UI Reporter" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Checks: " >> $GITHUB_STEP_SUMMARY
+          python -c "import json, pathlib; p=pathlib.Path('ui_summary.json'); s=json.loads(p.read_text()) if p.exists() else {'checks': {}}; ok=s.get('checks', {}); total=len(ok); passed=sum(1 for v in ok.values() if v); print(f'- {passed}/{total} checks passaram'); [print(f'- {\"✅\" if v else \"❌\"} {k}') for k,v in ok.items()]"
           
       - name: Show summary
         if: always()
