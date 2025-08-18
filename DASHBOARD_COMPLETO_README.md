@@ -5,12 +5,14 @@
 ### **🎯 Funcionalidades Implementadas**
 
 #### **1. Sistema de Temas e Preferências**
+
 - ✅ **Tema Claro/Escuro**: Alternância perfeita com persistência
 - ✅ **Preferências salvas**: `config/dashboard_prefs.json`
 - ✅ **Última aba**: Lembra qual aba estava aberta
 - ✅ **Filtro de período**: 24h, 7d, 30d, Tudo (persistente)
 
 #### **2. Aba "Logs" - Visão Geral Completa**
+
 - ✅ **Cards de métricas**: Ofertas, Lojas Ativas, Preço Médio, Período
 - ✅ **Filtros de período**: Chips interativos com cores do tema
 - ✅ **Gráfico de barras**: Distribuição por loja (sem ft.canvas)
@@ -19,6 +21,7 @@
 - ✅ **Estados vazios**: Mensagens quando não há dados
 
 #### **3. Aba "Configurações" - Sistema Completo**
+
 - ✅ **Campos de scraping**: Intervalo, desconto, comissão, max produtos
 - ✅ **Configurações Telegram**: Chat ID e Token (password)
 - ✅ **Validação**: Verifica valores numéricos válidos
@@ -27,6 +30,7 @@
 - ✅ **Feedback visual**: Snackbars de sucesso/erro
 
 #### **4. Aba "Controles" - Sistema de Gerenciamento**
+
 - ✅ **Status em tempo real**: Parado/Rodando/Erro com cores
 - ✅ **Controles principais**: Iniciar/Parar sistema
 - ✅ **Ações rápidas**: Forçar coleta, verificar saúde, limpar logs
@@ -34,12 +38,14 @@
 - ✅ **Callbacks**: Atualização automática da UI
 
 #### **5. Sistema de Métricas Inteligente**
+
 - ✅ **Fallback automático**: Dados mock se SQLite não existir
 - ✅ **Consultas SQL**: Busca real no banco quando disponível
 - ✅ **Filtros de tempo**: SQL dinâmico por período
 - ✅ **Tratamento de erros**: Sem crashes, sempre retorna dados válidos
 
 #### **6. Sistema de Logs Avançado**
+
 - ✅ **Monitoramento automático**: Detecta mudanças em arquivos
 - ✅ **Threading seguro**: Não bloqueia UI principal
 - ✅ **Formatação inteligente**: Cores baseadas no tipo de log
@@ -47,6 +53,7 @@
 - ✅ **Backup automático**: Cria backup antes de limpar
 
 #### **7. UX/UI Profissional**
+
 - ✅ **Skeleton loaders**: Loading elegante para métricas
 - ✅ **Snackbars**: Feedback visual para todas as ações
 - ✅ **Estados vazios**: Mensagens quando não há dados
@@ -56,7 +63,8 @@
 ### **🏗️ Arquitetura Implementada**
 
 #### **Estrutura de Arquivos**
-```
+
+```text
 flet_app/
 ├── __init__.py
 ├── main.py (dashboard principal)
@@ -79,6 +87,7 @@ config/
 ```
 
 #### **Serviços Implementados**
+
 - **ThemeManager**: Preferências e persistência
 - **MetricsService**: Dados com fallback automático
 - **ConfigService**: Configurações do sistema
@@ -88,11 +97,13 @@ config/
 ### **🎨 Sistema de Temas**
 
 #### **Paleta de Cores**
+
 - **Light Theme**: Azul claro, branco, cinza suave
 - **Dark Theme**: Azul escuro, superfícies escuras, texto claro
 - **Cores funcionais**: Success (verde), Danger (vermelho), Warning (amarelo)
 
 #### **Componentes Tematizados**
+
 - ✅ **Cards**: Superfície com bordas
 - ✅ **Botões**: Cores primárias e funcionais
 - ✅ **Textos**: Hierarquia de cores (principal, secundário, muted)
@@ -102,6 +113,7 @@ config/
 ### **🔧 Como Usar**
 
 #### **Modo Desktop**
+
 ```bash
 # Tema escuro
 $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --desktop
@@ -111,12 +123,14 @@ $env:DASHBOARD_THEME="light"; .\.venv\Scripts\python.exe -m flet_app.main --desk
 ```
 
 #### **Modo Web/Headless**
+
 ```bash
 # Para o supervisor
 $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 127.0.0.1 --port 8550 --headless
 ```
 
 #### **Configurações**
+
 - **Arquivo**: `config/dashboard_prefs.json`
 - **Tema**: Salvo automaticamente
 - **Última aba**: Lembrada entre sessões
@@ -125,12 +139,14 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 ### **📊 Métricas Disponíveis**
 
 #### **Dados Reais (SQLite)**
+
 - **Total de ofertas**: Por período selecionado
 - **Lojas ativas**: Ranking com contagem
 - **Preço médio**: Média das ofertas
 - **Últimas ofertas**: Para logs em tempo real
 
 #### **Fallback (Mock)**
+
 - **Dados seguros**: Sempre retorna valores válidos
 - **Simulação realista**: Baseado em cenários típicos
 - **Sem crashes**: Sistema sempre funcional
@@ -138,18 +154,21 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 ### **🚀 Funcionalidades Avançadas**
 
 #### **Sistema de Controle**
+
 - **Threading seguro**: Não bloqueia UI
 - **Callbacks**: Atualização automática
 - **Estados**: Transições visuais
 - **Estatísticas**: Contadores em tempo real
 
 #### **Monitoramento de Logs**
+
 - **Detecção automática**: Mudanças em arquivos
 - **Formatação inteligente**: Cores por tipo
 - **Performance**: Threading não-bloqueante
 - **Backup**: Preserva histórico
 
 #### **Validação e Feedback**
+
 - **Campos numéricos**: Validação automática
 - **Snackbars**: Feedback visual imediato
 - **Estados de erro**: Mensagens claras
@@ -158,6 +177,7 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 ### **✅ Testes Realizados**
 
 #### **Funcionalidade**
+
 - ✅ **Tema claro/escuro**: Alternância perfeita
 - ✅ **Persistência**: Preferências salvas
 - ✅ **Métricas**: Carregamento com skeleton
@@ -166,12 +186,14 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 - ✅ **Logs**: Monitoramento em tempo real
 
 #### **Compatibilidade**
+
 - ✅ **Flet 0.28.3+**: Sem ft.canvas (compatível)
 - ✅ **Windows**: Funciona perfeitamente
 - ✅ **Python 3.11+**: Sem problemas
 - ✅ **SQLite**: Com fallback automático
 
 #### **Performance**
+
 - ✅ **Threading**: UI responsiva
 - ✅ **Callbacks**: Atualizações eficientes
 - ✅ **Memory**: Sem vazamentos
@@ -180,12 +202,14 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 ### **🎯 Próximos Passos (Opcionais)**
 
 #### **Melhorias de UX**
+
 - **Gráficos avançados**: Plotly via IFrame
 - **Exportação**: CSV/JSON de métricas
 - **Notificações**: Sistema de alertas
 - **Dashboard móvel**: Responsivo para mobile
 
 #### **Funcionalidades Extras**
+
 - **Backup automático**: Configurações e logs
 - **Logs estruturados**: Parsing de eventos
 - **Métricas históricas**: Gráficos de tendência
@@ -204,4 +228,3 @@ $env:DASHBOARD_THEME="dark"; .\.venv\Scripts\python.exe -m flet_app.main --host 
 - ✅ **Sem crashes** ou problemas de compatibilidade
 
 **🎉 O usuário agora tem um dashboard completo e profissional para gerenciar o sistema Garimpeiro Geek!**
-
