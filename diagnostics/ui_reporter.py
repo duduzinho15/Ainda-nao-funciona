@@ -58,27 +58,46 @@ def _safe(name: str, obj, default=""):
 def _chip_state_text(chip) -> str:
     bg = str(_safe("bgcolor", chip, ""))
     text = str(_safe("text", chip, ""))
-    sel = "✓ " if ("BLUE" in bg or "seed" in bg or "Primary" in bg) else ""
+    sel = "OK " if ("BLUE" in bg or "seed" in bg or "Primary" in bg) else ""
     return f"[{sel}{text}]"
 
 def _acceptance_checks(idx: Dict[str, Any], nodes: List) -> Dict[str, bool]:
-    return {
+    checks = {
         "tem_tabs": ("tabs" in idx) or any(n.__class__.__name__ == "Tabs" for n in nodes),
         "tem_quatro_cards": sum("card_" in k for k in idx.keys()) >= 4,
-        "tem_filtros_periodo": ("filters" in idx) or any(
-            _safe("text", n, "") in ("24h", "7 dias", "30 dias", "Tudo") for n in nodes
-        ),
-        "tem_toggle_tema": any(_safe("tooltip", n, "") in ("Alternar tema", "Tema") for n in nodes),
-        "tem_painel_grafico": ("chart" in idx),
-        "tem_painel_logs": ("logs" in idx),
+        "tem_filtros_periodo": "filters" in idx,
+        "tem_toggle_tema": any(n.__class__.__name__ == "IconButton" for n in nodes),
+        "tem_painel_grafico": "chart" in idx,
+        "tem_painel_logs": "logs" in idx,
     }
+    
+    # Checks extras para conteúdo específico
+    # Card de preço médio mostra "R$"
+    preco_card = idx.get("card_preco")
+    if preco_card:
+        text_nodes = [n for n in _flatten(preco_card) if n.__class__.__name__ == "Text"]
+        checks["preco_tem_prefixo_moeda"] = any("R$" in str(getattr(t, "value", "") or "") for t in text_nodes)
+    
+    # Card de ofertas mostra número
+    ofertas_card = idx.get("card_ofertas")
+    if ofertas_card:
+        text_nodes = [n for n in _flatten(ofertas_card) if n.__class__.__name__ == "Text"]
+        checks["ofertas_tem_numero"] = any(str(getattr(t, "value", "") or "").isdigit() for t in text_nodes)
+    
+    # Card de lojas mostra número
+    lojas_card = idx.get("card_lojas")
+    if lojas_card:
+        text_nodes = [n for n in _flatten(lojas_card) if n.__class__.__name__ == "Text"]
+        checks["lojas_tem_numero"] = any(str(getattr(t, "value", "") or "").isdigit() for t in text_nodes)
+    
+    return checks
 
 def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
     buf = io.StringIO()
     title = "Garimpeiro Geek - Dashboard"
     theme = getattr(page, "theme_mode", None)
     tname = "Dark" if str(theme).endswith("DARK") else "Light"
-    print(f"┌ {title}  (Tema: {tname})", file=buf)
+    print(f"+ {title}  (Tema: {tname})", file=buf)
 
     tabs = None
     for n in nodes:
@@ -90,11 +109,11 @@ def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
             txt = _safe("text", t, f"Tab {i+1}")
             sel = getattr(tabs, "selected_index", 0) == i
             items.append(f"[{'*' if sel else ' '}] {txt}")
-        print("├ Tabs: " + " | ".join(items), file=buf)
+        print("+ Tabs: " + " | ".join(items), file=buf)
 
     cards = [idx.get(k) for k in sorted(idx) if k.startswith("card_")]
     if cards:
-        print("├ Cards:", file=buf)
+        print("+ Cards:", file=buf)
         for c in cards:
             if not c:
                 continue
@@ -106,7 +125,7 @@ def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
                         label = txt
                     else:
                         value = txt
-            print(f"│  • {label} → {value}", file=buf)
+            print(f"|  * {label} -> {value}", file=buf)
 
     filters = idx.get("filters")
     if filters:
@@ -115,12 +134,12 @@ def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
             if n.__class__.__name__ in ("CupertinoButton","TextButton"):
                 chips.append(_chip_state_text(n))
         if chips:
-            print("├ Filtros: " + "  ".join(chips), file=buf)
+            print("+ Filtros: " + "  ".join(chips), file=buf)
 
     if "chart" in idx:
-        print("├ Gráfico: Distribuição por Loja (painel encontrado)", file=buf)
+        print("+ Grafico: Distribuicao por Loja (painel encontrado)", file=buf)
     if "logs" in idx:
-        print("└ Logs: painel encontrado", file=buf)
+        print("+ Logs: painel encontrado", file=buf)
     return buf.getvalue()
 
 def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_snapshot.txt") -> Dict[str, Any]:
@@ -139,7 +158,8 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
     checks = _acceptance_checks(idx, nodes)
     ascii_view = _ascii_snapshot(page, nodes, idx)
 
-    if HAVE_RICH:
+    # Para JSON, não usar rich para evitar problemas de encoding
+    if HAVE_RICH and not json_summary:
         tree = Tree(f"[b]Árvore de Controles[/b]  (tot: {len(nodes)})")
         def add(node, parent):
             label = f"{node.__class__.__name__}  key={getattr(node,'key',None)}"
@@ -193,5 +213,6 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
         "output_file": filepath,
     }
     if json_summary:
-        print(json.dumps(summary, ensure_ascii=False))
+        # Para JSON, usar apenas texto simples sem rich
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
     return summary

@@ -1,0 +1,57 @@
+
+=== UI REPORT ===
+Flet: unknown
+Tipos de controle: {'Container': 25, 'Text': 16, 'Column': 11, 'Row': 9, 'Icon': 6, 'CupertinoButton': 4}
+
+--- Snapshot visual ---
++ Garimpeiro Geek - Dashboard  (Tema: Dark)
++ Tabs: [*] Logs | [ ] Configurações | [ ] Controles
++ Cards:
+|  * Lojas ativas -> 10
+|  * Ofertas -> 14
+|  * Período -> ALL
+|  * Preço médio -> R$ 157,91
++ Filtros: [24h]  [7 dias]  [30 dias]  [OK Tudo]
++ Grafico: Distribuicao por Loja (painel encontrado)
++ Logs: painel encontrado
+
+--- Checks ---
+tem_tabs: OK
+tem_quatro_cards: OK
+tem_filtros_periodo: OK
+tem_toggle_tema: OK
+tem_painel_grafico: OK
+tem_painel_logs: OK
+preco_tem_prefixo_moeda: OK
+ofertas_tem_numero: OK
+lojas_tem_numero: OK
+{
+  "flet_version": "unknown",
+  "control_types": {
+    "Column": 11,
+    "Container": 25,
+    "Row": 9,
+    "Text": 16,
+    "IconButton": 1,
+    "Tabs": 1,
+    "Tab": 3,
+    "Icon": 6,
+    "Divider": 1,
+    "ResponsiveRow": 1,
+    "CupertinoButton": 4
+  },
+  "checks": {
+    "tem_tabs": true,
+    "tem_quatro_cards": true,
+    "tem_filtros_periodo": true,
+    "tem_toggle_tema": true,
+    "tem_painel_grafico": true,
+    "tem_painel_logs": true,
+    "preco_tem_prefixo_moeda": true,
+    "ofertas_tem_numero": true,
+    "lojas_tem_numero": true
+  },
+  "has_rich": true,
+  "snapshot": "+ Garimpeiro Geek - Dashboard  (Tema: Dark)\n+ Tabs: [*] Logs | [ ] Configurações | [ ] Controles\n+ Cards:\n|  * Lojas ativas -> 10\n|  * Ofertas -> 14\n|  * Período -> ALL\n|  * Preço médio -> R$ 157,91\n+ Filtros: [24h]  [7 dias]  [30 dias]  [OK Tudo]\n+ Grafico: Distribuicao por Loja (painel encontrado)\n+ Logs: painel encontrado\n",
+  "output_file": "ui_snapshot.txt"
+}

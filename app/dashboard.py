@@ -292,14 +292,25 @@ def main(page: ft.Page):
     page.add(root)
 
     want_report = ("--report" in sys.argv) or os.getenv("GG_REPORT") == "1"
+    strict = ("--strict" in sys.argv) or os.getenv("GG_STRICT") == "1"
+    
     if want_report:
         try:
             # Adicionar o diretório pai ao path para importar diagnostics
             sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             from diagnostics.ui_reporter import dump_report
-            dump_report(page, json_summary=("--json" in sys.argv))
+            summary = dump_report(page, json_summary=("--json" in sys.argv))
+            
+            # Strict mode: falhar se algum check não passar
+            if strict and not all(summary["checks"].values()):
+                print("[UI-REPORTER] Falha: checks reprovados.")
+                os._exit(2)  # código != 0 para quebrar o CI
+                
         except Exception as e:
             print(f"[UI-REPORTER] erro: {e}")
+            if strict:
+                os._exit(1)  # falhar em strict mode se houver erro
+                
         # se quiser encerrar automaticamente em CI:
         if ("--exit-after-report" in sys.argv) or os.getenv("GG_EXIT_AFTER_REPORT") == "1":
             os._exit(0)
