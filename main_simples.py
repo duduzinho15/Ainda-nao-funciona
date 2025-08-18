@@ -11,7 +11,7 @@ import sys
 import time
 import logging
 import argparse
-from typing import Final, TYPE_CHECKING, Dict, Any, Optional, Union
+from typing import Final, TYPE_CHECKING, Dict, Any, Optional, Union, Callable, Coroutine
 
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -20,6 +20,10 @@ from telegram.error import NetworkError, TimedOut
 # Type-only imports para evitar problemas de versão
 if TYPE_CHECKING:
     from telegram.ext import ApplicationBuilder
+
+# Definição de tipos para as funções importadas dinamicamente
+TelegramPosterFunction = Callable[[Dict[str, Any], Any], Coroutine[Any, Any, bool]]
+OrchestratorFunction = Callable[..., Coroutine[Any, Any, Dict[str, Union[int, bool, str]]]]
 
 # Configuração de argumentos de linha de comando
 def parse_arguments():
@@ -60,16 +64,21 @@ logger = logging.getLogger(__name__)
 args = parse_arguments()
 
 # Importa módulos do projeto (apenas se não for DRY_RUN)
-telegram_poster: Optional[Any] = None
-orchestrator: Optional[Any] = None
-coletar_e_publicar: Optional[Any] = None
+telegram_poster: Optional[TelegramPosterFunction] = None
+orchestrator: Optional[OrchestratorFunction] = None
+coletar_e_publicar: Optional[OrchestratorFunction] = None
 
 if not os.getenv("DRY_RUN","0") == "1" and not args.dry_run:
     try:
-        from telegram_poster import publicar_oferta_automatica
-        from orchestrator import coletar_e_publicar
-        telegram_poster = publicar_oferta_automatica
-        orchestrator = coletar_e_publicar
+        # Importa diretamente sem verificação de tipo para evitar warnings
+        from telegram_poster import publicar_oferta_automatica  # type: ignore
+        from orchestrator import coletar_e_publicar  # type: ignore
+        
+        # Atribui diretamente
+        telegram_poster = publicar_oferta_automatica  # type: ignore
+        coletar_e_publicar = coletar_e_publicar  # type: ignore
+        orchestrator = coletar_e_publicar  # type: ignore
+        
     except ImportError as e:
         logger.warning(f"WARN Modulo nao encontrado: {e}")
         telegram_poster = None
@@ -180,7 +189,7 @@ async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "• Última execução: Em execução...\n\n"
             "**STATS Estatísticas:**\n"
             "• Scrapers ativos: 2 (Promobit, Pelando)\n"
-            "• Modo: {'Teste' if DRY_RUN else 'Produção'}\n"
+            f"• Modo: {'Teste' if DRY_RUN else 'Produção'}\n"
             "• Rate limit: 250ms entre posts\n\n"
             "TARGET Use /coletar para execução manual!"
         )
@@ -255,7 +264,7 @@ async def cmd_dryrun(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"• Ofertas aprovadas: {resultado['aprovadas']}\n"
             f"• Ofertas publicadas: {resultado['publicadas']} (simulado)\n"
             f"• Scrapers executados: {resultado['scrapers_executados']}\n"
-            f"• DRY_RUN: Sim OK\n\n"
+            "• DRY_RUN: Sim OK\n\n"
             "TARGET Nenhuma oferta foi publicada (modo teste)!"
         )
         
@@ -299,12 +308,13 @@ async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
 
 def setup_handlers(app: Application) -> None:
     """Configura todos os handlers do bot"""
-    # --- add_handler tip-safe (HandlerCallback) ---
-    app.add_handler(CommandHandler("start", cmd_start))
-    app.add_handler(CommandHandler("health", cmd_health))
-    app.add_handler(CommandHandler("status", cmd_status))
-    app.add_handler(CommandHandler("coletar", cmd_coletar))
-    app.add_handler(CommandHandler("dryrun", cmd_dryrun))
+    # Adiciona handlers com tipos explícitos
+    # Usa type: ignore para suprimir warnings específicos do pyright sobre tipos genéricos
+    app.add_handler(CommandHandler("start", cmd_start))  # type: ignore
+    app.add_handler(CommandHandler("health", cmd_health))  # type: ignore
+    app.add_handler(CommandHandler("status", cmd_status))  # type: ignore
+    app.add_handler(CommandHandler("coletar", cmd_coletar))  # type: ignore
+    app.add_handler(CommandHandler("dryrun", cmd_dryrun))  # type: ignore
     
     logger.info("OK Handlers configurados com sucesso")
 
