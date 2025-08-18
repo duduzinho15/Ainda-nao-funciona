@@ -1,5 +1,6 @@
 # config.py
 import os
+from typing import List
 from dotenv import load_dotenv
 
 # Carrega variáveis de ambiente do arquivo .env se existir
@@ -53,9 +54,9 @@ METRICS_ENABLED = os.getenv("METRICS", "0") == "1"
 METRICS_PORT = int(os.getenv("METRICS_PORT", "9308"))
 
 # ===== VALIDAÇÕES DE CONFIGURAÇÃO =====
-def validate_config():
+def validate_config() -> List[str]:
     """Valida se as configurações essenciais estão presentes"""
-    errors = []
+    errors: List[str] = []
     
     if not TELEGRAM_BOT_TOKEN:
         errors.append("TELEGRAM_BOT_TOKEN não configurado")
@@ -75,7 +76,7 @@ def validate_config():
     return errors
 
 # ===== IMPRESSÃO DE STATUS =====
-def print_config_status():
+def print_config_status() -> None:
     """Imprime o status das configurações"""
     print("🔧 CONFIGURAÇÕES DO SISTEMA GARIMPEIRO GEEK")
     print("=" * 50)
@@ -105,7 +106,7 @@ def print_config_status():
         print(f"  Porta: {METRICS_PORT}")
     
     # Validações
-    errors = validate_config()
+    errors: List[str] = validate_config()
     if errors:
         print(f"\n⚠️ AVISOS:")
         for error in errors:
