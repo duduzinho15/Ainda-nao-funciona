@@ -1,264 +1,282 @@
 # 🚀 Sistema de Recomendações de Ofertas Telegram
 
-Sistema inteligente de postagem automática de ofertas no Telegram com cartões de imagem grande, formatação HTML e integração com múltiplas APIs de afiliados.
+## 📋 Descrição
 
-## ✨ **Características Principais**
+Sistema automatizado para coleta e recomendação de ofertas de produtos através do Telegram, integrando múltiplas plataformas de e-commerce.
 
-### 🖼️ **Sistema de Cartão com Imagem Grande**
-- **Download via bytes**: Imagens baixadas para evitar hotlinking
-- **Fallback robusto**: Sistema de fallback em 3 níveis (bytes → URL → texto)
-- **OG Image**: Extração automática de imagens de páginas web
-- **Formatação HTML**: Títulos em negrito, preços destacados, emojis
+## 🛠️ Funcionalidades Principais
 
-### 🔗 **Integração com Afiliados**
-- **AWIN**: IDs corretos (merchant vs publisher) configurados
-- **Amazon**: Canonicalização de URLs e tags de afiliado
-- **AliExpress**: API de afiliados integrada
-- **Mercado Livre**: Sistema de afiliados configurado
+- **Coleta Automática**: Scraping inteligente de ofertas
+- **Integração Multi-plataforma**: Amazon, AliExpress, Magazine Luiza, etc.
+- **Sistema de Afiliados**: Links de rastreamento automático
+- **Dashboard Web**: Interface de gerenciamento completa
+- **Notificações Telegram**: Envio automático de ofertas
+- **Cache Inteligente**: Sistema de armazenamento otimizado
 
-### 🤖 **Bot do Telegram**
-- **Cartões visuais**: Ofertas com imagem grande e formatação profissional
-- **Botões inline**: "🛒 Comprar agora" e botões extras
-- **Postagem automática**: Sistema de scraping e postagem automática
-- **Comandos manuais**: `/oferta` para administradores
+## 🏗️ Arquitetura
 
-## 🏗️ **Arquitetura do Sistema**
+### Componentes Principais
+
+- **Scrapers**: Coletam ofertas das plataformas
+- **API Integrations**: Conectam com serviços externos
+- **Database**: Armazena dados de ofertas e usuários
+- **Telegram Bot**: Interface de usuário
+- **Dashboard**: Painel de controle administrativo
+
+### Estrutura de Arquivos
 
 ```
-📁 Sistema de Recomendações de Ofertas Telegram/
-├── 🤖 Bot Principal
-│   ├── main_simples.py          # Bot principal com polling manual
-│   ├── telegram_poster.py       # Sistema de postagem melhorado
-│   └── config.py                # Configurações e tokens
-├── 🔍 Scrapers e APIs
-│   ├── promobit_scraper.py       # Scraper do Promobit
-│   ├── amazon_api.py            # API da Amazon
-│   ├── awin_api.py              # API da AWIN corrigida
-│   ├── affiliate.py             # Sistema de afiliados unificado
-│   └── pelando_scraper.py       # Scraper do Pelando
-├── 🛠️ Utilitários
-│   ├── utils/images.py          # Download de imagens e OG
-│   ├── database.py              # Sistema de banco de dados
-│   └── run_scrapers.py          # Orquestrador de scrapers
-└── 📚 Documentação
-    ├── README.md                # Este arquivo
-    └── scripts/post_sample.py   # Script de teste
+├── main.py                 # Arquivo principal do bot
+├── config.py              # Configurações do sistema
+├── database.py            # Sistema de banco de dados
+├── telegram_poster.py     # Sistema de postagem no Telegram
+├── aliexpress_integration.py  # Integração com AliExpress
+├── amazon_integration.py      # Integração com Amazon
+├── awin_api.py            # API da Awin
+├── cache_system.py        # Sistema de cache
+├── rate_limiter.py        # Sistema de rate limiting
+├── health_monitor.py      # Monitoramento de saúde
+├── performance_metrics.py # Métricas de performance
+├── notification_system.py # Sistema de notificações
+├── product_reviews.py     # Sistema de reviews
+└── user_categories.py     # Categorias de usuários
 ```
 
-## 🚀 **Instalação e Configuração**
+## 🚀 Instalação
 
-### **1. Clone o repositório**
+### Pré-requisitos
+
+- Python 3.11+
+- PostgreSQL ou SQLite
+- Token do Bot Telegram
+- Contas de afiliado nas plataformas
+
+### Passos de Instalação
+
 ```bash
-git clone https://github.com/seu-usuario/sistema-recomendacoes-ofertas-telegram.git
-cd sistema-recomendacoes-ofertas-telegram
-```
+# 1. Clonar o repositório
+git clone <repository-url>
+cd sistema-recomendacoes-telegram
 
-### **2. Crie um ambiente virtual**
-```bash
+# 2. Criar ambiente virtual
 python -m venv venv
-venv\Scripts\activate  # Windows
 source venv/bin/activate  # Linux/Mac
-```
+venv\Scripts\activate     # Windows
 
-### **3. Instale as dependências**
-```bash
+# 3. Instalar dependências
 pip install -r requirements.txt
+
+# 4. Configurar variáveis de ambiente
+cp env_example.txt .env
+# Editar .env com suas configurações
+
+# 5. Executar migrações
+python run_migrations.py
+
+# 6. Iniciar o bot
+python main.py
 ```
 
-### **4. Configure as variáveis de ambiente**
-Crie um arquivo `.env` na raiz do projeto:
-```env
+## ⚙️ Configuração
+
+### Variáveis de Ambiente
+
+```bash
 # Telegram
-TELEGRAM_BOT_TOKEN=seu_token_aqui
-TELEGRAM_CHAT_ID=seu_chat_id_aqui
-ADMIN_USER_ID=seu_user_id_aqui
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
 
-# Amazon PA-API (opcional)
-AMAZON_ACCESS_KEY=sua_access_key
-AMAZON_SECRET_KEY=sua_secret_key
-AMAZON_ASSOCIATE_TAG=sua_tag
+# Database
+DATABASE_URL=postgresql://user:pass@localhost/dbname
 
-# AWIN
-AWIN_API_TOKEN=seu_token_awin
+# APIs
+ALIEXPRESS_API_KEY=your_key
+AMAZON_API_KEY=your_key
+AWIN_API_KEY=your_key
 
-# Shopee (opcional)
-SHOPEE_API_KEY=sua_api_key
-SHOPEE_API_SECRET=sua_api_secret
-SHOPEE_PARTNER_ID=seu_partner_id
+# Configurações do Sistema
+SCRAPING_INTERVAL=300
+MAX_PRODUCTS_PER_POST=5
+MIN_DISCOUNT_PERCENT=20
 ```
 
-## 🎯 **Como Usar**
+### Configuração do Bot
 
-### **Executar o Bot Principal**
+```python
+# config.py
+BOT_CONFIG = {
+    'name': 'Garimpeiro Geek',
+    'description': 'Bot de ofertas automatizado',
+    'commands': [
+        '/start - Iniciar bot',
+        '/ofertas - Ver ofertas recentes',
+        '/config - Configurar preferências',
+        '/stats - Estatísticas do sistema'
+    ]
+}
+```
+
+## 📊 Uso
+
+### Comandos do Bot
+
+- **`/start`**: Inicia o bot e mostra menu principal
+- **`/ofertas`**: Lista ofertas recentes
+- **`/config`**: Abre configurações do usuário
+- **`/stats`**: Mostra estatísticas do sistema
+- **`/help`**: Ajuda e comandos disponíveis
+
+### Dashboard Administrativo
+
 ```bash
-python main_simples.py
+# Acessar dashboard
+python dashboard/app.py
+
+# Dashboard em modo produção
+python dashboard/production_dashboard.py
 ```
 
-### **Testar o Sistema de Postagem**
+## 🔧 Desenvolvimento
+
+### Estrutura de Desenvolvimento
+
+```
+├── tests/                 # Testes automatizados
+├── docs/                  # Documentação
+├── scripts/               # Scripts utilitários
+├── migrations/            # Migrações de banco
+└── deployment/            # Scripts de deploy
+```
+
+### Executando Testes
+
 ```bash
-python scripts/post_sample.py
+# Testes unitários
+python -m pytest tests/
+
+# Testes de integração
+python -m pytest tests/integration/
+
+# Cobertura de código
+python -m pytest --cov=. tests/
 ```
 
-### **Executar Scrapers Individualmente**
+### Scripts de Desenvolvimento
+
 ```bash
-python promobit_scraper.py
-python amazon_api.py
-python awin_api.py
+# Verificar imports
+python fix_imports.py
+
+# Validar configurações
+python sanity_check.py
+
+# Executar scrapers
+python run_scrapers.py
+
+# Backup do banco
+python backup_manager.py
 ```
 
-## 🔧 **Funcionalidades Implementadas**
+## 📈 Monitoramento
 
-### ✅ **Sistema de Postagem**
-- [x] Cartões com imagem grande via `sendPhoto`
-- [x] Download de imagens para bytes (anti-hotlinking)
-- [x] Fallback para OG images
-- [x] Fallback para texto sem preview
-- [x] Formatação HTML com emojis
-- [x] Botões inline "🛒 Comprar agora"
+### Métricas Disponíveis
 
-### ✅ **Integração AWIN**
-- [x] IDs corretos (merchant vs publisher)
-- [x] Mapeamento de lojas por slug
-- [x] Helper `get_awin_merchant_id()`
-- [x] Conversão automática de URLs
+- **Performance**: Tempo de resposta dos scrapers
+- **Qualidade**: Taxa de sucesso das coletas
+- **Uso**: Estatísticas de usuários e comandos
+- **Sistema**: Uso de recursos e saúde geral
 
-### ✅ **Scrapers Funcionais**
-- [x] **Promobit**: 21 ofertas com preços e descontos
-- [x] **Amazon**: API configurada
-- [x] **AliExpress**: Sistema de afiliados
-- [x] **Telegram**: Bot funcionando perfeitamente
+### Logs
 
-### ✅ **Sistema de Fallback**
-- [x] **Nível 1**: Imagem via bytes (mais robusto)
-- [x] **Nível 2**: Imagem via URL direta
-- [x] **Nível 3**: Texto sem preview
-
-## 📊 **Exemplo de Oferta Postada**
-
-```
-🔥 Smartphone Motorola Edge 60 Pro 512GB Cinza 5G 24GB RAM 6,7"
-
-💰 Preço: R$3.419,10
-💸 De: R$ 4.999,00
-🔥 Desconto: 31% OFF
-
-🏷 Magazine Luiza | Promobit
-
-[🛒 Comprar agora] [🔎 Ver detalhes]
-```
-
-## 🧪 **Testes**
-
-### **Teste de Postagem**
 ```bash
-python scripts/post_sample.py
+# Logs do sistema
+tail -f logs/system.log
+
+# Logs de scraping
+tail -f logs/scraping.log
+
+# Logs de erros
+tail -f logs/error.log
 ```
 
-Este script testa:
-1. **Oferta com imagem explícita** → Imagem via bytes
-2. **Oferta sem imagem mas com OG** → OG image extraída
-3. **Oferta sem imagem/OG** → Texto sem preview
+## 🚀 Deploy
 
-### **Teste do Sistema Completo**
+### Ambiente de Produção
+
 ```bash
-python teste_sistema_final.py
+# Instalar dependências de produção
+pip install -r requirements_production.txt
+
+# Configurar supervisor
+python install_production.py
+
+# Iniciar serviços
+python supervisor_service.py
 ```
 
-## 🔍 **Logs e Monitoramento**
+### Docker (Opcional)
 
-O sistema registra:
-- **Origem da imagem**: 'offer', 'og:image', 'fallback:text'
-- **IDs AWIN**: merchant_id e publisher_id usados
-- **Status de postagem**: Sucesso/falha com detalhes
-- **Performance**: Tempo de resposta e estatísticas
+```dockerfile
+FROM python:3.11-slim
 
-## 🚨 **Segurança**
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-- **Tokens nunca expostos** nos logs
-- **disable_web_page_preview=True** em mensagens de texto
-- **Validação de usuário** para comandos administrativos
-- **Sanitização HTML** para evitar XSS
-
-## 📈 **Performance**
-
-- **Download paralelo** de imagens
-- **Cache inteligente** para evitar re-downloads
-- **Rate limiting** para APIs externas
-- **Fallback robusto** para máxima disponibilidade
-
-## 🚀 **Modo Unificado (Serviço Único)**
-
-O sistema agora suporta um modo unificado onde um único serviço Windows (NSSM) gerencia tanto o bot Telegram quanto o dashboard Flet simultaneamente.
-
-### **Instalação como Serviço (PowerShell Admin)**
-```powershell
-.\install_win_service.ps1 -ProjectDir "C:\Projeto\GG" -PythonExe "C:\Python311\python.exe" -NssmExe "C:\tools\nssm\nssm.exe"
+COPY . .
+CMD ["python", "main.py"]
 ```
 
-**O que o serviço executa:**
-- **Bot Telegram** (`main_simples.py`) com restart automático
-- **Dashboard Flet** (web, headless) em `http://127.0.0.1:8550`
-- **Supervisão** com logs separados e recuperação automática
+## 🤝 Contribuição
 
-### **Desenvolvimento Local (Console)**
-```powershell
-.\run_both_dev.ps1 -ProjectDir "C:\Projeto\GG" -PythonExe "C:\Python311\python.exe"
-```
+### Como Contribuir
 
-**Modo desenvolvimento:**
-- **DRY_RUN=1** para testes sem postagem real
-- **Bot + Dashboard** rodando simultaneamente
-- **Logs em tempo real** no console
-- **Parar com CTRL+C** encerra ambos
+1. **Fork** o projeto
+2. **Crie** uma branch para sua feature
+3. **Commit** suas mudanças
+4. **Push** para a branch
+5. **Abra** um Pull Request
 
-### **Estrutura de Logs**
-```
-logs/
-├── service.out.log          # Logs do supervisor
-├── service.err.log          # Erros do supervisor
-├── bot.out.log             # Logs do bot
-├── bot.err.log             # Erros do bot
-├── dashboard.out.log       # Logs do dashboard
-└── dashboard.err.log       # Erros do dashboard
-```
+### Padrões de Código
 
-### **Configuração via .env**
-```env
-# Dashboard Flet (web headless)
-DASHBOARD_ENABLED=1
-DASHBOARD_HOST=127.0.0.1
-DASHBOARD_PORT=8550
-DASHBOARD_HEADLESS=1
-```
+- **Python**: PEP 8
+- **Documentação**: Docstrings em português
+- **Testes**: Cobertura mínima de 80%
+- **Commits**: Mensagens em português
 
-## 🤝 **Contribuição**
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
-
-## 📝 **Licença**
+## 📄 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
-## 🆘 **Suporte**
+## 🆘 Suporte
 
-- **Issues**: Abra uma issue no GitHub
-- **Documentação**: Consulte os arquivos README específicos
-- **Logs**: Verifique os logs para diagnóstico
+### Canais de Ajuda
 
-## 🎉 **Status do Projeto**
+- **Issues**: GitHub Issues
+- **Documentação**: `/docs` folder
+- **Telegram**: @garimpeiro_geek_support
+- **Email**: suporte@garimpeirogeek.com
 
-**✅ COMPLETAMENTE FUNCIONAL!**
+### Problemas Comuns
 
-- **Sistema de postagem**: 100% implementado
-- **Cartões com imagem**: 100% funcionando
-- **Integração AWIN**: 100% corrigida
-- **Fallback robusto**: 100% implementado
-- **Formatação HTML**: 100% funcionando
+- **Erro de conexão**: Verificar configurações de rede
+- **Rate limiting**: Ajustar intervalos de scraping
+- **Token inválido**: Renovar token do bot Telegram
+- **Banco offline**: Verificar conexão com database
 
----
+## 🔮 Roadmap
 
-**Desenvolvido com ❤️ para o canal @garimpeirogeek**
+### Próximas Funcionalidades
+
+- **Machine Learning**: Recomendações personalizadas
+- **API REST**: Endpoints para integração externa
+- **Mobile App**: Aplicativo nativo para mobile
+- **Analytics**: Dashboard avançado de métricas
+- **Integração**: Mais plataformas de e-commerce
+
+### Melhorias Técnicas
+
+- **Cache Redis**: Sistema de cache distribuído
+- **Queue System**: Processamento assíncrono
+- **Microservices**: Arquitetura modular
+- **CI/CD**: Pipeline de deploy automatizado
