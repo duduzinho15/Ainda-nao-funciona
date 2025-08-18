@@ -11,7 +11,7 @@ import sys
 import time
 import logging
 import argparse
-from typing import Final, TYPE_CHECKING
+from typing import Final, TYPE_CHECKING, Dict, Any, Optional, Union
 
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
@@ -60,16 +60,21 @@ logger = logging.getLogger(__name__)
 args = parse_arguments()
 
 # Importa módulos do projeto (apenas se não for DRY_RUN)
-telegram_poster = None
-orchestrator = None
+telegram_poster: Optional[Any] = None
+orchestrator: Optional[Any] = None
+coletar_e_publicar: Optional[Any] = None
+
 if not os.getenv("DRY_RUN","0") == "1" and not args.dry_run:
     try:
         from telegram_poster import publicar_oferta_automatica
         from orchestrator import coletar_e_publicar
+        telegram_poster = publicar_oferta_automatica
+        orchestrator = coletar_e_publicar
     except ImportError as e:
         logger.warning(f"WARN Modulo nao encontrado: {e}")
         telegram_poster = None
         orchestrator = None
+        coletar_e_publicar = None
 
 # --- TOKEN: não pode ser None (reportArgumentType) ---
 BOT_TOKEN: Final[str] = os.getenv("TELEGRAM_BOT_TOKEN") or ""
@@ -96,6 +101,9 @@ class ContextoSimulado:
         self.bot = Bot(token=BOT_TOKEN)
         self.job = None
 
+# Tipo para resultado das operações
+ResultadoOperacao = Dict[str, Union[int, bool, str]]
+
 # ===== HANDLERS DOS COMANDOS =====
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -120,7 +128,7 @@ async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     try:
         # Verifica variáveis de ambiente
-        def ok(k): 
+        def ok(k: str) -> str: 
             v = os.getenv(k, "")
             return "OK" if v and v.strip() else "NOK"
         
@@ -192,9 +200,10 @@ async def cmd_coletar(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text("AUTO Iniciando coleta manual...")
         
         # Executa orquestrador (apenas se não for DRY_RUN)
+        resultado: ResultadoOperacao
         if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
             resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
-        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+        elif coletar_e_publicar is not None:
             resultado = await coletar_e_publicar(
                 dry_run=DRY_RUN,
                 limit_por_scraper=10  # Limita para teste manual
@@ -228,9 +237,10 @@ async def cmd_dryrun(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.effective_message.reply_text("TEST Iniciando teste DRY_RUN...")
         
         # Executa orquestrador em modo teste (apenas se não for DRY_RUN)
+        resultado: ResultadoOperacao
         if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
             resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
-        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+        elif coletar_e_publicar is not None:
             resultado = await coletar_e_publicar(
                 dry_run=True,  # Força DRY_RUN
                 limit_por_scraper=5  # Limita para teste
@@ -263,9 +273,10 @@ async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
         logger.info("AUTO [JOB] Iniciando coleta automática de ofertas...")
         
         # Executa orquestrador (apenas se não for DRY_RUN)
+        resultado: ResultadoOperacao
         if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
             resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
-        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+        elif coletar_e_publicar is not None:
             resultado = await coletar_e_publicar(
                 dry_run=DRY_RUN,
                 limit_por_scraper=20
@@ -276,7 +287,7 @@ async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
         logger.info(f"OK [JOB] Coleta automática concluída: {resultado}")
         
         # Log detalhado do resultado
-        if resultado['aprovadas'] > 0:
+        if isinstance(resultado['aprovadas'], (int, float)) and resultado['aprovadas'] > 0:
             logger.info(f"SEND [JOB] {resultado['publicadas']} ofertas publicadas com sucesso")
         else:
             logger.warning("WARN [JOB] Nenhuma oferta foi aprovada/publicada")
@@ -286,7 +297,7 @@ async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
 
 # ===== CONFIGURAÇÃO DOS HANDLERS =====
 
-def setup_handlers(app: Application):
+def setup_handlers(app: Application) -> None:
     """Configura todos os handlers do bot"""
     # --- add_handler tip-safe (HandlerCallback) ---
     app.add_handler(CommandHandler("start", cmd_start))
