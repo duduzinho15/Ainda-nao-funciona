@@ -10,7 +10,7 @@ import logging
 import re
 from datetime import datetime
 import random
-from typing import Any, Dict, List, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast
 
 import aiohttp
 from aiohttp import ClientSession, ClientTimeout, ClientResponse
@@ -180,15 +180,16 @@ class AmazonScraper:
             ofertas: List[OfertaDict] = []
             
             # Busca por cards de ofertas (mesmo padrão do Promobit)
-            offer_cards: ResultSet[Tag] = soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner')
+            # Usa cast para resolver o problema de tipagem do método select
+            offer_cards: ResultSet[Tag] = cast(ResultSet[Tag], soup.select('div[data-component-type="s-search-result"], .s-result-item, .sg-col-inner'))
             
             if not offer_cards:
                 # Fallback para outros seletores
-                offer_cards = soup.select('.card, .offer, .product, article')
+                offer_cards = cast(ResultSet[Tag], soup.select('.card, .offer, .product, article'))
             
             # Se ainda não encontrou, tenta seletores mais genéricos
             if not offer_cards:
-                offer_cards = soup.select('div[class*="card"], div[class*="offer"], div[class*="product"], div[class*="item"]')
+                offer_cards = cast(ResultSet[Tag], soup.select('div[class*="card"], div[class*="offer"], div[class*="product"], div[class*="item"]'))
             
             # Último fallback: busca por elementos que contenham preços
             if not offer_cards:
