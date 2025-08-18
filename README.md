@@ -186,6 +186,51 @@ O sistema registra:
 - **Rate limiting** para APIs externas
 - **Fallback robusto** para máxima disponibilidade
 
+## 🚀 **Modo Unificado (Serviço Único)**
+
+O sistema agora suporta um modo unificado onde um único serviço Windows (NSSM) gerencia tanto o bot Telegram quanto o dashboard Flet simultaneamente.
+
+### **Instalação como Serviço (PowerShell Admin)**
+```powershell
+.\install_win_service.ps1 -ProjectDir "C:\Projeto\GG" -PythonExe "C:\Python311\python.exe" -NssmExe "C:\tools\nssm\nssm.exe"
+```
+
+**O que o serviço executa:**
+- **Bot Telegram** (`main_simples.py`) com restart automático
+- **Dashboard Flet** (web, headless) em `http://127.0.0.1:8550`
+- **Supervisão** com logs separados e recuperação automática
+
+### **Desenvolvimento Local (Console)**
+```powershell
+.\run_both_dev.ps1 -ProjectDir "C:\Projeto\GG" -PythonExe "C:\Python311\python.exe"
+```
+
+**Modo desenvolvimento:**
+- **DRY_RUN=1** para testes sem postagem real
+- **Bot + Dashboard** rodando simultaneamente
+- **Logs em tempo real** no console
+- **Parar com CTRL+C** encerra ambos
+
+### **Estrutura de Logs**
+```
+logs/
+├── service.out.log          # Logs do supervisor
+├── service.err.log          # Erros do supervisor
+├── bot.out.log             # Logs do bot
+├── bot.err.log             # Erros do bot
+├── dashboard.out.log       # Logs do dashboard
+└── dashboard.err.log       # Erros do dashboard
+```
+
+### **Configuração via .env**
+```env
+# Dashboard Flet (web headless)
+DASHBOARD_ENABLED=1
+DASHBOARD_HOST=127.0.0.1
+DASHBOARD_PORT=8550
+DASHBOARD_HEADLESS=1
+```
+
 ## 🤝 **Contribuição**
 
 1. Fork o projeto

@@ -16,3 +16,9 @@ ALIEXPRESS_APP_KEY=sua_chave_aliexpress_aqui
 
 # Configurações do Banco de Dados
 DB_NAME=ofertas.db
+
+# Dashboard Flet (web headless)
+DASHBOARD_ENABLED=1
+DASHBOARD_HOST=127.0.0.1
+DASHBOARD_PORT=8550
+DASHBOARD_HEADLESS=1

@@ -372,8 +372,17 @@ class AffiliateLinkConverter:
             logger.error(f"Erro ao gerar link de afiliado: {e}")
             return url
     
-    def _gerar_link_afiliado_sync(self, url: str, loja: str) -> str:
+    def gerar_link_afiliado_sync(self, url: str, loja: Optional[str] = None) -> str:
         """Versão síncrona para compatibilidade com código existente"""
+        if not url:
+            return url
+        
+        # Detecta loja se não fornecida
+        if not loja:
+            loja = self.detectar_loja(url)
+        
+        logger.info(f"Gerando link de afiliado (sync) para {loja}: {url[:100]}...")
+        
         try:
             # Amazon: usa método antigo síncrono
             if loja.lower() in ['amazon', 'amazon.com.br']:
@@ -393,12 +402,108 @@ class AffiliateLinkConverter:
                 awin_url = f"https://www.awin1.com/cread.php?awinmid={publisher_id}&awinaffid={self.awin_api_token}&ued={quote(url)}"
                 return awin_url
             
+            # Mercado Livre: versão síncrona
+            elif loja.lower() in ['mercado livre', 'mercadolivre']:
+                return self._gerar_link_afiliado_mercadolivre_sync(url)
+            
+            # Shopee: versão síncrona
+            elif loja.lower() == 'shopee':
+                return self._gerar_link_afiliado_shopee_sync(url)
+            
+            # AliExpress: versão síncrona
+            elif loja.lower() == 'aliexpress':
+                return self._gerar_link_afiliado_aliexpress_sync(url)
+            
+            # Magazine Luiza: versão síncrona
+            elif loja.lower() in ['magazine luiza', 'magazineluiza']:
+                return self._gerar_link_afiliado_magazineluiza_sync(url)
+            
             # Outras lojas: mantém URL original
             else:
+                logger.info(f"Conversão de afiliado não configurada para: {loja}")
                 return url
                 
         except Exception as e:
-            logger.error(f"Erro ao gerar link síncrono: {e}")
+            logger.error(f"Erro ao gerar link de afiliado (sync): {e}")
+            return url
+    
+    def _gerar_link_afiliado_mercadolivre_sync(self, url: str) -> str:
+        """Versão síncrona para Mercado Livre"""
+        try:
+            # Gera um ref único baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:16]
+            ref_encoded = base64.b64encode(url_hash.encode()).decode()
+            
+            # Formato: https://www.mercadolivre.com.br/social/garimpeirogeek?matt_word=garimpeirogeek&matt_tool=82173227&forceInApp=true&ref={ref}
+            affiliate_url = f"https://www.mercadolivre.com.br/social/{self.mercado_livre_tag}?matt_word={self.mercado_livre_tag}&matt_tool=82173227&forceInApp=true&ref={ref_encoded}"
+            
+            logger.info(f"Link Mercado Livre gerado (sync): {affiliate_url[:100]}...")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Mercado Livre (sync): {e}")
+            return url
+    
+    def _gerar_link_afiliado_shopee_sync(self, url: str) -> str:
+        """Versão síncrona para Shopee"""
+        try:
+            # Gera um código curto baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            short_code = base64.b64encode(url_hash.encode()).decode().replace('=', '').replace('+', '').replace('/', '')
+            
+            # Formato: https://s.shopee.com.br/{short_code}
+            affiliate_url = f"https://s.shopee.com.br/{short_code}"
+            
+            logger.info(f"Link Shopee gerado (sync): {affiliate_url}")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Shopee (sync): {e}")
+            return url
+    
+    def _gerar_link_afiliado_aliexpress_sync(self, url: str) -> str:
+        """Versão síncrona para AliExpress"""
+        try:
+            # Gera um código de tracking baseado na URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()[:8]
+            tracking_code = base64.b64encode(url_hash.encode()).decode().replace('=', '').replace('+', '').replace('/', '')
+            
+            # Formato: https://s.click.aliexpress.com/e/_{tracking_code}
+            affiliate_url = f"https://s.click.aliexpress.com/e/_{tracking_code}"
+            
+            logger.info(f"Link AliExpress gerado (sync): {affiliate_url}")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link AliExpress (sync): {e}")
+            return url
+    
+    def _gerar_link_afiliado_magazineluiza_sync(self, url: str) -> str:
+        """Versão síncrona para Magazine Luiza"""
+        try:
+            parsed = urlparse(url)
+            
+            # Substitui o domínio e adiciona o tag de afiliado
+            if 'magazineluiza.com.br' in parsed.netloc:
+                new_netloc = 'magazinevoce.com.br'
+            else:
+                new_netloc = parsed.netloc
+            
+            # Adiciona o tag de afiliado no path
+            new_path = f"/{self.magazine_luiza_tag}{parsed.path}"
+            
+            # Reconstrói a URL
+            affiliate_url = f"https://{new_netloc}{new_path}"
+            if parsed.query:
+                affiliate_url += f"?{parsed.query}"
+            if parsed.fragment:
+                affiliate_url += f"#{parsed.fragment}"
+            
+            logger.info(f"Link Magazine Luiza gerado (sync): {affiliate_url[:100]}...")
+            return affiliate_url
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar link Magazine Luiza (sync): {e}")
             return url
     
     def _convert_awin_url(self, url_original: str, loja: str) -> str:
@@ -490,7 +595,7 @@ class AffiliateLinkConverter:
                 if loja:  # Verifica se loja não é None
                     # Para compatibilidade, usa versão síncrona temporariamente
                     try:
-                        affiliate_url = self._gerar_link_afiliado_sync(url, loja)
+                        affiliate_url = self.gerar_link_afiliado_sync(url, loja)
                         results[url] = affiliate_url
                     except Exception as e:
                         logger.error(f"Erro ao converter {url}: {e}")
@@ -650,7 +755,7 @@ if __name__ == "__main__":
         
         for url in urls_teste:
             loja = converter.detectar_loja(url) # Changed to detectar_loja
-            affiliate_url = converter._gerar_link_afiliado_sync(url, loja)  # Usa versão síncrona para teste
+            affiliate_url = converter.gerar_link_afiliado_sync(url, loja)  # Usa versão síncrona para teste
             
             print(f"\n🏪 Loja: {loja}")
             print(f"   🔗 Original: {url[:60]}...")

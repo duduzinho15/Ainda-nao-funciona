@@ -3,14 +3,51 @@
 Bot Telegram Garimpeiro Geek - Versão Simplificada
 Executa bot polling e sistema automático de ofertas em paralelo
 """
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
 import time
 import logging
+import argparse
+from typing import Final, TYPE_CHECKING
+
 from telegram import Bot, Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.error import NetworkError, TimedOut
+
+# Type-only imports para evitar problemas de versão
+if TYPE_CHECKING:
+    from telegram.ext import ApplicationBuilder
+
+# Configuração de argumentos de linha de comando
+def parse_arguments():
+    """Parse argumentos de linha de comando"""
+    parser = argparse.ArgumentParser(
+        description="Bot Telegram Garimpeiro Geek - Sistema de Recomendações de Ofertas",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Exemplos de uso:
+  python main_simples.py                    # Executa o bot normalmente
+  python main_simples.py --dry-run          # Executa em modo teste
+  python main_simples.py --help             # Mostra esta ajuda
+        """
+    )
+    
+    parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Executa em modo teste sem conectar ao Telegram'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='Garimpeiro Geek Bot v1.0.0'
+    )
+    
+    return parser.parse_args()
 
 # Configuração de logging
 logging.basicConfig(
@@ -19,54 +56,73 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Importa módulos do projeto
-from telegram_poster import publicar_oferta_automatica
-from orchestrator import coletar_e_publicar
+# Processa argumentos de linha de comando
+args = parse_arguments()
 
-# Configurações
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Importa módulos do projeto (apenas se não for DRY_RUN)
+telegram_poster = None
+orchestrator = None
+if not os.getenv("DRY_RUN","0") == "1" and not args.dry_run:
+    try:
+        from telegram_poster import publicar_oferta_automatica
+        from orchestrator import coletar_e_publicar
+    except ImportError as e:
+        logger.warning(f"WARN Modulo nao encontrado: {e}")
+        telegram_poster = None
+        orchestrator = None
+
+# --- TOKEN: não pode ser None (reportArgumentType) ---
+BOT_TOKEN: Final[str] = os.getenv("TELEGRAM_BOT_TOKEN") or ""
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-DRY_RUN = os.getenv("DRY_RUN", "0") == "1"
+DRY_RUN = os.getenv("DRY_RUN", "0") == "1" or args.dry_run
 
-if not TELEGRAM_BOT_TOKEN:
-    logger.error("❌ TELEGRAM_BOT_TOKEN não encontrado no .env")
-    sys.exit(1)
+# Verifica tokens apenas se não for DRY_RUN
+if not DRY_RUN:
+    if not BOT_TOKEN:
+        logger.error("ERR TELEGRAM_BOT_TOKEN não encontrado no .env")
+        sys.exit(1)
 
-if not TELEGRAM_CHAT_ID:
-    logger.error("❌ TELEGRAM_CHAT_ID não encontrado no .env")
-    sys.exit(1)
+    if not TELEGRAM_CHAT_ID:
+        logger.error("ERR TELEGRAM_CHAT_ID não encontrado no .env")
+        sys.exit(1)
+else:
+    logger.info("DRY_RUN ativo: pulando verificações de token")
 
 # Contexto simulado para publicar_oferta_automatica
 class ContextoSimulado:
     def __init__(self):
-        if not TELEGRAM_BOT_TOKEN:
+        if not BOT_TOKEN:
             raise ValueError("TELEGRAM_BOT_TOKEN não pode ser None")
-        self.bot = Bot(token=TELEGRAM_BOT_TOKEN)
+        self.bot = Bot(token=BOT_TOKEN)
         self.job = None
 
 # ===== HANDLERS DOS COMANDOS =====
 
 async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /start"""
-    await update.message.reply_text(
-        "🚀 **Garimpeiro Geek Bot Ativado!**\n\n"
-        "Comandos disponíveis:\n"
-        "/start - Inicia o bot\n"
-        "/health - Status do sistema\n"
-        "/status - Status das ofertas\n"
-        "/coletar - Executa coleta manual\n"
-        "/dryrun - Testa sem publicar\n\n"
-        "O bot está rodando automaticamente! 🎯",
-        parse_mode="Markdown"
-    )
+    if update.effective_message:
+        await update.effective_message.reply_text(
+            "START **Garimpeiro Geek Bot Ativado!**\n\n"
+            "Comandos disponíveis:\n"
+            "/start - Inicia o bot\n"
+            "/health - Status do sistema\n"
+            "/status - Status das ofertas\n"
+            "/coletar - Executa coleta manual\n"
+            "/dryrun - Testa sem publicar\n\n"
+            "O bot está rodando automaticamente! TARGET",
+            parse_mode="Markdown"
+        )
 
 async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /health - Status do sistema"""
+    if not update.effective_message:
+        return
+        
     try:
         # Verifica variáveis de ambiente
         def ok(k): 
             v = os.getenv(k, "")
-            return "✅ OK" if v and v.strip() else "❌ NOK"
+            return "OK" if v and v.strip() else "NOK"
         
         # Conta ofertas das últimas 24h (simulado por enquanto)
         try:
@@ -76,183 +132,220 @@ async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
             n_24h = -1
         
         # Status dos scrapers
-        scraper_status = "✅ Ativos" if not DRY_RUN else "🔄 Modo Teste"
+        scraper_status = "OK Ativos" if not DRY_RUN else "AUTO Modo Teste"
         
         msg = (
-            "🏥 **Healthcheck do Sistema**\n\n"
-            "**🔑 Configurações:**\n"
+            "HEALTH **Healthcheck do Sistema**\n\n"
+            "**KEY Configurações:**\n"
             f"• Bot Token: {ok('TELEGRAM_BOT_TOKEN')}\n"
             f"• Chat ID: {ok('TELEGRAM_CHAT_ID')}\n"
             f"• Amazon: {ok('AMAZON_ASSOCIATE_TAG')}\n"
             f"• AWIN: {ok('AWIN_API_TOKEN')}\n"
             f"• Shopee: {ok('SHOPEE_API_KEY')}\n"
             f"• AliExpress: {ok('ALIEXPRESS_APP_KEY')}\n\n"
-            "**📊 Status:**\n"
+            "**STATUS Status:**\n"
             f"• Scrapers: {scraper_status}\n"
             f"• Ofertas (24h): {n_24h if n_24h >= 0 else 'N/A'}\n"
             f"• DRY_RUN: {'Sim' if DRY_RUN else 'Não'}\n"
             f"• Timestamp: {time.strftime('%d/%m/%Y %H:%M:%S')}\n\n"
-            "🎯 Sistema funcionando normalmente!"
+            "TARGET Sistema funcionando normalmente!"
         )
         
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        await update.effective_message.reply_text(msg, parse_mode="Markdown")
         
     except Exception as e:
         logger.error(f"Erro no comando health: {e}")
-        await update.message.reply_text("❌ Erro ao verificar status do sistema")
+        await update.effective_message.reply_text("ERR Erro ao verificar status do sistema")
 
 async def cmd_status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /status - Status das ofertas"""
+    if not update.effective_message:
+        return
+        
     try:
         # Simula status das ofertas
         msg = (
-            "📊 **Status das Ofertas**\n\n"
-            "**🔄 Sistema Automático:**\n"
-            "• Status: ✅ Ativo\n"
+            "STATUS **Status das Ofertas**\n\n"
+            "**AUTO Sistema Automático:**\n"
+            "• Status: OK Ativo\n"
             "• Intervalo: 30 minutos\n"
             "• Última execução: Em execução...\n\n"
-            "**📈 Estatísticas:**\n"
+            "**STATS Estatísticas:**\n"
             "• Scrapers ativos: 2 (Promobit, Pelando)\n"
             "• Modo: {'Teste' if DRY_RUN else 'Produção'}\n"
             "• Rate limit: 250ms entre posts\n\n"
-            "🎯 Use /coletar para execução manual!"
+            "TARGET Use /coletar para execução manual!"
         )
         
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        await update.effective_message.reply_text(msg, parse_mode="Markdown")
         
     except Exception as e:
         logger.error(f"Erro no comando status: {e}")
-        await update.message.reply_text("❌ Erro ao verificar status das ofertas")
+        await update.effective_message.reply_text("ERR Erro ao verificar status das ofertas")
 
 async def cmd_coletar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /coletar - Executa coleta manual"""
-    try:
-        await update.message.reply_text("🔄 Iniciando coleta manual...")
+    if not update.effective_message:
+        return
         
-        # Executa orquestrador
-        resultado = await coletar_e_publicar(
-            dry_run=DRY_RUN,
-            limit_por_scraper=10  # Limita para teste manual
-        )
+    try:
+        await update.effective_message.reply_text("AUTO Iniciando coleta manual...")
+        
+        # Executa orquestrador (apenas se não for DRY_RUN)
+        if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
+        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+            resultado = await coletar_e_publicar(
+                dry_run=DRY_RUN,
+                limit_por_scraper=10  # Limita para teste manual
+            )
+        else:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True, "erro": "Orchestrator não disponível"}
         
         msg = (
-            "✅ **Coleta Manual Concluída!**\n\n"
-            f"**📊 Resultados:**\n"
+            "OK **Coleta Manual Concluída!**\n\n"
+            f"**STATS Resultados:**\n"
             f"• Ofertas coletadas: {resultado['coletadas']}\n"
             f"• Ofertas aprovadas: {resultado['aprovadas']}\n"
             f"• Ofertas publicadas: {resultado['publicadas']}\n"
             f"• Scrapers executados: {resultado['scrapers_executados']}\n"
             f"• DRY_RUN: {'Sim' if resultado['dry_run'] else 'Não'}\n\n"
-            "🎯 Coleta executada com sucesso!"
+            "TARGET Coleta executada com sucesso!"
         )
         
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        await update.effective_message.reply_text(msg, parse_mode="Markdown")
         
     except Exception as e:
         logger.error(f"Erro no comando coletar: {e}")
-        await update.message.reply_text(f"❌ Erro na coleta: {str(e)}")
+        await update.effective_message.reply_text(f"ERR Erro na coleta: {str(e)}")
 
 async def cmd_dryrun(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Comando /dryrun - Testa sem publicar"""
-    try:
-        await update.message.reply_text("🧪 Iniciando teste DRY_RUN...")
+    if not update.effective_message:
+        return
         
-        # Executa orquestrador em modo teste
-        resultado = await coletar_e_publicar(
-            dry_run=True,  # Força DRY_RUN
-            limit_por_scraper=5  # Limita para teste
-        )
+    try:
+        await update.effective_message.reply_text("TEST Iniciando teste DRY_RUN...")
+        
+        # Executa orquestrador em modo teste (apenas se não for DRY_RUN)
+        if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
+        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+            resultado = await coletar_e_publicar(
+                dry_run=True,  # Força DRY_RUN
+                limit_por_scraper=5  # Limita para teste
+            )
+        else:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True, "erro": "Orchestrator não disponível"}
         
         msg = (
-            "🧪 **Teste DRY_RUN Concluído!**\n\n"
-            f"**📊 Resultados:**\n"
+            "TEST **Teste DRY_RUN Concluído!**\n\n"
+            f"**STATS Resultados:**\n"
             f"• Ofertas coletadas: {resultado['coletadas']}\n"
             f"• Ofertas aprovadas: {resultado['aprovadas']}\n"
             f"• Ofertas publicadas: {resultado['publicadas']} (simulado)\n"
             f"• Scrapers executados: {resultado['scrapers_executados']}\n"
-            f"• DRY_RUN: Sim ✅\n\n"
-            "🎯 Nenhuma oferta foi publicada (modo teste)!"
+            f"• DRY_RUN: Sim OK\n\n"
+            "TARGET Nenhuma oferta foi publicada (modo teste)!"
         )
         
-        await update.message.reply_text(msg, parse_mode="Markdown")
+        await update.effective_message.reply_text(msg, parse_mode="Markdown")
         
     except Exception as e:
         logger.error(f"Erro no comando dryrun: {e}")
-        await update.message.reply_text(f"❌ Erro no teste: {str(e)}")
+        await update.effective_message.reply_text(f"ERR Erro no teste: {str(e)}")
 
 # ===== JOB AUTOMÁTICO =====
 
 async def job_coletar_automatico(context: ContextTypes.DEFAULT_TYPE):
     """Job periódico para coleta automática de ofertas"""
     try:
-        logger.info("🔄 [JOB] Iniciando coleta automática de ofertas...")
+        logger.info("AUTO [JOB] Iniciando coleta automática de ofertas...")
         
-        resultado = await coletar_e_publicar(
-            dry_run=DRY_RUN,
-            limit_por_scraper=20
-        )
+        # Executa orquestrador (apenas se não for DRY_RUN)
+        if os.getenv("DRY_RUN","0") == "1" or orchestrator is None:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True}
+        elif 'coletar_e_publicar' in globals() and coletar_e_publicar is not None:
+            resultado = await coletar_e_publicar(
+                dry_run=DRY_RUN,
+                limit_por_scraper=20
+            )
+        else:
+            resultado = {"coletadas": 0, "aprovadas": 0, "publicadas": 0, "scrapers_executados": 0, "dry_run": True, "erro": "Orchestrator não disponível"}
         
-        logger.info(f"✅ [JOB] Coleta automática concluída: {resultado}")
+        logger.info(f"OK [JOB] Coleta automática concluída: {resultado}")
         
         # Log detalhado do resultado
         if resultado['aprovadas'] > 0:
-            logger.info(f"📤 [JOB] {resultado['publicadas']} ofertas publicadas com sucesso")
+            logger.info(f"SEND [JOB] {resultado['publicadas']} ofertas publicadas com sucesso")
         else:
-            logger.warning("⚠️ [JOB] Nenhuma oferta foi aprovada/publicada")
+            logger.warning("WARN [JOB] Nenhuma oferta foi aprovada/publicada")
             
     except Exception as e:
-        logger.exception(f"❌ [JOB] Erro na coleta automática: {e}")
+        logger.exception(f"ERR [JOB] Erro na coleta automática: {e}")
 
 # ===== CONFIGURAÇÃO DOS HANDLERS =====
 
 def setup_handlers(app: Application):
     """Configura todos os handlers do bot"""
+    # --- add_handler tip-safe (HandlerCallback) ---
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("health", cmd_health))
     app.add_handler(CommandHandler("status", cmd_status))
     app.add_handler(CommandHandler("coletar", cmd_coletar))
     app.add_handler(CommandHandler("dryrun", cmd_dryrun))
     
-    logger.info("✅ Handlers configurados com sucesso")
+    logger.info("OK Handlers configurados com sucesso")
 
 # ===== FUNÇÃO PRINCIPAL =====
 
 async def main():
     """Função principal do bot"""
-    logger.info("🚀 Iniciando Garimpeiro Geek Bot...")
+    logger.info("START Iniciando Garimpeiro Geek Bot...")
     
-    # Verifica token antes de criar aplicação
-    if not TELEGRAM_BOT_TOKEN:
-        logger.error("❌ TELEGRAM_BOT_TOKEN não pode ser None")
+    # Verifica DRY_RUN
+    if os.getenv("DRY_RUN","0") == "1" or args.dry_run:
+        logging.getLogger(__name__).warning("DRY_RUN=1 ativo: bot não conectará ao Telegram. Mantendo processo vivo para testes.")
+        while True:
+            await asyncio.sleep(3600)  # dorme 1 hora por vez
+    
+    # Verifica token antes de criar aplicação (apenas se não for DRY_RUN)
+    if not DRY_RUN and not BOT_TOKEN:
+        logger.error("ERR TELEGRAM_BOT_TOKEN não pode ser None")
         return
     
     # Cria aplicação
-    app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    
+    app = Application.builder().token(BOT_TOKEN).build()
+
     # Configura handlers
     setup_handlers(app)
     
     # Configura job periódico (a cada 30 minutos)
-    app.job_queue.run_repeating(
-        job_coletar_automatico, 
-        interval=30*60,  # 30 minutos
-        first=30  # Primeira execução em 30 segundos
-    )
-    
-    logger.info("✅ Job de coleta automática agendado (30 min)")
-    logger.info(f"🔄 Modo DRY_RUN: {'ATIVO' if DRY_RUN else 'DESATIVADO'}")
+    # --- JobQueue: pode ser Optional no tipo; afirme antes de usar ---
+    jq = app.job_queue
+    if jq is not None:
+        jq.run_repeating(
+            callback=job_coletar_automatico, 
+            interval=30*60,  # 30 minutos
+            first=30  # Primeira execução em 30 segundos
+        )
+        logger.info("OK Job de coleta automática agendado (30 min)")
+    else:
+        logger.warning("WARN JobQueue não disponível - jobs automáticos desabilitados")
+    logger.info(f"AUTO Modo DRY_RUN: {'ATIVO' if DRY_RUN else 'DESATIVADO'}")
     
     # Inicia o bot
-    logger.info("🎯 Bot iniciado! Pressione Ctrl+C para parar")
+    logger.info("TARGET Bot iniciado! Pressione Ctrl+C para parar")
     
     try:
         await app.initialize()
         await app.start()
-        await app.run_polling()
+        # NÃO use 'await' aqui (reportGeneralTypeIssues: "None is not awaitable")
+        app.run_polling()
     except KeyboardInterrupt:
-        logger.info("🛑 Bot interrompido pelo usuário")
+        logger.info("STOP Bot interrompido pelo usuário")
     except Exception as e:
-        logger.error(f"❌ Erro fatal no bot: {e}")
+        logger.error(f"ERR Erro fatal no bot: {e}")
     finally:
         await app.stop()
         await app.shutdown()
@@ -261,7 +354,7 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("🛑 Programa interrompido pelo usuário")
+        logger.info("STOP Programa interrompido pelo usuário")
     except Exception as e:
-        logger.error(f"❌ Erro fatal: {e}")
+        logger.error(f"ERR Erro fatal: {e}")
         sys.exit(1)

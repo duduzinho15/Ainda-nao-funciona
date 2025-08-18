@@ -1,0 +1,178 @@
+# ui/components.py
+import flet as ft
+from typing import List, Tuple, Optional
+
+def create_metric_card(title: str, value: str, icon: str, color: str, tokens) -> ft.Container:
+    """Cria um card de métrica"""
+    return ft.Container(
+        bgcolor=tokens.surface,
+        border=ft.border.all(1, tokens.border),
+        border_radius=12,
+        padding=16,
+        width=200,
+        content=ft.Column([
+            ft.Row([
+                ft.Icon(icon, color=color, size=24),
+                ft.Text(title, size=14, weight=ft.FontWeight.W_600, color=tokens.text_muted),
+            ], spacing=8),
+            ft.Text(value, size=24, weight=ft.FontWeight.W_700, color=tokens.text),
+        ], spacing=12),
+    )
+
+def create_filter_chip(label: str, selected: bool, on_click, tokens) -> ft.ElevatedButton:
+    """Cria um chip de filtro"""
+    return ft.ElevatedButton(
+        label,
+        style=ft.ButtonStyle(
+            bgcolor={ft.ControlState.DEFAULT: tokens.primary if selected else tokens.surface},
+            color={ft.ControlState.DEFAULT: tokens.surface if selected else tokens.text},
+        ),
+        on_click=on_click,
+    )
+
+def create_skeleton_card(tokens) -> ft.Container:
+    """Cria um card skeleton para loading"""
+    return ft.Container(
+        bgcolor=tokens.surface,
+        border=ft.border.all(1, tokens.border),
+        border_radius=12,
+        padding=16,
+        width=200,
+        height=100,
+        content=ft.Column([
+            ft.Container(
+                width=40,
+                height=40,
+                bgcolor=tokens.border,
+                border_radius=8,
+            ),
+            ft.Container(
+                width=120,
+                height=16,
+                bgcolor=tokens.border,
+                border_radius=4,
+            ),
+            ft.Container(
+                width=80,
+                height=24,
+                bgcolor=tokens.border,
+                border_radius=4,
+            ),
+        ], spacing=12),
+    )
+
+def create_bar_chart(data: List[Tuple[str, int]], max_value: int, tokens) -> ft.Column:
+    """Cria um gráfico de barras simples usando containers"""
+    if not data:
+        return create_empty_state("Sem dados para exibir", "bar_chart", tokens)
+    
+    bars = []
+    for store, value in data:
+        # Calcula altura proporcional (máximo 200px)
+        height = max(20, int((value / max_value) * 200)) if max_value > 0 else 20
+        
+        bar = ft.Container(
+            width=60,
+            height=height,
+            bgcolor=tokens.primary,
+            border_radius=4,
+            margin=ft.margin.only(bottom=8),
+        )
+        
+        label = ft.Text(
+            store[:10] + "..." if len(store) > 10 else store,
+            size=10,
+            color=tokens.text_muted,
+            text_align=ft.TextAlign.CENTER,
+        )
+        
+        bars.append(ft.Column([
+            bar,
+            label,
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=4))
+    
+    return ft.Column([
+        ft.Text("Distribuição por Loja", size=16, weight=ft.FontWeight.W_600, color=tokens.text),
+        ft.Row(
+            controls=bars,
+            alignment=ft.MainAxisAlignment.CENTER,
+            spacing=16,
+        ),
+    ], spacing=16)
+
+def create_log_entry(log_line: str, tokens) -> ft.Container:
+    """Cria uma entrada de log"""
+    return ft.Container(
+        bgcolor=tokens.card,
+        border=ft.border.all(1, tokens.border),
+        border_radius=8,
+        padding=12,
+        margin=ft.margin.only(bottom=4),
+        content=ft.Text(
+            log_line,
+            size=12,
+            color=tokens.text,
+            font_family="monospace",
+        ),
+    )
+
+def create_status_chip(status: str, tokens) -> ft.Container:
+    """Cria um chip de status"""
+    status_colors = {
+        "running": tokens.success,
+        "stopped": tokens.danger,
+        "error": tokens.danger,
+    }
+    
+    color = status_colors.get(status.lower(), tokens.text_muted)
+    
+    return ft.Container(
+        bgcolor=color,
+        border_radius=16,
+        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+        content=ft.Text(
+            status.upper(),
+            size=12,
+            weight=ft.FontWeight.W_600,
+            color=tokens.surface,
+        ),
+    )
+
+def create_snackbar(message: str, bg_color: str, page: ft.Page) -> None:
+    """Cria e exibe um snackbar"""
+    try:
+        page.show_snack_bar(
+            ft.SnackBar(
+                bgcolor=bg_color,
+                content=ft.Text(message, color="#FFFFFF"),
+                duration=3000,
+            )
+        )
+    except Exception as e:
+        # Fallback simples se o snackbar falhar
+        print(f"Snackbar: {message}")
+
+def create_loading_spinner(tokens) -> ft.Column:
+    """Cria um spinner de loading"""
+    return ft.Column([
+        ft.ProgressRing(color=tokens.primary),
+        ft.Text("Carregando...", color=tokens.text_muted, size=14),
+    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=12)
+
+def create_empty_state(message: str, icon: str, tokens) -> ft.Container:
+    """Cria um estado vazio"""
+    return ft.Container(
+        bgcolor=tokens.card,
+        border=ft.border.all(1, tokens.border),
+        border_radius=12,
+        padding=32,
+        content=ft.Column([
+            ft.Icon(icon, size=48, color=tokens.text_muted),
+            ft.Text(
+                message,
+                size=16,
+                color=tokens.text_muted,
+                text_align=ft.TextAlign.CENTER,
+            ),
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=16),
+    )

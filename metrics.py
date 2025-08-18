@@ -1,5 +1,18 @@
 # metrics.py
-from prometheus_client import Counter, Gauge, start_http_server
+try:
+    from prometheus_client import Counter, Gauge, start_http_server
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+    class _Noop:
+        def inc(self, *a, **k): pass
+        def dec(self, *a, **k): pass
+        def set(self, *a, **k): pass
+        def labels(self, *a, **k): return self
+    def Counter(*a, **k): return _Noop()
+    def Gauge(*a, **k): return _Noop()
+    def start_http_server(*a, **k): pass
+
 import os
 
 STARTED = False
@@ -16,5 +29,5 @@ def maybe_start_server():
     if not STARTED and os.getenv("METRICS", "0") == "1":
         port = int(os.getenv("METRICS_PORT", "9308"))
         start_http_server(port)
-        print(f"📊 Métricas Prometheus iniciadas na porta {port}")
+        print(f"STATS Métricas Prometheus iniciadas na porta {port}")
         STARTED = True

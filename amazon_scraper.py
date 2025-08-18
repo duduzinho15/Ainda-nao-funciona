@@ -74,7 +74,7 @@ class AmazonScraper:
                     
                     ofertas = await self._scrape_pagina(url)
                     # Filtra apenas ofertas válidas e da Amazon
-                    amazon_ofertas = [o for o in ofertas if o and o.get("loja") and "amazon" in o.get("loja", "").lower()]
+                    amazon_ofertas = [o for o in ofertas if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()]
                     all_ofertas.extend(amazon_ofertas)
                     request_count += 1
                     
@@ -103,7 +103,7 @@ class AmazonScraper:
                         
                         ofertas = await self._scrape_pagina(url)
                         # Filtra apenas ofertas válidas e da Amazon
-                        amazon_ofertas = [o for o in ofertas if o and o.get("loja") and "amazon" in o.get("loja", "").lower()]
+                        amazon_ofertas = [o for o in ofertas if o and isinstance(o, dict) and o.get("loja") and "amazon" in (o.get("loja") or "").lower()]
                         all_ofertas.extend(amazon_ofertas)
                         request_count += 1
                         

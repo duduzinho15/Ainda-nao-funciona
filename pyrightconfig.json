@@ -1,40 +1,44 @@
 {
-    "include": [
-        "."
-    ],
-    "exclude": [
-        "**/venv",
-        "**/__pycache__",
-        "**/*.pyc",
-        "**/node_modules",
-        "**/.git"
-    ],
-    "ignore": [
-        "**/venv/**"
-    ],
-    "reportMissingImports": "warning",
-    "reportMissingTypeStubs": false,
-    "pythonVersion": "3.13",
-    "pythonPlatform": "Windows",
-    "executionEnvironments": [
-        {
-            "root": ".",
-            "pythonVersion": "3.13",
-            "pythonPlatform": "Windows",
-            "extraPaths": [
-                "./venv/Lib/site-packages",
-                "./venv/Lib/site-packages/telegram",
-                "./venv/Lib/site-packages/telegram/ext",
-                "C:/Users/Eduardo Vitorino/AppData/Roaming/Python/Python313/site-packages"
-            ]
-        }
-    ],
-    "typeCheckingMode": "basic",
-    "useLibraryCodeForTypes": true,
-    "autoImportCompletions": true,
-    "reportOptionalMemberAccess": "warning",
-    "reportOptionalSubscript": "warning",
-    "reportOptionalIterable": "warning",
-    "reportOptionalContextManager": "warning",
-    "reportOptionalOperand": "warning"
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "reportMissingTypeStubs": "warning",
+  "reportUnknownMemberType": "warning",
+  "reportUnknownArgumentType": "warning",
+  "reportUnknownVariableType": "warning",
+  "reportPrivateUsage": "none",
+  "reportAttributeAccessIssue": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportRedeclaration": "warning",
+  "reportArgumentType": "warning",
+  "reportGeneralTypeIssues": "warning",
+
+  "exclude": [
+    "**/.venv",
+    "**/.mypy_cache",
+    "**/__pycache__",
+    "**/build",
+    "**/dist",
+    "**/node_modules",
+    "**/logs",
+    "**/backups",
+    "**/db_backups"
+  ],
+  
+  "extraPaths": [
+    "typings",
+    "app",
+    "src",
+    "ui",
+    "services"
+  ],
+  
+  "include": [
+    "**/*.py",
+    "**/*.pyi"
+  ],
+  
+  "ignore": [
+    "venv",
+    "node_modules"
+  ]
 }
