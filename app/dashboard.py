@@ -5,7 +5,11 @@ import sys
 import os
 import random
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Adicionar diretório pai ao path para importar core
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Determinismo para CI: congelar seed e tempo
 SEED = int(os.getenv("GG_SEED", "1337"))
@@ -31,13 +35,10 @@ CARD_HEIGHT = 120
 
 # ---------- Importações core ----------
 try:
-    from core.data_service import DataService
-    from core.storage import config_storage
-    from core.csv_exporter import csv_exporter
-    from core.live_logs import live_log_reader
-    from core.models import Periodo
-except ImportError:
-    print("Módulos core não encontrados, usando mock data")
+    from core import DataService, config_storage, csv_exporter, live_log_reader, Periodo
+    print("Módulos core carregados com sucesso")
+except ImportError as e:
+    print(f"Módulos core não encontrados: {e}, usando mock data")
     DataService = None
     config_storage = None
     csv_exporter = None
@@ -375,25 +376,102 @@ async def load_data_for_period(periodo: str, page: ft.Page):
     
     try:
         if data_service:
+            # Tentar carregar dados reais
             current_ofertas = await data_service.load_ofertas(periodo)
             current_metrics = data_service.get_metrics_snapshot(current_ofertas, periodo)
         else:
-            # Mock data
-            current_ofertas = []
-            current_metrics = None
+            # Mock data determinístico
+            current_ofertas = _get_mock_ofertas(periodo)
+            current_metrics = _get_mock_metrics(periodo)
         
         current_periodo = periodo
         
         # Atualizar UI
         await update_ui(page)
         
+        # Salvar preferência do usuário
+        if config_storage:
+            config_storage.update_preference("last_selected_period", periodo)
+        
     except Exception as e:
         print(f"Erro ao carregar dados: {e}")
+        # Fallback para mock data
+        current_ofertas = _get_mock_ofertas(periodo)
+        current_metrics = _get_mock_metrics(periodo)
+        await update_ui(page)
+        
         # Mostrar erro na UI
         if page:
             page.show_snack_bar(
                 ft.SnackBar(content=ft.Text(f"Erro ao carregar dados: {e}"))
             )
+
+def _get_mock_ofertas(periodo: str) -> list:
+    """Gera ofertas mock determinísticas"""
+    # Usar seed fixo para determinismo
+    random.seed(SEED)
+    
+    period_data = {
+        "24h": {"count": 8, "days_back": 1},
+        "7d": {"count": 25, "days_back": 7},
+        "30d": {"count": 89, "days_back": 30},
+        "all": {"count": 156, "days_back": 90}
+    }
+    
+    config = period_data.get(periodo, period_data["7d"])
+    ofertas = []
+    
+    lojas = ["Amazon", "Magalu", "Shopee", "AliExpress", "Promobit", "Pelando", "MeuPC", "Buscape"]
+    
+    for i in range(config["count"]):
+        # Preço determinístico baseado no índice
+        preco = 50.0 + (i * 2.5) + (random.randint(0, 100) / 10)
+        preco_original = preco * (1 + random.uniform(0.1, 0.3))
+        
+        # Timestamp determinístico
+        days_offset = random.randint(0, config["days_back"])
+        created_at = now() - timedelta(days=days_offset)
+        
+        oferta = type('MockOferta', (), {
+            'titulo': f"Produto {i+1} - Oferta Especial",
+            'loja': lojas[i % len(lojas)],
+            'preco': round(preco, 2),
+            'preco_original': round(preco_original, 2),
+            'url': f"https://exemplo.com/produto-{i+1}",
+            'imagem_url': f"https://exemplo.com/img-{i+1}.jpg",
+            'created_at': created_at,
+            'fonte': "mock"
+        })()
+        ofertas.append(oferta)
+    
+    return ofertas
+
+def _get_mock_metrics(periodo: str):
+    """Gera métricas mock determinísticas"""
+    ofertas = _get_mock_ofertas(periodo)
+    
+    total_ofertas = len(ofertas)
+    lojas_ativas = len(set(o.loja for o in ofertas))
+    
+    # Preço médio (ignorando None)
+    precos_validos = [o.preco for o in ofertas if o.preco is not None]
+    preco_medio = sum(precos_validos) / len(precos_validos) if precos_validos else None
+    
+    # Distribuição por loja
+    distribuicao = {}
+    for oferta in ofertas:
+        distribuicao[oferta.loja] = distribuicao.get(oferta.loja, 0) + 1
+    
+    # Criar objeto mock com métodos necessários
+    metrics = type('MockMetrics', (), {
+        'total_ofertas': total_ofertas,
+        'lojas_ativas': lojas_ativas,
+        'preco_medio': preco_medio,
+        'distribuicao_lojas': distribuicao,
+        'preco_medio_formatado': lambda self: f"R$ {preco_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") if preco_medio else "R$ 0,00"
+    })()
+    
+    return metrics
 
 async def update_ui(page: ft.Page):
     """Atualiza a interface do usuário"""
@@ -414,14 +492,22 @@ async def update_ui(page: ft.Page):
         for control in page.controls:
             if isinstance(control, ft.Column):
                 for child in control.controls:
-                    if hasattr(child, 'key') and child.key == "metrics_row":
-                        child.controls = metrics_row.controls
-                    elif hasattr(child, 'key') and child.key == "chart":
-                        child.controls = chart_panel.controls
-                    elif hasattr(child, 'key') and child.key == "filters":
-                        child.controls = filters_panel.controls
+                    if hasattr(child, 'key') and child.key == "tabs":
+                        # Atualizar conteúdo da primeira aba (Logs)
+                        if child.tabs and len(child.tabs) > 0:
+                            logs_tab = child.tabs[0]
+                            if hasattr(logs_tab, 'content') and isinstance(logs_tab.content, ft.Column):
+                                # Atualizar métricas
+                                if len(logs_tab.content.controls) > 0:
+                                    logs_tab.content.controls[0] = metrics_row
+                                # Atualizar filtros
+                                if len(logs_tab.content.controls) > 1:
+                                    logs_tab.content.controls[1] = filters_panel
+                                # Atualizar gráfico
+                                if len(logs_tab.content.controls) > 2:
+                                    logs_tab.content.controls[2] = chart_panel
         
-        await page.update_async()
+        page.update()
         
     except Exception as e:
         print(f"Erro ao atualizar UI: {e}")
@@ -431,21 +517,32 @@ def toggle_theme(page: ft.Page):
     """Alterna entre tema claro e escuro"""
     if page.theme_mode == ft.ThemeMode.LIGHT:
         page.theme_mode = ft.ThemeMode.DARK
-        page.update()
+        theme_value = "dark"
     else:
         page.theme_mode = ft.ThemeMode.LIGHT
-        page.update()
+        theme_value = "light"
+    
+    # Salvar preferência
+    if config_storage:
+        config_storage.update_preference("theme", theme_value)
+    
+    page.update()
 
 async def export_csv_clicked(page: ft.Page):
     """Exporta dados para CSV"""
     try:
         if csv_exporter and current_ofertas:
+            # Criar diretório de exports se não existir
+            export_dir = Path("./exports")
+            export_dir.mkdir(exist_ok=True)
+            
+            # Exportar CSV
             filepath = csv_exporter.export_ofertas(current_ofertas)
             
             # Mostrar notificação de sucesso
             page.show_snack_bar(
                 ft.SnackBar(
-                    content=ft.Text(f"CSV exportado com sucesso: {filepath}"),
+                    content=ft.Text(f"CSV exportado com sucesso: {Path(filepath).name}"),
                     action="Abrir pasta",
                     on_action=lambda e: open_export_folder()
                 )
@@ -455,6 +552,7 @@ async def export_csv_clicked(page: ft.Page):
                 ft.SnackBar(content=ft.Text("Nenhum dado para exportar"))
             )
     except Exception as e:
+        print(f"Erro ao exportar CSV: {e}")
         page.show_snack_bar(
             ft.SnackBar(content=ft.Text(f"Erro ao exportar CSV: {e}"))
         )
@@ -465,12 +563,14 @@ def open_export_folder():
         import subprocess
         import platform
         
+        export_path = Path("./exports").absolute()
+        
         if platform.system() == "Windows":
-            subprocess.run(["explorer", csv_exporter.get_export_path()])
+            subprocess.run(["explorer", str(export_path)])
         elif platform.system() == "Darwin":  # macOS
-            subprocess.run(["open", csv_exporter.get_export_path()])
+            subprocess.run(["open", str(export_path)])
         else:  # Linux
-            subprocess.run(["xdg-open", csv_exporter.get_export_path()])
+            subprocess.run(["xdg-open", str(export_path)])
     except Exception as e:
         print(f"Erro ao abrir pasta: {e}")
 
@@ -494,20 +594,28 @@ async def update_logs_ui(page: ft.Page, logs: list):
         for control in page.controls:
             if isinstance(control, ft.Column):
                 for child in control.controls:
-                    if hasattr(child, 'key') and child.key == "logs":
-                        for grandchild in child.controls:
-                            if hasattr(grandchild, 'key') and grandchild.key == "logs_list":
-                                grandchild.controls.clear()
-                                for log_line in logs:
-                                    grandchild.controls.append(
-                                        ft.Text(
-                                            log_line.strip(),
-                                            size=12,
-                                            color=ft.Colors.ON_SURFACE_VARIANT,
-                                            font_family="monospace"
-                                        )
-                                    )
-                                break
+                    if hasattr(child, 'key') and child.key == "tabs":
+                        if child.tabs and len(child.tabs) > 0:
+                            logs_tab = child.tabs[0]
+                            if hasattr(logs_tab, 'content') and isinstance(logs_tab.content, ft.Column):
+                                # Procurar pelo painel de logs (4º controle)
+                                if len(logs_tab.content.controls) > 3:
+                                    logs_panel = logs_tab.content.controls[3]
+                                    if hasattr(logs_panel, 'content') and isinstance(logs_panel.content, ft.Column):
+                                        # Procurar pela ListView de logs
+                                        for grandchild in logs_panel.content.controls:
+                                            if hasattr(grandchild, 'key') and grandchild.key == "logs_list":
+                                                grandchild.controls.clear()
+                                                for log_line in logs:
+                                                    grandchild.controls.append(
+                                                        ft.Text(
+                                                            log_line.strip(),
+                                                            size=12,
+                                                            color=ft.Colors.ON_SURFACE_VARIANT,
+                                                            font_family="monospace"
+                                                        )
+                                                    )
+                                                break
         
         page.update()
         
@@ -533,7 +641,7 @@ async def main(page: ft.Page):
         elif theme_pref == "dark":
             page.theme_mode = ft.ThemeMode.DARK
         
-        default_period = config_storage.get_preference("default_period", "7d")
+        default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
     # Construir interface
