@@ -1,42 +1,21 @@
 """
-Modelos de dados para o sistema Garimpeiro Geek.
+Data models for Garimpeiro Geek system
 """
-
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import Optional, List
 from enum import Enum
 
-
-class LogLevel(str, Enum):
-    """Níveis de log disponíveis."""
-
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
-
-
-class Theme(str, Enum):
-    """Temas disponíveis para o dashboard."""
-
-    LIGHT = "light"
-    DARK = "dark"
-    SYSTEM = "system"
-
-
-class UIDensity(str, Enum):
-    """Densidades de interface disponíveis."""
-
-    COMFORTABLE = "comfortable"
-    COMPACT = "compact"
-
+class Periodo(Enum):
+    """Períodos de filtro disponíveis"""
+    DIA_24H = "24h"
+    SEMANA_7D = "7d"
+    MES_30D = "30d"
+    TODOS = "all"
 
 @dataclass
 class Oferta:
-    """Modelo de uma oferta encontrada pelo scraper."""
-
+    """Modelo de uma oferta de produto"""
     titulo: str
     loja: str
     preco: Optional[float]
@@ -45,68 +24,43 @@ class Oferta:
     imagem_url: Optional[str]
     created_at: datetime
     fonte: str
-
-    def __post_init__(self):
-        """Validação pós-inicialização."""
-        if not self.titulo or not self.loja or not self.url:
-            raise ValueError("Título, loja e URL são obrigatórios")
-
-        if self.preco is not None and self.preco < 0:
-            raise ValueError("Preço não pode ser negativo")
-
-        if self.preco_original is not None and self.preco_original < 0:
-            raise ValueError("Preço original não pode ser negativo")
-
-
-@dataclass
-class MetricsSnapshot:
-    """Snapshot das métricas calculadas."""
-
-    total_ofertas: int
-    lojas_ativas: int
-    preco_medio: Optional[float]
-    periodo: str
-    distribucao_lojas: Dict[str, int]
-    timestamp: datetime
-
-    def __post_init__(self):
-        """Validação pós-inicialização."""
-        if self.total_ofertas < 0:
-            raise ValueError("Total de ofertas não pode ser negativo")
-
-        if self.lojas_ativas < 0:
-            raise ValueError("Lojas ativas não pode ser negativo")
-
-        if self.preco_medio is not None and self.preco_medio < 0:
-            raise ValueError("Preço médio não pode ser negativo")
-
+    
+    def preco_formatado(self) -> str:
+        """Retorna preço formatado em pt-BR"""
+        if self.preco is None:
+            return "N/A"
+        return f"R$ {self.preco:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    
+    def preco_original_formatado(self) -> str:
+        """Retorna preço original formatado em pt-BR"""
+        if self.preco_original is None:
+            return "N/A"
+        return f"R$ {self.preco_original:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 @dataclass
 class ScraperSettings:
-    """Configurações do scraper."""
-
+    """Configurações para scrapers"""
     timeout: int = 30
     retries: int = 3
-    intervalo_requisicoes: int = 1000
-    max_concorrencia: int = 5
+    interval_ms: int = 1000
+    max_concurrency: int = 5
     user_agent_rotation: bool = True
-    user_agent_custom: Optional[str] = None
+    custom_user_agent: Optional[str] = None
     proxies: List[str] = None
-    salvar_html_debug: bool = False
+    save_html_debug: bool = False
 
-    def __post_init__(self):
-        """Validação pós-inicialização."""
-        if self.timeout < 1:
-            raise ValueError("Timeout deve ser pelo menos 1 segundo")
-
-        if self.retries < 0:
-            raise ValueError("Retries não pode ser negativo")
-
-        if self.intervalo_requisicoes < 0:
-            raise ValueError("Intervalo entre requisições não pode ser negativo")
-
-        if self.max_concorrencia < 1:
-            raise ValueError("Máximo de concorrência deve ser pelo menos 1")
-
-        if self.proxies is None:
-            self.proxies = []
+@dataclass
+class MetricsSnapshot:
+    """Snapshot de métricas do dashboard"""
+    total_ofertas: int
+    lojas_ativas: int
+    preco_medio: Optional[float]
+    periodo: Periodo
+    timestamp: datetime
+    distribuicao_lojas: dict[str, int]
+    
+    def preco_medio_formatado(self) -> str:
+        """Retorna preço médio formatado"""
+        if self.preco_medio is None:
+            return "R$ 0,00"
+        return f"R$ {self.preco_medio:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")

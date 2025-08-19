@@ -15,6 +15,15 @@ def normalize_snapshot(txt: str) -> str:
     txt = re.sub(r"R\$\s*\d[\d\.\,]*", "R$ <VAL>", txt)
     # IDs/hash/uuid comuns
     txt = re.sub(r"\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b", "<UUID>", txt, flags=re.I)
+    
+    # Normalizações para CSV e arquivos
+    # Timestamps de CSV: 2025-08-18 20:30:45 -> <CSV_TIMESTAMP>
+    txt = re.sub(r"\b\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\b", "<CSV_TIMESTAMP>", txt)
+    # Nomes de arquivo CSV: ofertas_2025-08-18_20-30-45.csv -> <CSV_FILENAME>
+    txt = re.sub(r"ofertas_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.csv", "<CSV_FILENAME>", txt)
+    # Caminhos de exportação: ./exports/ofertas_*.csv -> <EXPORT_PATH>
+    txt = re.sub(r"\./exports/ofertas_[^\.]+\.csv", "<EXPORT_PATH>", txt)
+    
     return txt
 
 def main():

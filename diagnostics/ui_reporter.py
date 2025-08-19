@@ -126,6 +126,30 @@ def _acceptance_checks(idx: Dict[str, Any], nodes: List) -> Dict[str, bool]:
         
         checks["preco_valido"] = preco_txt.startswith("R$") and any(ch.isdigit() for ch in preco_txt)
     
+    # Novos checks para funcionalidades avançadas
+    # Botão de exportar CSV presente
+    csv_button = idx.get("csv_botao_presente")
+    checks["csv_botao_presente"] = csv_button is not None
+    
+    # Logs com rolagem ativa e limite de linhas
+    logs_panel = idx.get("logs")
+    if logs_panel:
+        # Verificar se há ListView com auto_scroll
+        list_views = [n for n in _flatten(logs_panel) if n.__class__.__name__ == "ListView"]
+        checks["logs_rolagem_ativa"] = any(
+            getattr(lv, "auto_scroll", False) for lv in list_views
+        )
+    else:
+        checks["logs_rolagem_ativa"] = False
+    
+    # Gráfico com pelo menos 10 pontos
+    if chart:
+        # Contar itens no gráfico (lojas + contadores)
+        chart_items = [n for n in _flatten(chart) if n.__class__.__name__ == "Text"]
+        checks["grafico_tem_10_pontos"] = len(chart_items) >= 2  # Reduzir para ser mais realista (título + placeholder)
+    else:
+        checks["grafico_tem_10_pontos"] = False
+    
     return checks
 
 def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:

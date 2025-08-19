@@ -1,190 +1,86 @@
 """
-Sistema de persistência de configurações do sistema Garimpeiro Geek.
+Storage system for user preferences and settings
 """
-
 import json
-import logging
+import os
 from pathlib import Path
-from typing import Optional, Dict, Any
-from .settings import SystemConfig
+from typing import Any, Dict, Optional
+from dataclasses import dataclass, asdict
 
-logger = logging.getLogger(__name__)
-
+@dataclass
+class UserPreferences:
+    """Preferências do usuário"""
+    theme: str = "system"  # "light", "dark", "system"
+    ui_density: str = "comfortable"  # "comfortable", "compact"
+    default_period: str = "7d"  # "24h", "7d", "30d", "all"
+    last_selected_period: str = "7d"
+    auto_refresh_interval: int = 300  # segundos
+    max_log_lines: int = 500
+    export_path: str = "./exports"
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Converte para dicionário"""
+        return asdict(self)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "UserPreferences":
+        """Cria instância a partir de dicionário"""
+        return cls(**data)
 
 class ConfigStorage:
-    """Gerencia o carregamento e salvamento de configurações."""
-
-    def __init__(self, config_path: Optional[Path] = None):
-        """
-        Inicializa o storage de configurações.
-
-        Args:
-            config_path: Caminho para o arquivo de configuração.
-                         Padrão: ./.data/config.json
-        """
-        if config_path is None:
-            self.config_path = Path(".data/config.json")
-        else:
-            self.config_path = Path(config_path)
-
-        # Garantir que o diretório existe
-        self.config_path.parent.mkdir(parents=True, exist_ok=True)
-
-        self._config: Optional[SystemConfig] = None
-
-    def load(self) -> SystemConfig:
-        """
-        Carrega a configuração do arquivo.
-
-        Returns:
-            Configuração carregada ou padrão se arquivo não existir.
-        """
+    """Sistema de storage para configurações"""
+    
+    def __init__(self, config_dir: str = ".data"):
+        self.config_dir = Path(config_dir)
+        self.config_file = self.config_dir / "config.json"
+        self.preferences = UserPreferences()
+        self._ensure_config_dir()
+        self.load_preferences()
+    
+    def _ensure_config_dir(self):
+        """Garante que o diretório de configuração existe"""
+        self.config_dir.mkdir(exist_ok=True)
+    
+    def load_preferences(self) -> UserPreferences:
+        """Carrega preferências do arquivo"""
         try:
-            if not self.config_path.exists():
-                logger.info("Arquivo de configuração não encontrado, usando padrões")
-                return SystemConfig.get_defaults()
-
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            config = SystemConfig.from_dict(data)
-            logger.info(f"Configuração carregada de {self.config_path}")
-            return config
-
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            logger.error(f"Erro ao carregar configuração: {e}")
-            logger.info("Usando configuração padrão")
-            return SystemConfig.get_defaults()
-
+            if self.config_file.exists():
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.preferences = UserPreferences.from_dict(data)
+            else:
+                self.save_preferences()  # Criar arquivo padrão
         except Exception as e:
-            logger.error(f"Erro inesperado ao carregar configuração: {e}")
-            return SystemConfig.get_defaults()
-
-    def save(self, config: SystemConfig) -> bool:
-        """
-        Salva a configuração no arquivo.
-
-        Args:
-            config: Configuração a ser salva.
-
-        Returns:
-            True se salvou com sucesso, False caso contrário.
-        """
+            print(f"Erro ao carregar preferências: {e}")
+            # Usar padrões em caso de erro
+        
+        return self.preferences
+    
+    def save_preferences(self) -> bool:
+        """Salva preferências no arquivo"""
         try:
-            # Criar backup se arquivo existir
-            if self.config_path.exists():
-                backup_path = self.config_path.with_suffix(".json.backup")
-                self.config_path.rename(backup_path)
-                logger.info(f"Backup criado: {backup_path}")
-
-            # Salvar nova configuração
-            with open(self.config_path, "w", encoding="utf-8") as f:
-                json.dump(config.to_dict(), f, indent=2, ensure_ascii=False)
-
-            self._config = config
-            logger.info(f"Configuração salva em {self.config_path}")
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                json.dump(self.preferences.to_dict(), f, indent=2, ensure_ascii=False)
             return True
-
         except Exception as e:
-            logger.error(f"Erro ao salvar configuração: {e}")
-
-            # Tentar restaurar backup se existir
-            backup_path = self.config_path.with_suffix(".json.backup")
-            if backup_path.exists():
-                try:
-                    backup_path.rename(self.config_path)
-                    logger.info("Backup restaurado após erro de salvamento")
-                except Exception as restore_error:
-                    logger.error(f"Erro ao restaurar backup: {restore_error}")
-
+            print(f"Erro ao salvar preferências: {e}")
             return False
-
-    def get_config(self) -> SystemConfig:
-        """
-        Retorna a configuração atual (carrega se necessário).
-
-        Returns:
-            Configuração atual do sistema.
-        """
-        if self._config is None:
-            self._config = self.load()
-        return self._config
-
-    def update_config(self, **updates: Dict[str, Any]) -> bool:
-        """
-        Atualiza configurações específicas.
-
-        Args:
-            **updates: Dicionário com atualizações a aplicar.
-
-        Returns:
-            True se atualizou com sucesso, False caso contrário.
-        """
-        try:
-            config = self.get_config()
-
-            # Aplicar atualizações
-            for section, values in updates.items():
-                if hasattr(config, section):
-                    section_obj = getattr(config, section)
-                    for key, value in values.items():
-                        if hasattr(section_obj, key):
-                            setattr(section_obj, key, value)
-                        else:
-                            logger.warning(f"Chave desconhecida: {section}.{key}")
-                else:
-                    logger.warning(f"Seção desconhecida: {section}")
-
-            # Salvar configuração atualizada
-            return self.save(config)
-
-        except Exception as e:
-            logger.error(f"Erro ao atualizar configuração: {e}")
-            return False
-
+    
+    def update_preference(self, key: str, value: Any) -> bool:
+        """Atualiza uma preferência específica"""
+        if hasattr(self.preferences, key):
+            setattr(self.preferences, key, value)
+            return self.save_preferences()
+        return False
+    
+    def get_preference(self, key: str, default: Any = None) -> Any:
+        """Obtém uma preferência específica"""
+        return getattr(self.preferences, key, default)
+    
     def reset_to_defaults(self) -> bool:
-        """
-        Reseta a configuração para os valores padrão.
+        """Reseta para configurações padrão"""
+        self.preferences = UserPreferences()
+        return self.save_preferences()
 
-        Returns:
-            True se resetou com sucesso, False caso contrário.
-        """
-        try:
-            default_config = SystemConfig.get_defaults()
-            return self.save(default_config)
-        except Exception as e:
-            logger.error(f"Erro ao resetar configuração: {e}")
-            return False
-
-    def get_config_path(self) -> Path:
-        """Retorna o caminho do arquivo de configuração."""
-        return self.config_path
-
-    def backup_exists(self) -> bool:
-        """Verifica se existe um backup da configuração."""
-        backup_path = self.config_path.with_suffix(".json.backup")
-        return backup_path.exists()
-
-    def restore_backup(self) -> bool:
-        """
-        Restaura a configuração do backup.
-
-        Returns:
-            True se restaurou com sucesso, False caso contrário.
-        """
-        try:
-            backup_path = self.config_path.with_suffix(".json.backup")
-            if not backup_path.exists():
-                logger.warning("Backup não encontrado para restauração")
-                return False
-
-            # Restaurar backup
-            backup_path.rename(self.config_path)
-            self._config = None  # Forçar recarregamento
-
-            logger.info("Configuração restaurada do backup")
-            return True
-
-        except Exception as e:
-            logger.error(f"Erro ao restaurar backup: {e}")
-            return False
+# Instância global
+config_storage = ConfigStorage()

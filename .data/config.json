@@ -1,0 +1,9 @@
+{
+  "theme": "system",
+  "ui_density": "comfortable",
+  "default_period": "7d",
+  "last_selected_period": "7d",
+  "auto_refresh_interval": 300,
+  "max_log_lines": 500,
+  "export_path": "./exports"
+}

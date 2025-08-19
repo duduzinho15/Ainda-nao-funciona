@@ -1,11 +1,11 @@
 + Garimpeiro Geek - Dashboard  (Tema: Dark)
 + Tabs: [*] Logs | [ ] Configurações | [ ] Controles
 + Cards:
-|  * Lojas ativas -> 10
-|  * Ofertas -> 14
-|  * Período -> ALL
-|  * Preço médio -> R$ 157,91
-+ Filtros: [24h]  [7 dias]  [30 dias]  [OK Tudo]
+|  * Lojas Ativas -> 0
+|  * Ofertas -> 0
+|  * Período -> 7D
+|  * Preço Médio -> R$ 0,00
++ Filtros: [None]  [None]  [None]  [None]
 + Grafico: Distribuicao por Loja (painel encontrado)
 + Logs: painel encontrado
 
@@ -23,3 +23,6 @@ CHECKS:
 - grafico_tem_conteudo: OK
 - cards_titulos_ok: OK
 - preco_valido: OK
+- csv_botao_presente: OK
+- logs_rolagem_ativa: OK
+- grafico_tem_10_pontos: OK

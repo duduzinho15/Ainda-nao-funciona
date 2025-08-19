@@ -1,22 +1,8 @@
 """
-Módulo core do sistema Garimpeiro Geek.
-Contém modelos, configurações, métricas e utilitários principais.
+Core module for Garimpeiro Geek system
 """
+from .models import Oferta, ScraperSettings
+from .data_service import DataService
+from .storage import UserPreferences
 
-from .models import Oferta, MetricsSnapshot, ScraperSettings
-from .settings import DashboardSettings, ScraperConfig, BotConfig
-from .metrics import MetricsAggregator
-from .storage import ConfigStorage
-from .logging_setup import setup_logging
-
-__all__ = [
-    "Oferta",
-    "MetricsSnapshot",
-    "ScraperSettings",
-    "DashboardSettings",
-    "ScraperConfig",
-    "BotConfig",
-    "MetricsAggregator",
-    "ConfigStorage",
-    "setup_logging",
-]
+__all__ = ["Oferta", "ScraperSettings", "DataService", "UserPreferences"]
