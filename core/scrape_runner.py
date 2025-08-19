@@ -7,8 +7,9 @@ import asyncio
 import logging
 import time
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
+from pathlib import Path
 
 from .data_service import DataService
 from .metrics import MetricsCollector
@@ -17,13 +18,15 @@ from .metrics import MetricsCollector
 @dataclass
 class ScrapingStatus:
     """Status atual do motor de coleta."""
-    is_running: bool = False
+    running: bool = False
+    last_run: Optional[str] = None
+    total_ofertas: int = 0
     total_postadas: int = 0
     ultimas_ofertas: List[Dict] = None
-    ultima_execucao: Optional[datetime] = None
     inicio_execucao: Optional[datetime] = None
     periodo_atual: str = "24h"
     erro_ultimo: Optional[str] = None
+    cache_timestamp: Optional[datetime] = None
 
     def __post_init__(self):
         if self.ultimas_ofertas is None:
@@ -39,7 +42,11 @@ class ScrapeRunner:
         self.status = ScrapingStatus()
         self._task: Optional[asyncio.Task] = None
         self._stop_event = asyncio.Event()
-        self._interval = 10  # segundos entre execuções
+        self._interval = 10.0  # segundos entre execuções
+        
+        # Cache global de ofertas e métricas
+        self._ofertas_cache: List[Any] = []
+        self._metrics_cache: Dict[str, Any] = {}
         
         # Configurar logging
         self.logger = logging.getLogger(__name__)
@@ -47,10 +54,10 @@ class ScrapeRunner:
     
     def _setup_logging(self):
         """Configura logging para o motor de coleta."""
-        log_file = "./.data/logs/app.log"
+        log_file = Path("./.data/logs/app.log")
         log_file.parent.mkdir(parents=True, exist_ok=True)
         
-        file_handler = logging.FileHandler(log_file)
+        file_handler = logging.FileHandler(log_file, mode='a', encoding='utf-8')
         file_handler.setLevel(logging.INFO)
         
         formatter = logging.Formatter(
@@ -61,32 +68,40 @@ class ScrapeRunner:
         self.logger.addHandler(file_handler)
         self.logger.setLevel(logging.INFO)
     
-    async def start_scraping(self, periodo: str = "24h") -> bool:
-        """Inicia o motor de coleta."""
-        if self.status.is_running:
-            self.logger.warning("Motor já está rodando")
-            return False
+    async def start_scraping(self, periodo: str, interval_s: float = 10.0) -> None:
+        """
+        Inicia o motor de coleta.
         
-        self.logger.info(f"Iniciando motor de coleta para período: {periodo}")
-        self.status.is_running = True
+        Args:
+            periodo: Período para coleta (24h, 7d, 30d, all)
+            interval_s: Intervalo entre execuções em segundos
+        """
+        if self.status.running:
+            self.logger.warning("Motor já está rodando")
+            return
+        
+        self.logger.info(f"Iniciando motor de coleta para período: {periodo} (intervalo: {interval_s}s)")
+        self.status.running = True
         self.status.periodo_atual = periodo
         self.status.inicio_execucao = datetime.now()
         self.status.erro_ultimo = None
+        self._interval = interval_s
         
         # Criar task assíncrona
         self._stop_event.clear()
         self._task = asyncio.create_task(self._run_scraping_loop())
         
-        return True
+        # Log inicial
+        self.logger.info(f"✅ Motor de coleta iniciado - Período: {periodo}, Intervalo: {interval_s}s")
     
-    async def stop_scraping(self) -> bool:
+    async def stop_scraping(self) -> None:
         """Para o motor de coleta."""
-        if not self.status.is_running:
+        if not self.status.running:
             self.logger.warning("Motor não está rodando")
-            return False
+            return
         
         self.logger.info("Parando motor de coleta")
-        self.status.is_running = False
+        self.status.running = False
         self._stop_event.set()
         
         if self._task:
@@ -97,29 +112,54 @@ class ScrapeRunner:
                 self._task.cancel()
         
         self._task = None
-        return True
+        self.logger.info("🔴 Motor de coleta parado")
     
     def is_running(self) -> bool:
         """Verifica se o motor está rodando."""
-        return self.status.is_running
+        return self.status.running
     
-    def get_status(self) -> ScrapingStatus:
-        """Retorna o status atual do motor."""
-        return self.status
+    def status(self) -> Dict[str, Any]:
+        """
+        Retorna o status atual do motor.
+        
+        Returns:
+            Dicionário com status: {running: bool, last_run: str|None, 
+                                   total_ofertas: int, total_postadas: int}
+        """
+        return {
+            'running': self.status.running,
+            'last_run': self.status.last_run,
+            'total_ofertas': self.status.total_ofertas,
+            'total_postadas': self.status.total_postadas,
+            'periodo_atual': self.status.periodo_atual,
+            'erro_ultimo': self.status.erro_ultimo,
+            'cache_timestamp': self.status.cache_timestamp.isoformat() if self.status.cache_timestamp else None
+        }
+    
+    def get_cached_ofertas(self) -> List[Any]:
+        """Retorna as ofertas em cache."""
+        return self._ofertas_cache.copy()
+    
+    def get_cached_metrics(self) -> Dict[str, Any]:
+        """Retorna as métricas em cache."""
+        return self._metrics_cache.copy()
     
     async def _run_scraping_loop(self):
         """Loop principal do motor de coleta."""
         try:
+            self.logger.info(f"🔄 Loop de coleta iniciado - Intervalo: {self._interval}s")
+            
             while not self._stop_event.is_set():
                 await self._execute_scraping_cycle()
                 await asyncio.sleep(self._interval)
+                
         except asyncio.CancelledError:
             self.logger.info("Motor de coleta cancelado")
         except Exception as e:
             self.logger.error(f"Erro no motor de coleta: {e}")
             self.status.erro_ultimo = str(e)
         finally:
-            self.status.is_running = False
+            self.status.running = False
             self.logger.info("Motor de coleta parado")
     
     async def _execute_scraping_cycle(self):
@@ -131,23 +171,26 @@ class ScrapeRunner:
             ofertas = await self.data_service.load_ofertas(self.status.periodo_atual)
             
             if ofertas:
-                # Atualizar métricas
-                self.status.total_postadas = len(ofertas)
+                # Atualizar cache global
+                self._ofertas_cache = ofertas
+                self.status.total_ofertas = len(ofertas)
+                self.status.total_postadas = len(ofertas)  # Para simplificar, consideramos todas como postadas
                 self.status.ultimas_ofertas = ofertas[-5:]  # Últimas 5 ofertas
-                self.status.ultima_execucao = datetime.now()
+                self.status.last_run = datetime.now().isoformat()
+                self.status.cache_timestamp = datetime.now()
                 
                 # Atualizar métricas do dashboard
                 await self._update_dashboard_metrics(ofertas)
                 
-                self.logger.info(f"Ciclo concluído: {len(ofertas)} ofertas carregadas")
+                self.logger.info(f"✅ Ciclo concluído: {len(ofertas)} ofertas carregadas e cache atualizado")
             else:
-                self.logger.warning("Nenhuma oferta carregada neste ciclo")
+                self.logger.warning("⚠️ Nenhuma oferta carregada neste ciclo")
                 
         except Exception as e:
-            self.logger.error(f"Erro no ciclo de coleta: {e}")
+            self.logger.error(f"❌ Erro no ciclo de coleta: {e}")
             self.status.erro_ultimo = str(e)
     
-    async def _update_dashboard_metrics(self, ofertas: List[Dict]):
+    async def _update_dashboard_metrics(self, ofertas: List[Any]):
         """Atualiza as métricas do dashboard."""
         try:
             # Calcular métricas básicas
@@ -176,23 +219,42 @@ class ScrapeRunner:
                 'periodo': self.status.periodo_atual
             })
             
+            # Atualizar cache de métricas
+            self._metrics_cache = {
+                'total_ofertas': total_ofertas,
+                'total_lojas': total_lojas,
+                'preco_medio': preco_medio,
+                'periodo': self.status.periodo_atual,
+                'timestamp': datetime.now().isoformat()
+            }
+            
         except Exception as e:
-            self.logger.error(f"Erro ao atualizar métricas: {e}")
+            self.logger.error(f"❌ Erro ao atualizar métricas: {e}")
     
-    def set_interval(self, seconds: int):
+    def set_interval(self, seconds: float):
         """Define o intervalo entre execuções (em segundos)."""
-        if seconds < 1:
-            raise ValueError("Intervalo deve ser >= 1 segundo")
+        if seconds < 1.0:
+            raise ValueError("Intervalo deve ser >= 1.0 segundo")
         self._interval = seconds
         self.logger.info(f"Intervalo de coleta alterado para {seconds} segundos")
     
-    def get_metrics_summary(self) -> Dict:
+    def get_metrics_summary(self) -> Dict[str, Any]:
         """Retorna resumo das métricas para o dashboard."""
         return {
-            'is_running': self.status.is_running,
+            'is_running': self.status.running,
             'total_postadas': self.status.total_postadas,
-            'ultima_execucao': self.status.ultima_execucao.isoformat() if self.status.ultima_execucao else None,
+            'ultima_execucao': self.status.last_run,
             'periodo_atual': self.status.periodo_atual,
             'erro_ultimo': self.status.erro_ultimo,
-            'tempo_execucao': None  # TODO: implementar
+            'cache_timestamp': self.status.cache_timestamp.isoformat() if self.status.cache_timestamp else None,
+            'intervalo_atual': self._interval
         }
+    
+    def force_refresh(self):
+        """Força uma atualização imediata do cache."""
+        if self.status.running:
+            self.logger.info("Forçando atualização imediata do cache")
+            # Criar task para atualização imediata
+            asyncio.create_task(self._execute_scraping_cycle())
+        else:
+            self.logger.warning("Motor não está rodando, não é possível forçar atualização")

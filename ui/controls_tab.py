@@ -216,8 +216,8 @@ def create_controls_tab(
         nonlocal is_scraping
         if not is_scraping and scrape_runner:
             try:
-                # Iniciar motor de coleta
-                asyncio.create_task(scrape_runner.start_scraping(current_periodo))
+                # Iniciar motor de coleta com intervalo padrão
+                asyncio.create_task(scrape_runner.start_scraping(current_periodo, 10.0))
                 is_scraping = True
                 print("🟢 Motor de coleta iniciado!")
                 if on_status_changed:
@@ -256,6 +256,10 @@ def create_controls_tab(
                 # Recarregar métricas do motor
                 metrics_summary = scrape_runner.get_metrics_summary()
                 print(f"📊 Métricas recarregadas: {metrics_summary}")
+                
+                # Forçar atualização imediata do cache
+                scrape_runner.force_refresh()
+                
                 # TODO: Atualizar UI com novas métricas
             except Exception as ex:
                 print(f"❌ Erro ao recarregar métricas: {ex}")
