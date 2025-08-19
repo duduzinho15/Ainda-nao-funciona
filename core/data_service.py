@@ -8,6 +8,7 @@ from typing import List, Optional
 import asyncio
 
 from .models import Oferta, Periodo, MetricsSnapshot, ScraperSettings
+from .normalize import deduplicate_ofertas, get_deduplication_stats
 
 class DataService:
     """Serviço centralizado para dados de todos os scrapers"""
@@ -117,7 +118,13 @@ class DataService:
         ofertas = [o for o in ofertas if o.created_at >= start_time]
         ofertas.sort(key=lambda x: x.created_at, reverse=True)
         
-        return ofertas
+        # Aplicar deduplicação
+        ofertas_unicas = deduplicate_ofertas(ofertas)
+        stats = get_deduplication_stats(ofertas)
+        
+        print(f"Deduplicação: {stats['total']} -> {stats['unicas']} ofertas ({stats['reducao_percentual']}% redução)")
+        
+        return ofertas_unicas
     
     def _get_fallback_ofertas(self, periodo: str) -> List[Oferta]:
         """Ofertas de fallback quando scrapers falham"""

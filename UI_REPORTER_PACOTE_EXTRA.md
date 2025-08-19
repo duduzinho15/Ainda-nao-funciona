@@ -2,7 +2,8 @@
 
 ## 📋 Resumo do Pacote Extra
 
-Este pacote implementa funcionalidades avançadas para deixar o UI Reporter ainda mais robusto e integrado ao workflow de desenvolvimento:
+Este pacote implementa funcionalidades avançadas para deixar o UI Reporter
+ainda mais robusto e integrado ao workflow de desenvolvimento:
 
 ✅ **Exportação JUnit XML** - Aparece como testes no CI  
 ✅ **Scripts automatizados** - Para Windows e Linux  
@@ -16,11 +17,13 @@ Este pacote implementa funcionalidades avançadas para deixar o UI Reporter aind
 ### 1. Exportação JUnit XML
 
 **Arquivo:** `diagnostics/ui_reporter.py`
+
 - Função `emit_junit_xml()` para gerar relatórios compatíveis com CI
 - Aparece como suite de testes no GitHub Actions
 - Inclui detalhes de falhas para debugging
 
 **Comando:**
+
 ```bash
 python app/dashboard.py --report --junit --strict --exit-after-report
 ```
@@ -30,27 +33,42 @@ python app/dashboard.py --report --junit --strict --exit-after-report
 ### 2. Scripts Automatizados
 
 **Linux/Mac:** `scripts/test-ui.sh`
+
 ```bash
 #!/usr/bin/env bash
 set -euo pipefail
 
 # Executar UI Reporter com todas as opções
-python -m app.dashboard --report --json --junit --strict --exit-after-report | tee ui_summary.json
+python -m app.dashboard \
+  --report \
+  --json \
+  --junit \
+  --strict \
+  --exit-after-report \
+  | tee ui_summary.json
 
 # Verificar baseline
 python diagnostics/verify_snapshot.py
 ```
 
 **Windows:** `scripts/test-ui.ps1`
+
 ```powershell
 # Executar UI Reporter com todas as opções
-python -m app.dashboard --report --json --junit --strict --exit-after-report | Tee-Object -FilePath ui_summary.json
+python -m app.dashboard `
+  --report `
+  --json `
+  --junit `
+  --strict `
+  --exit-after-report `
+  | Tee-Object -FilePath ui_summary.json
 
 # Verificar baseline
 python diagnostics/verify_snapshot.py
 ```
 
 **Uso:**
+
 ```bash
 # Linux/Mac
 ./scripts/test-ui.sh
@@ -62,17 +80,20 @@ powershell -ExecutionPolicy Bypass -File scripts\test-ui.ps1
 ### 3. Hook Pre-push
 
 **Arquivo:** `.git/hooks/pre-push`
+
 - Executa automaticamente antes de cada push
 - Falha se UI Reporter detectar problemas
 - Evita subir código com UI quebrada
 
 **Permissões (Linux/Mac):**
+
 ```bash
 chmod +x .git/hooks/pre-push
 chmod +x scripts/test-ui.sh
 ```
 
 **Funcionamento:**
+
 - Executa `python app/dashboard.py --report --strict --exit-after-report`
 - Se exit code != 0, bloqueia o push
 - Mostra instruções para correção
@@ -82,17 +103,20 @@ chmod +x scripts/test-ui.sh
 **Arquivo:** `.github/workflows/ui-reporter.yml`
 
 **Novas funcionalidades:**
+
 - Gera JUnit XML: `--junit`
 - Upload de artefatos incluindo JUnit
 - Resumo no PR via `$GITHUB_STEP_SUMMARY`
 
 **Artefatos salvos:**
+
 - `ui_snapshot.txt` - Snapshot visual ASCII
 - `ui_summary.json` - Resumo JSON estruturado
 - `ui_reporter.junit.xml` - Relatório JUnit XML
 
 **Resumo no PR:**
-```
+
+```markdown
 ## UI Reporter
 
 Checks: 
@@ -113,6 +137,7 @@ Checks:
 ### 5. Check Extra para Gráfico
 
 **Novo check:** `grafico_tem_conteudo`
+
 - Valida se o gráfico tem conteúdo mínimo
 - Verifica se há pelo menos 2 elementos de texto
 - Garante que gráfico não está vazio
@@ -122,6 +147,7 @@ Checks:
 ## 🔧 Comandos Principais
 
 ### Desenvolvimento Diário
+
 ```bash
 # Teste completo com JUnit
 python app/dashboard.py --report --json --junit --strict --exit-after-report
@@ -132,6 +158,7 @@ python app/dashboard.py --report --json --junit --strict --exit-after-report
 ```
 
 ### CI/CD
+
 ```bash
 # GitHub Actions executa automaticamente
 # Comando interno:
@@ -139,6 +166,7 @@ python -m app.dashboard --report --json --junit --strict --exit-after-report
 ```
 
 ### Baseline Management
+
 ```bash
 # Atualizar baseline após mudanças intencionais
 python app/dashboard.py --report
@@ -149,14 +177,17 @@ git add tests/baselines/ui_snapshot.txt
 ## 🌍 Variáveis de Ambiente
 
 ### GG_JUNIT=1
+
 - Ativa exportação JUnit XML automaticamente
 - Equivalente a `--junit`
 
 ### GG_JUNIT_PATH
+
 - Define caminho para arquivo JUnit XML
 - Padrão: `ui_reporter.junit.xml`
 
-### Exemplo:
+### Exemplo
+
 ```bash
 set GG_JUNIT=1
 set GG_JUNIT_PATH=reports\ui_tests.xml
@@ -165,7 +196,7 @@ python app/dashboard.py --report
 
 ## 📊 Estrutura de Arquivos
 
-```
+```text
 scripts/
 ├── test-ui.sh              # Script Bash (Linux/Mac)
 └── test-ui.ps1             # Script PowerShell (Windows)
@@ -189,6 +220,7 @@ app/
 ## 🎯 Fluxo de Trabalho Recomendado
 
 ### 1. Desenvolvimento Local
+
 ```bash
 # Antes de cada commit
 python app/dashboard.py --report --strict
@@ -199,6 +231,7 @@ git commit -m "feat: nova funcionalidade"
 ```
 
 ### 2. Push (com hook)
+
 ```bash
 # Hook executa automaticamente
 git push origin main
@@ -208,12 +241,14 @@ git push origin main
 ```
 
 ### 3. CI/CD Automático
+
 - GitHub Actions executa em cada push/PR
 - Gera JUnit XML para integração com ferramentas
 - Mostra resumo no PR
 - Falha se checks reprovarem
 
 ### 4. Baseline Management
+
 ```bash
 # Após mudanças intencionais na UI
 python app/dashboard.py --report
@@ -225,6 +260,7 @@ git commit -m "chore: atualizar baseline UI"
 ## 🚨 Troubleshooting
 
 ### Hook não executa
+
 ```bash
 # Verificar permissões
 chmod +x .git/hooks/pre-push
@@ -235,6 +271,7 @@ ls -la .git/hooks/pre-push
 ```
 
 ### JUnit XML não gera
+
 ```bash
 # Verificar se --junit está sendo usado
 python app/dashboard.py --report --junit --help
@@ -245,6 +282,7 @@ echo $GG_JUNIT_PATH
 ```
 
 ### Script PowerShell com erro
+
 ```powershell
 # Executar com política correta
 powershell -ExecutionPolicy Bypass -File scripts\test-ui.ps1
@@ -256,18 +294,21 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ## 🏆 Benefícios do Pacote Extra
 
 ### Para Desenvolvimento
+
 - **Validação automática** antes de cada push
 - **Scripts padronizados** para diferentes sistemas
 - **Integração completa** com Git workflow
 - **Debugging facilitado** com JUnit XML
 
 ### Para CI/CD
+
 - **Relatórios estruturados** compatíveis com ferramentas
 - **Resumo visual** no PR para revisores
 - **Artefatos organizados** para análise posterior
 - **Falha automática** se UI quebrar
 
 ### Para Qualidade
+
 - **10 checks automatizados** validando estrutura e conteúdo
 - **Baseline controlado** para mudanças visuais
 - **Prevenção de regressões** antes do push
@@ -275,7 +316,8 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ## 🎉 Conclusão
 
-O **Pacote Extra de Endurecimento** transforma o UI Reporter em uma ferramenta de qualidade de nível empresarial:
+O **Pacote Extra de Endurecimento** transforma o UI Reporter em uma ferramenta
+de qualidade de nível empresarial:
 
 ✅ **JUnit XML** para integração com ferramentas de CI  
 ✅ **Scripts automatizados** para Windows e Linux  
@@ -284,6 +326,7 @@ O **Pacote Extra de Endurecimento** transforma o UI Reporter em uma ferramenta d
 ✅ **Check extra** para validação de conteúdo  
 ✅ **Workflow completo** de desenvolvimento seguro  
 
-O sistema agora está **à prova de bala** e pode ser usado com confiança em ambientes de produção, garantindo que a UI nunca quebre sem ser detectada.
+O sistema agora está **à prova de bala** e pode ser usado com confiança em
+ambientes de produção, garantindo que a UI nunca quebre sem ser detectada.
 
-**🚀 UI Reporter com Pacote Extra implementado com sucesso! 🔥**
+### 🚀 UI Reporter com Pacote Extra implementado com sucesso! 🔥

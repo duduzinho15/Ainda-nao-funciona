@@ -36,6 +36,8 @@ CARD_HEIGHT = 120
 # ---------- Importações core ----------
 try:
     from core import DataService, config_storage, csv_exporter, live_log_reader, Periodo
+    from core.scrape_runner import ScrapeRunner
+    from core.metrics import MetricsCollector
     print("Módulos core carregados com sucesso")
 except ImportError as e:
     print(f"Módulos core não encontrados: {e}, usando mock data")
@@ -43,12 +45,26 @@ except ImportError as e:
     config_storage = None
     csv_exporter = None
     live_log_reader = None
+    ScrapeRunner = None
+    MetricsCollector = None
 
 # ---------- Estado global ----------
 data_service = DataService() if DataService else None
 current_ofertas = []
 current_periodo = "7d"  # Valor padrão
 current_metrics = None
+
+# Motor de coleta
+scrape_runner = None
+metrics_collector = None
+if ScrapeRunner and MetricsCollector and data_service:
+    try:
+        metrics_collector = MetricsCollector()
+        scrape_runner = ScrapeRunner(data_service, metrics_collector)
+        print("✅ Motor de coleta inicializado")
+    except Exception as e:
+        print(f"⚠️ Erro ao inicializar motor de coleta: {e}")
+        scrape_runner = None
 
 # ---------- Componentes UI ----------
 def build_header(page: ft.Page) -> ft.Container:
@@ -334,6 +350,28 @@ def build_logs_panel(page: ft.Page) -> ft.Container:
         border=ft.border.all(1, ft.Colors.OUTLINE)
     )
 
+def build_controls_tab(page: ft.Page):
+    """Constrói a aba de controles com motor de coleta"""
+    try:
+        from ui.controls_tab import create_controls_tab
+        from core.metrics import MetricsAggregator
+        
+        # Criar agregador de métricas mock se necessário
+        metrics_aggregator = MetricsAggregator() if 'MetricsAggregator' in globals() else None
+        
+        # Criar aba de controles
+        return create_controls_tab(
+            metrics_aggregator=metrics_aggregator,
+            scrape_runner=scrape_runner,
+            on_status_changed=lambda status: print(f"Status alterado: {status}")
+        )
+    except ImportError as e:
+        print(f"Erro ao importar controles: {e}")
+        return ft.Container(
+            content=ft.Text("Erro ao carregar controles"),
+            padding=ft.padding.all(SPACING["large"])
+        )
+
 def build_tabs(page: ft.Page) -> ft.Tabs:
     """Abas do dashboard"""
     return ft.Tabs(
@@ -361,8 +399,8 @@ def build_tabs(page: ft.Page) -> ft.Tabs:
             ),
             ft.Tab(
                 text="Controles",
-                content=ft.Container(
-                    content=ft.Text("Controles em desenvolvimento..."),
+                content=build_controls_tab(page) if scrape_runner else ft.Container(
+                    content=ft.Text("Motor de coleta não disponível"),
                     padding=ft.padding.all(SPACING["large"])
                 )
             )

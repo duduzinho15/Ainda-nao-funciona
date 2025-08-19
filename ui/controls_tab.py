@@ -3,20 +3,23 @@ Aba de controles do dashboard Garimpeiro Geek.
 """
 
 import flet as ft
-from typing import Callable, Optional
+import asyncio
+from typing import Callable, Optional, Any
 from core.metrics import MetricsAggregator
 
 
 def create_controls_tab(
     metrics_aggregator: MetricsAggregator,
+    scrape_runner: Any = None,
     on_status_changed: Optional[Callable[[str], None]] = None,
-) -> ft.Control:
+) -> Any:
     """Cria a aba de controles do sistema."""
     
     # Estado do sistema
     is_scraping = False
+    current_periodo = "24h"  # Período padrão
 
-    def build_controls_tab():
+    def build_controls_tab() -> Any:
         """Constrói a interface da aba."""
         return ft.Container(
             content=ft.Column(
@@ -37,7 +40,7 @@ def create_controls_tab(
             padding=20,
         )
 
-    def build_header() -> ft.Control:
+    def build_header() -> Any:
         """Constrói o cabeçalho da aba."""
         return ft.Container(
             content=ft.Column(
@@ -55,7 +58,7 @@ def create_controls_tab(
             padding=ft.padding.only(bottom=20),
         )
 
-    def build_status_section() -> ft.Control:
+    def build_status_section() -> Any:
         """Constrói a seção de status."""
         status_indicator = ft.Container(
             content=ft.Row(
@@ -82,7 +85,7 @@ def create_controls_tab(
             border_radius=8,
         )
 
-    def build_controls_section() -> ft.Control:
+    def build_controls_section() -> Any:
         """Constrói a seção de controles principais."""
         return ft.Container(
             content=ft.Column(
@@ -119,7 +122,7 @@ def create_controls_tab(
             border_radius=8,
         )
 
-    def build_stats_section() -> ft.Control:
+    def build_stats_section() -> Any:
         """Constrói a seção de estatísticas."""
         return ft.Container(
             content=ft.Column(
@@ -164,7 +167,7 @@ def create_controls_tab(
             border_radius=8,
         )
 
-    def build_actions_section() -> ft.Control:
+    def build_actions_section() -> Any:
         """Constrói a seção de ações rápidas."""
         return ft.Container(
             content=ft.Column(
@@ -211,24 +214,53 @@ def create_controls_tab(
     def on_start_click(e):
         """Chamado quando o botão iniciar é clicado."""
         nonlocal is_scraping
-        if not is_scraping:
-            is_scraping = True
-            print("🟢 Sistema iniciado!")
-            if on_status_changed:
-                on_status_changed("running")
+        if not is_scraping and scrape_runner:
+            try:
+                # Iniciar motor de coleta
+                asyncio.create_task(scrape_runner.start_scraping(current_periodo))
+                is_scraping = True
+                print("🟢 Motor de coleta iniciado!")
+                if on_status_changed:
+                    on_status_changed("running")
+                # Atualizar UI
+                e.control.disabled = True
+                e.control.page.update()
+            except Exception as ex:
+                print(f"❌ Erro ao iniciar motor: {ex}")
+        else:
+            print("⚠️ Motor já está rodando ou não disponível")
 
     def on_stop_click(e):
         """Chamado quando o botão parar é clicado."""
         nonlocal is_scraping
-        if is_scraping:
-            is_scraping = False
-            print("🔴 Sistema parado!")
-            if on_status_changed:
-                on_status_changed("stopped")
+        if is_scraping and scrape_runner:
+            try:
+                # Parar motor de coleta
+                asyncio.create_task(scrape_runner.stop_scraping())
+                is_scraping = False
+                print("🔴 Motor de coleta parado!")
+                if on_status_changed:
+                    on_status_changed("stopped")
+                # Atualizar UI
+                e.control.disabled = True
+                e.control.page.update()
+            except Exception as ex:
+                print(f"❌ Erro ao parar motor: {ex}")
+        else:
+            print("⚠️ Motor não está rodando ou não disponível")
 
     def on_reload_metrics(e):
         """Chamado quando o botão recarregar métricas é clicado."""
-        print("📊 Métricas recarregadas!")
+        if scrape_runner:
+            try:
+                # Recarregar métricas do motor
+                metrics_summary = scrape_runner.get_metrics_summary()
+                print(f"📊 Métricas recarregadas: {metrics_summary}")
+                # TODO: Atualizar UI com novas métricas
+            except Exception as ex:
+                print(f"❌ Erro ao recarregar métricas: {ex}")
+        else:
+            print("⚠️ Motor de coleta não disponível")
 
     def on_clear_logs(e):
         """Chamado quando o botão limpar logs é clicado."""
@@ -240,7 +272,33 @@ def create_controls_tab(
 
     def on_export_csv(e):
         """Chamado quando o botão exportar CSV é clicado."""
-        print("📊 CSV exportado!")
+        try:
+            # Importar CSV exporter
+            from core.csv_exporter import CSVExporter
+            from core.data_service import DataService
+            
+            # Criar instâncias
+            csv_exporter = CSVExporter()
+            data_service = DataService()
+            
+            # Carregar ofertas do período atual
+            import asyncio
+            loop = asyncio.get_event_loop()
+            ofertas = loop.run_until_complete(data_service.load_ofertas(current_periodo))
+            
+            # Exportar CSV
+            result = csv_exporter.export_ofertas(ofertas, current_periodo)
+            
+            if result.get('success'):
+                print(f"✅ CSV exportado com sucesso!")
+                print(f"   📁 Arquivo: {result['filename']}")
+                print(f"   📊 Ofertas: {result['total_ofertas']}")
+                # TODO: Mostrar toast/snackbar com o caminho
+            else:
+                print(f"❌ Erro ao exportar CSV: {result.get('error')}")
+                
+        except Exception as ex:
+            print(f"❌ Erro ao exportar CSV: {ex}")
 
     # Retornar a aba construída
     return build_controls_tab()
