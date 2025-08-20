@@ -37,7 +37,7 @@ CARD_HEIGHT = 120
 # ---------- Importações core ----------
 try:
     from core import DataService, preferences_storage, csv_exporter, live_log_reader, MetricsAggregator
-    from core.scrape_runner import ScrapeRunner
+    from core.scrape_runner import ScrapeRunner, init_runner
     print("Módulos core carregados com sucesso")
 except ImportError as e:
     print(f"Módulos core não encontrados: {e}, usando mock data")
@@ -47,9 +47,18 @@ except ImportError as e:
     live_log_reader = None
     ScrapeRunner = None
     MetricsAggregator = None
+    init_runner = None
 
 # Compatibilidade
 config_storage = preferences_storage
+
+# Inicializar runner se disponível
+if init_runner and preferences_storage:
+    try:
+        init_runner(preferences_storage)
+        print("✅ Runner inicializado com configurações")
+    except Exception as e:
+        print(f"⚠️ Erro ao inicializar runner: {e}")
 
 # ---------- Estado global ----------
 data_service = DataService() if DataService else None
@@ -533,54 +542,73 @@ def build_controls_tab(page: ft.Page) -> Any:
     """Constrói a aba de controles com motor de coleta"""
     try:
         from ui.controls_tab import create_controls_tab
-        from core.metrics import MetricsAggregator
         
-        # Criar agregador de métricas mock se necessário
-        metrics_aggregator = MetricsAggregator() if 'MetricsAggregator' in globals() else None
+        # Criar aba de controles usando o módulo UI
+        return create_controls_tab(page)
         
-        # Criar aba de controles
-        return create_controls_tab(
-            metrics_aggregator=metrics_aggregator,
-            scrape_runner=scrape_runner,
-            on_status_changed=lambda status: print(f"Status alterado: {status}"),
-            page=page  # Passar a página para acessar as preferências
-        )
     except ImportError as e:
         print(f"Erro ao importar controles: {e}")
+        # Fallback: aba simples com mensagem de erro
         return ft.Container(
             content=ft.Text("Erro ao carregar controles"),
             padding=ft.padding.all(SPACING["large"])
         )
 
 def build_tabs(page: ft.Page) -> Any:
-    """Abas do dashboard"""
+    """Abas do dashboard com scroll controlado por aba"""
     return ft.Tabs(
         key="tabs",
         selected_index=0,
+        expand=1,  # Tabs com expand=1
         tabs=[
             ft.Tab(
+                text="Dashboard",
+                content=ft.Container(
+                    expand=True,
+                    content=ft.Column(
+                        expand=True,
+                        controls=[
+                            # Cards sem expand (altura automática)
+                            build_metrics_row(),
+                            build_period_filters(page),
+                            # Gráfico com altura fixa (evita empurrar tudo pra baixo)
+                            ft.Container(height=320, content=build_chart_panel()),
+                            # Logs com scroll interno
+                            ft.Container(
+                                expand=True,
+                                content=build_logs_panel(page)
+                            ),
+                        ],
+                    ),
+                ),
+            ),
+            ft.Tab(
                 text="Logs",
-                content=ft.Column(
-                    controls=[
-                        build_metrics_row(),
-                        build_period_filters(page),
-                        build_chart_panel(),
-                        build_logs_panel(page)
-                    ],
-                    spacing=SPACING["large"]
-                    # Sem scroll no Column - apenas scroll da página
-                )
+                content=ft.Container(
+                    expand=True,
+                    content=ft.ListView(
+                        key="logs_lv",
+                        expand=True,
+                        auto_scroll=True,   # rola só aqui
+                    ),
+                ),
             ),
             ft.Tab(
                 text="Configurações",
-                content=build_config_tab(page)
+                content=ft.Container(
+                    expand=True,
+                    content=build_config_tab(page)
+                ),
             ),
             ft.Tab(
                 text="Controles",
-                content=build_controls_tab(page) if scrape_runner else ft.Container(
-                    content=ft.Text("Motor de coleta não disponível"),
-                    padding=ft.padding.all(SPACING["large"])
-                )
+                content=ft.Container(
+                    expand=True,
+                    content=build_controls_tab(page) if scrape_runner else ft.Container(
+                        content=ft.Text("Motor de coleta não disponível"),
+                        padding=ft.padding.all(SPACING["large"])
+                    )
+                ),
             )
         ]
     )
@@ -804,41 +832,42 @@ async def clear_logs(page: ft.Page):
         await update_logs_ui(page, ["Logs limpos..."])
 
 async def update_logs_ui(page: ft.Page, logs: list):
-    """Atualiza a UI dos logs com limite de linhas"""
+    """Atualiza a UI dos logs com limite de linhas - versão otimizada"""
     MAX_LINES = 500  # Limite máximo para evitar crescimento infinito
     
     try:
         # Limitar logs às últimas MAX_LINES para evitar crescimento infinito
         limited_logs = logs[-MAX_LINES:] if len(logs) > MAX_LINES else logs
         
-        # Encontrar lista de logs e atualizar
-        for control in page.controls:
-            if isinstance(control, ft.Column):
-                for child in control.controls:
-                    if hasattr(child, 'key') and child.key == "tabs":
-                        if child.tabs and len(child.tabs) > 0:
-                            logs_tab = child.tabs[0]
-                            if hasattr(logs_tab, 'content') and isinstance(logs_tab.content, ft.Column):
-                                # Procurar pelo painel de logs (4º controle)
-                                if len(logs_tab.content.controls) > 3:
-                                    logs_panel = logs_tab.content.controls[3]
-                                    if hasattr(logs_panel, 'content') and isinstance(logs_panel.content, ft.Column):
-                                        # Procurar pela ListView de logs
-                                        for grandchild in logs_panel.content.controls:
-                                            if hasattr(grandchild, 'key') and grandchild.key == "logs_list":
-                                                grandchild.controls.clear()
-                                                for log_line in limited_logs:
-                                                    grandchild.controls.append(
-                                                        ft.Text(
-                                                            log_line.strip(),
-                                                            size=12,
-                                                            color=ft.Colors.ON_SURFACE_VARIANT,
-                                                            font_family="monospace"
-                                                        )
-                                                    )
-                                                break
-        
-        page.update()
+        # Atualizar a ListView da aba de Logs diretamente
+        logs_lv = page.get_control("logs_lv")
+        if logs_lv:
+            # Atualizar IN-PLACE (sem recriar wrappers/pais)
+            logs_lv.controls.clear()
+            logs_lv.controls.extend(
+                ft.Text(
+                    log_line.strip(),
+                    size=12,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                    font_family="monospace",
+                    no_wrap=True
+                ) for log_line in limited_logs
+            )
+            logs_lv.update()
+        else:
+            # Fallback: procurar pela ListView antiga
+            logs_list = page.get_control("logs_list")
+            if logs_list:
+                logs_list.controls.clear()
+                logs_list.controls.extend(
+                    ft.Text(
+                        log_line.strip(),
+                        size=12,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                        font_family="monospace"
+                    ) for log_line in limited_logs
+                )
+                logs_list.update()
         
     except Exception as e:
         print(f"Erro ao atualizar logs UI: {e}")
@@ -851,9 +880,27 @@ async def main(page: ft.Page):
     # Configurações da página
     page.title = "Garimpeiro Geek - Dashboard"
     page.theme_mode = ft.ThemeMode.DARK
-    page.padding = SPACING["medium"]
+    page.padding = 0
     page.spacing = SPACING["large"]
-    # Remover completamente o scroll da página para evitar comportamento infinito
+    
+    # Desligue o scroll global da página
+    page.scroll = None
+    page.vertical_alignment = ft.MainAxisAlignment.START
+    page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
+    
+    # Frame que segura TODO o conteúdo visível
+    viewport = ft.Container(
+        key="viewport",
+        expand=True,
+        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,  # evita vazar crescimento
+    )
+    
+    def _bind_viewport_height(e=None):
+        # Mantém o frame com a altura EXATA da janela
+        viewport.height = page.height
+        viewport.update()
+    
+    page.on_resized = _bind_viewport_height
     
     # Carregar preferências do usuário
     if config_storage:
@@ -866,18 +913,20 @@ async def main(page: ft.Page):
         default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
-    # Construir interface com layout estável (sem scroll aninhado)
-    root = ft.Column([
-        build_header(page),  # altura fixa / automática
-        ft.Container(  # CONTEÚDO PRINCIPAL
-            expand=True,               # ocupa o resto da tela
-            content=build_tabs(page),
-        ),
-    ],
-    expand=True,
+    # Construir interface dentro do viewport
+    header = build_header(page)  # altura automática
+    tabs = build_tabs(page)      # expand=1 (ver implementação)
+    
+    viewport.content = ft.Column(
+        expand=True,
+        controls=[
+            header,                         # NÃO usa expand
+            ft.Container(content=tabs, expand=True),  # área que cresce
+        ],
     )
     
-    page.add(root)
+    page.add(viewport)
+    _bind_viewport_height()
     
     # Carregar dados iniciais
     await load_data_for_period(current_periodo, page)

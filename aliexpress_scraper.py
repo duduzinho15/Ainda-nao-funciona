@@ -6,7 +6,8 @@ usando a API de Afiliados e formatar os resultados em um formato padronizado.
 """
 
 import logging
-from typing import Dict, List, Optional
+import time
+from typing import Dict, List, Optional, Any
 
 # Importa a classe AliExpressAPI do módulo existente
 from aliexpress_api import AliExpressAPI, extract_product_id, format_product_info
@@ -158,6 +159,40 @@ def buscar_info_produto(url_produto: str) -> Optional[Dict]:
         logger.error(f"Erro ao buscar informações do produto: {str(e)}", exc_info=True)
         return None
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        # Palavras-chave padrão para ofertas
+        palavras_chave = ["smartphone", "fone bluetooth", "smartwatch", "camera"]
+        ofertas = buscar_ofertas_aliexpress(palavras_chave=palavras_chave, limite=20)
+        
+        # Adicionar metadados de compatibilidade
+        for oferta in ofertas:
+            oferta['fonte'] = 'aliexpress_scraper'
+            oferta['periodo'] = periodo
+            oferta['timestamp'] = time.time()
+        
+        return ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 70  # Prioridade alta (API oficial)
+rate_limit = 2.0  # 2 requisições por segundo
+description = "API oficial do AliExpress - Busca ofertas usando API de Afiliados"
 
 if __name__ == "__main__":
     # Configura o logging para exibir mensagens no console

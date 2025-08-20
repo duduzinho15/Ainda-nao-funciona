@@ -13,6 +13,26 @@ class Periodo(Enum):
     MES_30D = "30d"
     TODOS = "all"
 
+class Theme(Enum):
+    """Temas da interface"""
+    SYSTEM = "system"
+    LIGHT = "light"
+    DARK = "dark"
+
+class UIDensity(Enum):
+    """Densidade da interface"""
+    COMPACT = "compact"
+    COMFORTABLE = "comfortable"
+    SPACIOUS = "spacious"
+
+class LogLevel(Enum):
+    """Níveis de log"""
+    DEBUG = "debug"
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
 @dataclass
 class Oferta:
     """Modelo de uma oferta de produto"""

@@ -8,7 +8,7 @@ Scraper para o Magazine Luiza - Coleta ofertas do dia usando Selenium
 import time
 import logging
 import re
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from urllib.parse import urljoin
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -332,6 +332,39 @@ def main():
         print(f"   🔗 Link: {oferta.get('link', 'N/A')}")
         print(f"   🏪 Loja: {oferta['loja']}")
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        scraper = MagazineLuizaScraper(headless=True)
+        ofertas = scraper.buscar_ofertas()
+        
+        # Adicionar metadados de compatibilidade
+        for oferta in ofertas:
+            oferta['fonte'] = 'magalu_scraper'
+            oferta['periodo'] = periodo
+            oferta['timestamp'] = time.time()
+        
+        return ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 50  # Prioridade média
+rate_limit = 1.0  # 1 requisição por segundo
+description = "Scraper para o Magazine Luiza - Coleta ofertas do dia usando Selenium"
 
 if __name__ == "__main__":
     main()

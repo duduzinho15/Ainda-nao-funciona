@@ -8,6 +8,7 @@ import asyncio
 import logging
 import random
 import re
+import time
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from urllib.parse import urljoin
@@ -471,6 +472,46 @@ async def main():
             print(f"   🏪 {oferta['loja']}")
             print(f"   ⭐ {oferta['avaliacao']:.1f}")
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Buscar ofertas de hardware (categoria principal)
+            ofertas = await buscar_ofertas_meupc(
+                session, "processadores", max_paginas=2
+            )
+            
+            # Adicionar ofertas de outras categorias
+            ofertas.extend(await buscar_ofertas_meupc(session, "placas-de-video", max_paginas=1))
+            ofertas.extend(await buscar_ofertas_meupc(session, "memorias", max_paginas=1))
+            
+            # Adicionar metadados de compatibilidade
+            for oferta in ofertas:
+                oferta['fonte'] = 'meupc_scraper'
+                oferta['periodo'] = periodo
+                oferta['timestamp'] = time.time()
+            
+            return ofertas[:50]  # Limitar a 50 ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 85  # Prioridade alta (site especializado em hardware)
+rate_limit = 0.5  # 0.5 requisições por segundo
+description = "Scraper para o MeuPC.net - Site especializado em hardware e tecnologia"
 
 if __name__ == "__main__":
     asyncio.run(main())

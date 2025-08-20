@@ -8,6 +8,7 @@ import asyncio
 import logging
 import random
 import re
+import time
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from urllib.parse import urljoin
@@ -421,6 +422,49 @@ async def main():
             print(f"   🏪 {oferta['loja']}")
             print(f"   ⭐ {oferta['avaliacao']:.1f}")
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            # Buscar ofertas de categorias populares
+            ofertas = []
+            
+            # Celulares e smartphones
+            ofertas.extend(await buscar_ofertas_buscape(session, "celulares", max_paginas=1))
+            
+            # Notebooks
+            ofertas.extend(await buscar_ofertas_buscape(session, "notebooks", max_paginas=1))
+            
+            # TVs
+            ofertas.extend(await buscar_ofertas_buscape(session, "tvs", max_paginas=1))
+            
+            # Adicionar metadados de compatibilidade
+            for oferta in ofertas:
+                oferta['fonte'] = 'buscape_scraper'
+                oferta['periodo'] = periodo
+                oferta['timestamp'] = time.time()
+            
+            return ofertas[:40]  # Limitar a 40 ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 75  # Prioridade alta (comparador de preços)
+rate_limit = 0.8  # 0.8 requisições por segundo
+description = "Scraper para o Buscapé - Comparador de preços e avaliações"
 
 if __name__ == "__main__":
     asyncio.run(main())

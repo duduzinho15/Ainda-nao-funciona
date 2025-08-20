@@ -74,12 +74,27 @@ class BotConfig:
 
 
 @dataclass
+class RunnerConfig:
+    """Configurações do sistema de coleta."""
+
+    runner_enabled: bool = True
+    enabled_sources: Dict[str, bool] = field(default_factory=dict)
+    intervalo_coleta: int = 10  # segundos
+
+    def __post_init__(self):
+        """Validação pós-inicialização."""
+        if self.intervalo_coleta < 5:
+            raise ValueError("Intervalo de coleta deve ser pelo menos 5 segundos")
+
+
+@dataclass
 class SystemConfig:
     """Configuração completa do sistema."""
 
     dashboard: DashboardSettings = field(default_factory=DashboardSettings)
     scraper: ScraperConfig = field(default_factory=ScraperConfig)
     bot: BotConfig = field(default_factory=BotConfig)
+    runner: RunnerConfig = field(default_factory=RunnerConfig)
     nivel_log: LogLevel = LogLevel.INFO
 
     def to_dict(self) -> Dict[str, Any]:
@@ -109,6 +124,11 @@ class SystemConfig:
                 "chat_id": self.bot.chat_id,
                 "usar_job_queue": self.bot.usar_job_queue,
                 "intervalo_jobs": self.bot.intervalo_jobs,
+            },
+            "runner": {
+                "runner_enabled": self.runner.runner_enabled,
+                "enabled_sources": self.runner.enabled_sources,
+                "intervalo_coleta": self.runner.intervalo_coleta,
             },
             "nivel_log": self.nivel_log.value,
         }
@@ -142,6 +162,11 @@ class SystemConfig:
                     chat_id=data["bot"]["chat_id"],
                     usar_job_queue=data["bot"]["usar_job_queue"],
                     intervalo_jobs=data["bot"]["intervalo_jobs"],
+                ),
+                runner=RunnerConfig(
+                    runner_enabled=data.get("runner", {}).get("runner_enabled", True),
+                    enabled_sources=data.get("runner", {}).get("enabled_sources", {}),
+                    intervalo_coleta=data.get("runner", {}).get("intervalo_coleta", 10),
                 ),
                 nivel_log=LogLevel(data["nivel_log"]),
             )

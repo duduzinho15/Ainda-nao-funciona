@@ -8,6 +8,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
+from .settings import SystemConfig, RunnerConfig
 
 
 class PreferencesStorage:
@@ -97,6 +98,75 @@ class PreferencesStorage:
             Valor da preferência ou default
         """
         return self._preferences.get(key, default)
+    
+    # ===== MÉTODOS PARA CONFIGURAÇÕES DO RUNNER =====
+    
+    def get_system_config(self) -> SystemConfig:
+        """Obtém a configuração completa do sistema."""
+        config_file = self.config_dir / "system_config.json"
+        
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                return SystemConfig.from_dict(data)
+            except Exception as e:
+                print(f"⚠️ Erro ao carregar configuração do sistema: {e}, usando padrões")
+        
+        return SystemConfig.get_defaults()
+    
+    def save_system_config(self, config: SystemConfig) -> bool:
+        """Salva a configuração do sistema."""
+        try:
+            config_file = self.config_dir / "system_config.json"
+            with open(config_file, 'w', encoding='utf-8') as f:
+                json.dump(config.to_dict(), f, indent=2, ensure_ascii=False)
+            print(f"💾 Configuração do sistema salva em: {config_file}")
+            return True
+        except Exception as e:
+            print(f"❌ Erro ao salvar configuração do sistema: {e}")
+            return False
+    
+    def get_runner_enabled(self) -> bool:
+        """Obtém se o runner está habilitado."""
+        config = self.get_system_config()
+        return config.runner.runner_enabled
+    
+    def set_runner_enabled(self, enabled: bool) -> bool:
+        """Define se o runner está habilitado."""
+        try:
+            config = self.get_system_config()
+            config.runner.runner_enabled = bool(enabled)
+            return self.save_system_config(config)
+        except Exception as e:
+            print(f"❌ Erro ao definir runner_enabled: {e}")
+            return False
+    
+    def get_enabled_sources(self) -> Dict[str, bool]:
+        """Obtém as fontes habilitadas."""
+        config = self.get_system_config()
+        return dict(config.runner.enabled_sources)
+    
+    def set_source_enabled(self, name: str, enabled: bool) -> bool:
+        """Define se uma fonte específica está habilitada."""
+        try:
+            config = self.get_system_config()
+            config.runner.enabled_sources[name] = bool(enabled)
+            return self.save_system_config(config)
+        except Exception as e:
+            print(f"❌ Erro ao definir enabled_sources[{name}]: {e}")
+            return False
+    
+    def set_sources_bulk(self, names: list[str], enabled: bool) -> bool:
+        """Define múltiplas fontes de uma vez."""
+        try:
+            config = self.get_system_config()
+            for name in names:
+                config.runner.enabled_sources[name] = bool(enabled)
+            return self.save_system_config(config)
+        except Exception as e:
+            print(f"❌ Erro ao definir enabled_sources em massa: {e}")
+            return False
     
     def set_preference(self, key: str, value: Any, auto_save: bool = True) -> bool:
         """

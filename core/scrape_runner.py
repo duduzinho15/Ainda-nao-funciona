@@ -280,3 +280,91 @@ class ScrapeRunner:
     def is_system_enabled(self) -> bool:
         """Verifica se o sistema de coleta está habilitado."""
         return self._system_enabled
+
+
+# ===== SISTEMA DE CONTROLE GLOBAL =====
+
+_RUNNING = False
+_MASTER_ENABLED = True
+_INTERVAL_SEC = 10
+_TASK: Optional[asyncio.Task] = None
+_STORAGE: Optional[Any] = None
+
+def init_runner(storage) -> None:
+    """Inicializa o runner com storage."""
+    global _STORAGE, _MASTER_ENABLED
+    _STORAGE = storage
+    _MASTER_ENABLED = storage.get_runner_enabled()
+    
+    # Carregar overrides de fontes
+    from . import scraper_registry as reg
+    reg.init_overrides_from_storage(storage)
+    
+    print(f"✅ Runner inicializado: master_enabled={_MASTER_ENABLED}")
+
+def get_master_enabled() -> bool:
+    """Obtém se o runner mestre está habilitado."""
+    return _MASTER_ENABLED
+
+def set_master_enabled(val: bool) -> None:
+    """Define se o runner mestre está habilitado."""
+    global _MASTER_ENABLED, _STORAGE
+    _MASTER_ENABLED = bool(val)
+    if _STORAGE:
+        _STORAGE.set_runner_enabled(_MASTER_ENABLED)
+    if not _MASTER_ENABLED:
+        stop_scraping()
+    print(f"🔧 Runner mestre {'habilitado' if _MASTER_ENABLED else 'desabilitado'}")
+
+def is_running() -> bool:
+    """Verifica se o runner está rodando."""
+    return _RUNNING
+
+def status() -> str:
+    """Retorna status do runner."""
+    return "running" if _RUNNING else "stopped"
+
+async def _loop():
+    """Loop principal do runner."""
+    global _RUNNING
+    try:
+        while _RUNNING:
+            # Respeita toggle mestre
+            if not _MASTER_ENABLED:
+                await asyncio.sleep(_INTERVAL_SEC)
+                continue
+
+            # Pega fontes habilitadas EFETIVAMENTE a cada ciclo
+            from . import scraper_registry as reg
+            sources = reg.get_sources_for_run()
+
+            if sources:
+                print(f"🔄 Executando ciclo com {len(sources)} fontes habilitadas")
+                # Aqui você pode implementar a lógica de coleta real
+                # Por enquanto, apenas simular
+                await asyncio.sleep(2)  # Simular trabalho
+            else:
+                print("⚠️ Nenhuma fonte habilitada para execução")
+
+            await asyncio.sleep(_INTERVAL_SEC)
+    finally:
+        _RUNNING = False
+
+def start_scraping(loop: Optional[asyncio.AbstractEventLoop] = None) -> None:
+    """Inicia o runner."""
+    global _RUNNING, _TASK
+    if _RUNNING:
+        return
+    _RUNNING = True
+    ev = loop or asyncio.get_event_loop()
+    _TASK = ev.create_task(_loop())
+    print("🟢 Runner iniciado")
+
+def stop_scraping() -> None:
+    """Para o runner."""
+    global _RUNNING, _TASK
+    _RUNNING = False
+    if _TASK and not _TASK.done():
+        _TASK.cancel()
+    _TASK = None
+    print("🔴 Runner parado")

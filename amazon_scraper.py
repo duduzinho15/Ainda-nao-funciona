@@ -20,7 +20,7 @@ from aiohttp import ClientSession, ClientTimeout
 from bs4 import BeautifulSoup, Tag
 from bs4.element import ResultSet, NavigableString
 
-from core.models import Oferta, ScraperSettings
+# from core.models import Oferta, ScraperSettings  # Comentado temporariamente
 
 logger = logging.getLogger("amazon_scraper")
 
@@ -590,6 +590,49 @@ async def buscar_ofertas_amazon(
             max_paginas=max_paginas, max_requests=max_requests
         )
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        # Buscar ofertas da Amazon
+        ofertas = await buscar_ofertas_amazon(max_paginas=2, max_requests=4)
+        
+        # Converter para formato de dicionário
+        ofertas_dict = []
+        for oferta in ofertas:
+            oferta_dict = {
+                'titulo': oferta.titulo,
+                'loja': oferta.loja,
+                'preco': oferta.preco,
+                'preco_original': oferta.preco_original,
+                'url': oferta.url,
+                'imagem_url': oferta.imagem_url,
+                'fonte': 'amazon_scraper',
+                'periodo': periodo,
+                'timestamp': time.time()
+            }
+            ofertas_dict.append(oferta_dict)
+        
+        return ofertas_dict
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 95  # Prioridade muito alta (Amazon)
+rate_limit = 0.2  # 0.2 requisições por segundo (site muito sensível)
+description = "Scraper para Amazon via Promobit - Evita bloqueios diretos"
 
 # Teste direto
 if __name__ == "__main__":

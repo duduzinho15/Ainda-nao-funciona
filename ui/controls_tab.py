@@ -1,367 +1,192 @@
 """
-Aba de controles do dashboard Garimpeiro Geek.
+Aba de controles do dashboard com toggle mestre e toggles por fonte.
 """
 
+from __future__ import annotations
 import flet as ft
-import asyncio
-from typing import Callable, Optional, Any
-from core.metrics import MetricsAggregator
+from core.storage import PreferencesStorage
+from core import scraper_registry as reg
+from core import scrape_runner as runner
 
 
-def create_controls_tab(
-    metrics_aggregator: MetricsAggregator,
-    scrape_runner: Any = None,
-    on_status_changed: Optional[Callable[[str], None]] = None,
-    page: Any = None,  # NOVO: página para acessar preferências
-) -> Any:
-    """Cria a aba de controles do sistema."""
+def create_controls_tab(page: ft.Page) -> ft.Container:
+    """Cria a aba de controles com toggles do sistema."""
+    storage = PreferencesStorage()
     
-    # Estado do sistema
-    is_scraping = False
-    current_periodo = "24h"  # Período padrão
+    # Garante runner e overrides carregados
+    runner.init_runner(storage)
 
-    def build_controls_tab() -> Any:
-        """Constrói a interface da aba."""
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    build_header(),
-                    ft.Divider(),
-                    build_system_toggle_section(),  # NOVO: Seção do toggle do sistema
-                    ft.Divider(),
-                    build_status_section(),
-                    ft.Divider(),
-                    build_controls_section(),
-                    ft.Divider(),
-                    build_stats_section(),
-                    ft.Divider(),
-                    build_actions_section(),
-                ],
-                scroll=ft.ScrollMode.AUTO,
-                spacing=20,
-            ),
-            padding=20,
-        )
+    # Toggle mestre
+    master_switch = ft.Switch(
+        key="toggle_master",
+        label="Sistema de coleta (ligar/desligar)",
+        value=runner.get_master_enabled(),
+        tooltip="Controla se o sistema de coleta está ativo"
+    )
 
-    def build_header() -> Any:
-        """Constrói o cabeçalho da aba."""
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text(
-                        "🎮 Controles do Sistema", size=24, weight=ft.FontWeight.BOLD
-                    ),
-                    ft.Text(
-                        "Gerencie o sistema de scraping e visualize estatísticas",
-                        size=14,
-                        color=ft.colors.ON_SURFACE_VARIANT,
-                    ),
-                ]
-            ),
-            padding=ft.padding.only(bottom=20),
-        )
-
-    def build_system_toggle_section() -> Any:
-        """Constrói a seção do toggle geral do sistema."""
-        # Obter preferência atual
-        system_enabled = True
-        if page and hasattr(page, 'get_preference'):
-            system_enabled = page.get_preference("system_enabled", True)
+    def on_master_change(e: ft.ControlEvent):
+        """Callback para mudança do toggle mestre."""
+        runner.set_master_enabled(master_switch.value)
+        if master_switch.value and not runner.is_running():
+            runner.start_scraping()
+        if not master_switch.value and runner.is_running():
+            runner.stop_scraping()
         
-        def on_system_toggle(e):
-            """Callback para o toggle do sistema."""
-            enabled = e.control.value
-            if page and hasattr(page, 'set_preference'):
-                page.set_preference("system_enabled", enabled)
-            
-            # Atualizar o runner se disponível
-            if scrape_runner and hasattr(scrape_runner, 'set_system_enabled'):
-                scrape_runner.set_system_enabled(enabled)
-            
-            # Mostrar feedback visual
-            if page:
-                page.show_snack_bar(
-                    ft.SnackBar(
-                        content=ft.Text(
-                            f"Sistema de coleta {'ativado' if enabled else 'desativado'}"
-                        )
-                    )
+        # Mostrar feedback
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text("Sistema: " + ("Ligado" if master_switch.value else "Desligado"))
+        )
+        page.snack_bar.open = True
+        page.update()
+
+    master_switch.on_change = on_master_change
+
+    # Lista de fontes
+    sources = reg.list_sources()
+    compliance_off = not reg.scraping_allowed()
+    tooltip = "Desativado em modo CI ou sem GG_ALLOW_SCRAPING=1" if compliance_off else None
+
+    rows: list[ft.Control] = []
+    names: list[str] = []
+    
+    for s in sources:
+        name = s["name"]
+        names.append(name)
+        
+        # Criar switch para cada fonte
+        sw = ft.Switch(
+            key=f"toggle_src_{name}",
+            label=f"{name} (prioridade: {s['priority']})",
+            value=s["enabled_effective"],
+            disabled=compliance_off,
+            tooltip=tooltip,
+        )
+
+        def _make_handler(src_name: str):
+            """Cria handler para mudança de fonte específica."""
+            def _h(e: ft.ControlEvent):
+                reg.set_enabled(src_name, e.control.value, storage=storage)
+                page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"Fonte '{src_name}': " + ("ativada" if e.control.value else "desativada"))
                 )
+                page.snack_bar.open = True
+                page.update()
+            return _h
+
+        sw.on_change = _make_handler(name)
         
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("🔧 Sistema de Coleta", size=18, weight=ft.FontWeight.BOLD),
-                    ft.Row(
-                        [
-                            ft.Switch(
-                                key="system_toggle",  # Nova key (não interfere nos checks existentes)
-                                label="Sistema de coleta",
-                                value=system_enabled,
-                                on_change=on_system_toggle
-                            ),
-                            ft.Text(
-                                "Ativa/desativa todo o sistema de coleta de ofertas",
-                                size=12,
-                                color=ft.colors.ON_SURFACE_VARIANT,
-                            ),
-                        ],
-                        spacing=20,
-                        alignment=ft.MainAxisAlignment.START,
-                    ),
-                ],
-                spacing=15,
-            ),
-            padding=ft.padding.all(20),
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
+        # Criar linha com switch e informações
+        row = ft.Row([
+            sw,
+            ft.Container(
+                content=ft.Text(
+                    s.get("description", ""),
+                    size=12,
+                    color=ft.Colors.ON_SURFACE_VARIANT
+                ),
+                expand=True
+            )
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
+        
+        rows.append(row)
+
+    # Ações em massa
+    def bulk_set(val: bool):
+        """Define todas as fontes de uma vez."""
+        reg.set_all_enabled(names, val, storage=storage)
+        
+        # Atualiza switches na tela
+        for r in rows:
+            sw = r.controls[0]
+            if not sw.disabled:
+                sw.value = val
+                sw.update()
+        
+        # Mostrar feedback
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text("Todas as fontes " + ("ativadas" if val else "desativadas"))
         )
+        page.snack_bar.open = True
+        page.update()
 
-    def build_status_section() -> Any:
-        """Constrói a seção de status."""
-        status_indicator = ft.Container(
-            content=ft.Row(
-                [
-                    ft.Icon(name=ft.icons.CIRCLE, color=ft.colors.RED, size=16),
-                    ft.Text("Parado", size=16, weight=ft.FontWeight.BOLD),
-                ]
-            ),
-            padding=10,
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
-            bgcolor=ft.colors.SURFACE_VARIANT,
-        )
+    btn_all_on = ft.TextButton(
+        "Ativar todos", 
+        on_click=lambda e: bulk_set(True), 
+        disabled=compliance_off, 
+        tooltip=tooltip
+    )
+    
+    btn_all_off = ft.TextButton(
+        "Desativar todos", 
+        on_click=lambda e: bulk_set(False),
+        tooltip="Desativa todas as fontes"
+    )
 
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("📊 Status do Sistema", size=18, weight=ft.FontWeight.BOLD),
-                    status_indicator,
-                ]
-            ),
-            padding=ft.padding.all(20),
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
-        )
+    # Status do sistema
+    status_text = ft.Text(
+        f"Status: {runner.status().title()}",
+        size=14,
+        weight=ft.FontWeight.W_500,
+        color=ft.Colors.PRIMARY
+    )
 
-    def build_controls_section() -> Any:
-        """Constrói a seção de controles principais."""
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("🎛️ Controles Principais", size=18, weight=ft.FontWeight.BOLD),
-                    ft.Row(
-                        [
-                            ft.ElevatedButton(
-                                text="▶️ Iniciar Coleta",
-                                icon=ft.icons.PLAY_ARROW,
-                                on_click=on_start_click,
-                                style=ft.ButtonStyle(
-                                    color=ft.colors.ON_PRIMARY,
-                                    bgcolor=ft.colors.PRIMARY,
-                                ),
-                            ),
-                            ft.ElevatedButton(
-                                text="⏹️ Parar Coleta",
-                                icon=ft.icons.STOP,
-                                on_click=on_stop_click,
-                                style=ft.ButtonStyle(
-                                    color=ft.colors.ON_PRIMARY,
-                                    bgcolor=ft.colors.ERROR,
-                                ),
-                            ),
-                        ],
-                        spacing=20,
-                    ),
-                ],
-                spacing=15,
-            ),
-            padding=ft.padding.all(20),
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
-        )
-
-    def build_stats_section() -> Any:
-        """Constrói a seção de estatísticas."""
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("📈 Estatísticas", size=18, weight=ft.FontWeight.BOLD),
-                    ft.Row(
-                        [
-                            ft.Container(
-                                content=ft.Column(
-                                    [
-                                        ft.Text("Total de Ofertas", size=12),
-                                        ft.Text("0", size=24, weight=ft.FontWeight.BOLD),
-                                    ],
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                padding=20,
-                                border=ft.border.all(1, ft.colors.OUTLINE),
-                                border_radius=8,
-                                expand=True,
-                            ),
-                            ft.Container(
-                                content=ft.Column(
-                                    [
-                                        ft.Text("Ofertas Postadas", size=12),
-                                        ft.Text("0", size=24, weight=ft.FontWeight.BOLD),
-                                    ],
-                                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                                ),
-                                padding=20,
-                                border=ft.border.all(1, ft.colors.OUTLINE),
-                                border_radius=8,
-                                expand=True,
-                            ),
-                        ],
-                        spacing=20,
-                    ),
-                ],
-                spacing=15,
-            ),
-            padding=ft.padding.all(20),
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
-        )
-
-    def build_actions_section() -> Any:
-        """Constrói a seção de ações rápidas."""
-        return ft.Container(
-            content=ft.Column(
-                [
-                    ft.Text("⚡ Ações Rápidas", size=18, weight=ft.FontWeight.BOLD),
-                    ft.Row(
-                        [
-                            ft.OutlinedButton(
-                                text="🔄 Recarregar Métricas",
-                                icon=ft.icons.REFRESH,
-                                on_click=on_reload_metrics,
-                            ),
-                            ft.OutlinedButton(
-                                text="🧹 Limpar Logs",
-                                icon=ft.icons.CLEANING_SERVICES,
-                                on_click=on_clear_logs,
-                            ),
-                        ],
-                        spacing=20,
-                    ),
-                    ft.Row(
-                        [
-                            ft.OutlinedButton(
-                                text="📁 Abrir Pasta de Logs",
-                                icon=ft.icons.FOLDER_OPEN,
-                                on_click=on_open_logs_folder,
-                            ),
-                            ft.OutlinedButton(
-                                text="📊 Exportar CSV",
-                                icon=ft.icons.DOWNLOAD,
-                                on_click=on_export_csv,
-                            ),
-                        ],
-                        spacing=20,
-                    ),
-                ],
-                spacing=15,
-            ),
-            padding=ft.padding.all(20),
-            border=ft.border.all(1, ft.colors.OUTLINE),
-            border_radius=8,
-        )
-
-    def on_start_click(e):
-        """Chamado quando o botão iniciar é clicado."""
-        nonlocal is_scraping
-        if not is_scraping and scrape_runner:
-            try:
-                # Iniciar motor de coleta com intervalo padrão
-                asyncio.create_task(scrape_runner.start_scraping(current_periodo, 10.0))
-                is_scraping = True
-                print("🟢 Motor de coleta iniciado!")
-                if on_status_changed:
-                    on_status_changed("running")
-                # Atualizar UI
-                e.control.disabled = True
-                e.control.page.update()
-            except Exception as ex:
-                print(f"❌ Erro ao iniciar motor: {ex}")
-        else:
-            print("⚠️ Motor já está rodando ou não disponível")
-
-    def on_stop_click(e):
-        """Chamado quando o botão parar é clicado."""
-        nonlocal is_scraping
-        if is_scraping and scrape_runner:
-            try:
-                # Parar motor de coleta
-                asyncio.create_task(scrape_runner.stop_scraping())
-                is_scraping = False
-                print("🔴 Motor de coleta parado!")
-                if on_status_changed:
-                    on_status_changed("stopped")
-                # Atualizar UI
-                e.control.disabled = True
-                e.control.page.update()
-            except Exception as ex:
-                print(f"❌ Erro ao parar motor: {ex}")
-        else:
-            print("⚠️ Motor não está rodando ou não disponível")
-
-    def on_reload_metrics(e):
-        """Chamado quando o botão recarregar métricas é clicado."""
-        if scrape_runner:
-            try:
-                # Recarregar métricas do motor
-                metrics_summary = scrape_runner.get_metrics_summary()
-                print(f"📊 Métricas recarregadas: {metrics_summary}")
+    return ft.Container(
+        expand=True,
+        content=ft.Column(
+            expand=True,
+            controls=[
+                # Cabeçalho
+                ft.Text("Controles do Sistema", size=20, weight=ft.FontWeight.BOLD),
+                ft.Divider(),
                 
-                # Forçar atualização imediata do cache
-                scrape_runner.force_refresh()
+                # Toggle mestre
+                ft.Text("Controle Geral", size=16, weight=ft.FontWeight.W_500),
+                ft.Row([
+                    master_switch,
+                    status_text
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 
-                # TODO: Atualizar UI com novas métricas
-            except Exception as ex:
-                print(f"❌ Erro ao recarregar métricas: {ex}")
-        else:
-            print("⚠️ Motor de coleta não disponível")
-
-    def on_clear_logs(e):
-        """Chamado quando o botão limpar logs é clicado."""
-        print("🧹 Logs limpos!")
-
-    def on_open_logs_folder(e):
-        """Chamado quando o botão abrir pasta de logs é clicado."""
-        print("📁 Pasta de logs aberta!")
-
-    def on_export_csv(e):
-        """Chamado quando o botão exportar CSV é clicado."""
-        try:
-            # Importar CSV exporter
-            from core.csv_exporter import CSVExporter
-            from core.data_service import DataService
-            
-            # Criar instâncias
-            csv_exporter = CSVExporter()
-            data_service = DataService()
-            
-            # Carregar ofertas do período atual
-            import asyncio
-            loop = asyncio.get_event_loop()
-            ofertas = loop.run_until_complete(data_service.load_ofertas(current_periodo))
-            
-            # Exportar CSV
-            result = csv_exporter.export_ofertas(ofertas, current_periodo)
-            
-            if result.get('success'):
-                print(f"✅ CSV exportado com sucesso!")
-                print(f"   📁 Arquivo: {result['filename']}")
-                print(f"   📊 Ofertas: {result['total_ofertas']}")
-                # TODO: Mostrar toast/snackbar com o caminho
-            else:
-                print(f"❌ Erro ao exportar CSV: {result.get('error')}")
+                ft.Divider(),
                 
-        except Exception as ex:
-            print(f"❌ Erro ao exportar CSV: {ex}")
-
-    # Retornar a aba construída
-    return build_controls_tab()
+                # Controles de fontes
+                ft.Text("Fontes de Dados", size=16, weight=ft.FontWeight.W_500),
+                ft.Text(
+                    "Habilite/desabilite as fontes de coleta:",
+                    size=12,
+                    color=ft.Colors.ON_SURFACE_VARIANT
+                ),
+                
+                # Botões de ação em massa
+                ft.Row([
+                    btn_all_on,
+                    btn_all_off
+                ], alignment=ft.MainAxisAlignment.START),
+                
+                # Lista de fontes com scroll
+                ft.Container(
+                    expand=True,
+                    content=ft.ListView(
+                        expand=True,
+                        controls=rows,
+                        spacing=8
+                    ),
+                ),
+                
+                # Informações de compliance
+                ft.Divider(),
+                ft.Container(
+                    content=ft.Text(
+                        "ℹ️ Em modo CI ou sem GG_ALLOW_SCRAPING=1, os toggles individuais ficam desabilitados",
+                        size=12,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                        text_align=ft.TextAlign.CENTER
+                    ),
+                    padding=ft.padding.all(8)
+                ) if compliance_off else ft.Container(height=0)
+            ],
+            spacing=16,
+            scroll=ft.ScrollMode.AUTO  # Scroll apenas nesta aba
+        ),
+        padding=ft.padding.all(16),
+        expand=True
+    )

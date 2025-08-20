@@ -1,5 +1,5 @@
 + Garimpeiro Geek - Dashboard  (Tema: Dark)
-+ Tabs: [*] Logs | [ ] Configurações | [ ] Controles
++ Tabs: [*] Dashboard | [ ] Logs | [ ] Configurações | [ ] Controles
 + Cards:
 |  * Lojas Ativas -> 0
 |  * Ofertas -> 0

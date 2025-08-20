@@ -9,6 +9,7 @@ import asyncio
 import logging
 import random
 import re
+import time
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple, Callable, TypeVar, Type, Union
 from functools import wraps
@@ -696,6 +697,43 @@ def buscar_ofertas_promobit_sync(
         logger.error(f"Erro na versão síncrona: {e}")
         return []
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        # Buscar ofertas de informática (categoria principal)
+        ofertas = await buscar_ofertas_promobit(
+            max_paginas=2,
+            min_desconto=0,
+            categoria="informatica"
+        )
+        
+        # Adicionar metadados de compatibilidade
+        for oferta in ofertas:
+            oferta['fonte'] = 'promobit_scraper'
+            oferta['periodo'] = periodo
+            oferta['timestamp'] = time.time()
+        
+        return ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 80  # Prioridade alta (site especializado)
+rate_limit = 1.0  # 1 requisição por segundo
+description = "Scraper para o Promobit - Site especializado em ofertas de informática"
 
 if __name__ == "__main__":
     print("🔍 Testando scraper do Promobit...")

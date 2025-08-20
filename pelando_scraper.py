@@ -8,6 +8,7 @@ no site Pelando, respeitando as diretrizes do robots.txt.
 import asyncio
 import logging
 import re
+import time
 from datetime import datetime
 from typing import List, Dict, Optional, Any, Tuple
 import aiohttp
@@ -415,6 +416,39 @@ async def _fetch_playwright(url: str) -> str:
         logger.error(f"❌ Erro no Playwright: {e}")
         return ""
 
+
+# ===== FUNÇÃO COMPATIBILIDADE COM SCRAPER REGISTRY =====
+
+async def get_ofertas(periodo: str = "24h") -> List[Dict[str, Any]]:
+    """
+    Função de compatibilidade com o scraper registry.
+    
+    Args:
+        periodo: Período para coleta (24h, 7d, 30d, all)
+        
+    Returns:
+        Lista de ofertas encontradas
+    """
+    try:
+        # Buscar ofertas do Pelando
+        ofertas = await main(limit=30)
+        
+        # Adicionar metadados de compatibilidade
+        for oferta in ofertas:
+            oferta['fonte'] = 'pelando_scraper'
+            oferta['periodo'] = periodo
+            oferta['timestamp'] = time.time()
+        
+        return ofertas
+        
+    except Exception as e:
+        logger.error(f"❌ Erro na função get_ofertas: {e}")
+        return []
+
+# Configurações para o scraper registry
+priority = 90  # Prioridade muito alta (site especializado)
+rate_limit = 0.3  # 0.3 requisições por segundo (site sensível)
+description = "Scraper para o Pelando - Site especializado em ofertas de tecnologia"
 
 if __name__ == "__main__":
     # Configura logging para debug

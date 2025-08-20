@@ -484,3 +484,93 @@ class ScraperRegistry:
 # Instância global
 scraper_registry = ScraperRegistry()
 
+# ===== SISTEMA DE CONTROLE DE ESTADO EFETIVO =====
+
+_ENABLED_OVERRIDE: Dict[str, bool] = {}   # sobrescritas persistidas
+
+def _is_ci_mode() -> bool:
+    """Verifica se estamos em modo CI."""
+    return bool(os.getenv("GG_SEED")) and bool(os.getenv("GG_FREEZE_TIME"))
+
+def scraping_allowed() -> bool:
+    """Verifica se scraping é permitido (não CI + GG_ALLOW_SCRAPING=1)."""
+    return (os.getenv("GG_ALLOW_SCRAPING", "0") == "1") and not _is_ci_mode()
+
+def _env_enabled_set() -> set[str] | None:
+    """Obtém conjunto de fontes habilitadas via variável de ambiente."""
+    raw = os.getenv("GG_SCRAPERS_ENABLED")
+    if not raw:
+        return None
+    return {s.strip() for s in raw.split(",") if s.strip()}
+
+def init_overrides_from_storage(storage) -> None:
+    """Inicializa overrides a partir do storage."""
+    global _ENABLED_OVERRIDE
+    try:
+        _ENABLED_OVERRIDE = storage.get_enabled_sources()
+    except Exception:
+        _ENABLED_OVERRIDE = {}
+
+def set_enabled(name: str, enabled: bool, storage=None) -> None:
+    """Define se uma fonte está habilitada."""
+    global _ENABLED_OVERRIDE
+    _ENABLED_OVERRIDE[name] = bool(enabled)
+    if storage:
+        storage.set_source_enabled(name, bool(enabled))
+
+def set_all_enabled(names: list[str], enabled: bool, storage=None) -> None:
+    """Define múltiplas fontes de uma vez."""
+    global _ENABLED_OVERRIDE
+    for n in names:
+        _ENABLED_OVERRIDE[n] = bool(enabled)
+    if storage:
+        storage.set_sources_bulk(names, bool(enabled))
+
+def _effective_enabled(name: str, default_enabled: bool) -> bool:
+    """Calcula se uma fonte está efetivamente habilitada."""
+    # 1) default do próprio scraper
+    enabled = bool(default_enabled)
+
+    # 2) filtro por ambiente GG_SCRAPERS_ENABLED (se definido)
+    envset = _env_enabled_set()
+    if envset is not None:
+        enabled = enabled and (name in envset)
+
+    # 3) override persistido
+    if name in _ENABLED_OVERRIDE:
+        enabled = bool(_ENABLED_OVERRIDE[name])
+
+    # 4) compliance/CI gating final
+    if not scraping_allowed():
+        return False
+    return enabled
+
+def list_sources() -> List[Dict[str, Any]]:
+    """Retorna metadados para UI."""
+    items: List[Dict[str, Any]] = []
+    
+    # Obter scrapers do registry
+    scrapers = scraper_registry.scrapers.values()
+    
+    for src in sorted(scrapers, key=lambda s: (s.priority, s.name)):
+        default = bool(src.enabled)  # default do scraper
+        items.append({
+            "name": src.name,
+            "priority": src.priority,
+            "enabled_default": default,
+            "enabled_effective": _effective_enabled(src.name, default),
+            "description": src.description,
+            "rate_limit": src.rate_limit,
+        })
+    return items
+
+def get_sources_for_run():
+    """Retorna fontes efetivamente habilitadas para execução."""
+    allowed = []
+    scrapers = scraper_registry.scrapers.values()
+    
+    for src in sorted(scrapers, key=lambda s: (s.priority, s.name)):
+        if _effective_enabled(src.name, src.enabled):
+            allowed.append(src)
+    return allowed
+
