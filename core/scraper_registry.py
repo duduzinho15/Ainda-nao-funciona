@@ -6,10 +6,15 @@ Carrega dinamicamente todos os scrapers e APIs disponíveis.
 import os
 import importlib
 import inspect
+import asyncio
+import random
+import time
 from typing import List, Dict, Any, Optional, Callable
 from pathlib import Path
 import logging
 from dataclasses import dataclass
+import aiohttp
+from urllib.parse import urlparse
 
 
 @dataclass
@@ -23,10 +28,136 @@ class ScraperInfo:
     description: str = ""
     env_vars: List[str] = None
     error_message: Optional[str] = None
+    rate_limit: Optional[float] = None  # requests per second
+    retry_count: int = 3
+    retry_delay: float = 0.5
 
     def __post_init__(self):
         if self.env_vars is None:
             self.env_vars = []
+
+
+class RateLimiter:
+    """Rate limiter por domínio."""
+    
+    def __init__(self):
+        self._semaphores: Dict[str, asyncio.Semaphore] = {}
+        self._last_request: Dict[str, float] = {}
+        self._min_interval: Dict[str, float] = {}
+    
+    def get_semaphore(self, domain: str, max_concurrent: int = 3) -> asyncio.Semaphore:
+        """Retorna semáforo para um domínio específico."""
+        if domain not in self._semaphores:
+            self._semaphores[domain] = asyncio.Semaphore(max_concurrent)
+        return self._semaphores[domain]
+    
+    def set_rate_limit(self, domain: str, requests_per_second: float):
+        """Define rate limit para um domínio."""
+        if requests_per_second > 0:
+            self._min_interval[domain] = 1.0 / requests_per_second
+    
+    async def wait_if_needed(self, domain: str):
+        """Aguarda se necessário para respeitar rate limit."""
+        if domain in self._min_interval:
+            last = self._last_request.get(domain, 0)
+            now = time.time()
+            elapsed = now - last
+            min_interval = self._min_interval[domain]
+            
+            if elapsed < min_interval:
+                wait_time = min_interval - elapsed
+                await asyncio.sleep(wait_time)
+            
+            self._last_request[domain] = time.time()
+
+
+class RetryHandler:
+    """Handler para retries com backoff exponencial."""
+    
+    def __init__(self, max_retries: int = 3, base_delay: float = 0.5):
+        self.max_retries = max_retries
+        self.base_delay = base_delay
+    
+    async def execute_with_retry(self, func: Callable, *args, **kwargs):
+        """Executa função com retry e backoff exponencial."""
+        last_exception = None
+        
+        for attempt in range(self.max_retries + 1):
+            try:
+                if asyncio.iscoroutinefunction(func):
+                    return await func(*args, **kwargs)
+                else:
+                    return func(*args, **kwargs)
+                    
+            except Exception as e:
+                last_exception = e
+                
+                if attempt == self.max_retries:
+                    raise last_exception
+                
+                # Backoff exponencial com jitter
+                delay = self.base_delay * (2 ** attempt) + random.uniform(0, 0.1)
+                await asyncio.sleep(delay)
+        
+        raise last_exception
+
+
+class ProxyManager:
+    """Gerenciador de proxy opcional."""
+    
+    def __init__(self):
+        self.proxy_url = os.getenv("PROXY_URL")
+        self.proxy_user = os.getenv("PROXY_USER")
+        self.proxy_pass = os.getenv("PROXY_PASS")
+    
+    def get_proxy_config(self) -> Optional[Dict[str, str]]:
+        """Retorna configuração de proxy se disponível."""
+        if not self.proxy_url:
+            return None
+        
+        config = {"http": self.proxy_url, "https": self.proxy_url}
+        
+        if self.proxy_user and self.proxy_pass:
+            # Adicionar autenticação ao proxy
+            auth_url = self.proxy_url.replace("://", f"://{self.proxy_user}:{self.proxy_pass}@")
+            config = {"http": auth_url, "https": auth_url}
+        
+        return config
+    
+    def get_session_kwargs(self) -> Dict[str, Any]:
+        """Retorna kwargs para aiohttp.ClientSession."""
+        kwargs = {}
+        
+        if self.proxy_url:
+            kwargs["proxy"] = self.proxy_url
+            if self.proxy_user and self.proxy_pass:
+                kwargs["proxy_auth"] = aiohttp.BasicAuth(self.proxy_user, self.proxy_pass)
+        
+        return kwargs
+
+
+class UserAgentRotator:
+    """Rotador de User-Agent para evitar bloqueios."""
+    
+    def __init__(self):
+        self.user_agents = [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/121.0"
+        ]
+        self._current_index = 0
+    
+    def get_next(self) -> str:
+        """Retorna próximo User-Agent da lista."""
+        ua = self.user_agents[self._current_index]
+        self._current_index = (self._current_index + 1) % len(self.user_agents)
+        return ua
+    
+    def get_random(self) -> str:
+        """Retorna User-Agent aleatório."""
+        return random.choice(self.user_agents)
 
 
 class ScraperRegistry:
@@ -34,7 +165,21 @@ class ScraperRegistry:
     
     def __init__(self):
         self.scrapers: Dict[str, ScraperInfo] = {}
+        self.rate_limiter = RateLimiter()
+        self.retry_handler = RetryHandler()
+        self.proxy_manager = ProxyManager()
+        self.ua_rotator = UserAgentRotator()
         self.logger = logging.getLogger(__name__)
+        
+        # Verificar se estamos em modo CI
+        self.ci_mode = bool(os.getenv("GG_SEED") and os.getenv("GG_FREEZE_TIME"))
+        self.allow_scraping = os.getenv("GG_ALLOW_SCRAPING") == "1"
+        
+        if self.ci_mode:
+            self.logger.info("🔒 Modo CI detectado - sem chamadas de rede")
+        elif not self.allow_scraping:
+            self.logger.info("⚠️ Scraping desabilitado - use GG_ALLOW_SCRAPING=1 para habilitar")
+        
         self._load_all_scrapers()
     
     def _load_all_scrapers(self):
@@ -109,6 +254,11 @@ class ScraperRegistry:
             # Verificar variáveis de ambiente necessárias
             env_vars = self._get_required_env_vars(module)
             
+            # Configurações de rate limiting e retry
+            rate_limit = getattr(module, 'rate_limit', None)
+            retry_count = getattr(module, 'retry_count', 3)
+            retry_delay = getattr(module, 'retry_delay', 0.5)
+            
             # Criar info do scraper
             scraper_info = ScraperInfo(
                 name=module_name,
@@ -117,7 +267,10 @@ class ScraperRegistry:
                 priority=priority,
                 get_ofertas_func=get_ofertas_func,
                 description=description,
-                env_vars=env_vars
+                env_vars=env_vars,
+                rate_limit=rate_limit,
+                retry_count=retry_count,
+                retry_delay=retry_delay
             )
             
             # Verificar se há erros de configuração
@@ -130,6 +283,12 @@ class ScraperRegistry:
                 if missing_vars:
                     scraper_info.error_message = f"Variáveis de ambiente faltando: {', '.join(missing_vars)}"
                     scraper_info.enabled = False
+            
+            # Configurar rate limiter se especificado
+            if rate_limit:
+                domain = self._get_domain_from_module(module)
+                if domain:
+                    self.rate_limiter.set_rate_limit(domain, rate_limit)
             
             self.scrapers[module_name] = scraper_info
             
@@ -149,6 +308,18 @@ class ScraperRegistry:
                 error_message=f"Módulo não encontrado: {e}"
             )
             self.logger.info(f"📝 Stub criado para {module_name}")
+    
+    def _get_domain_from_module(self, module) -> Optional[str]:
+        """Extrai domínio base de um módulo para rate limiting."""
+        # Tentar extrair de constantes ou configurações
+        for attr_name in ['BASE_URL', 'DOMAIN', 'HOST']:
+            if hasattr(module, attr_name):
+                url = getattr(module, attr_name)
+                if url:
+                    parsed = urlparse(url)
+                    return parsed.netloc
+        
+        return None
     
     def _check_if_enabled(self, module_name: str) -> bool:
         """Verifica se um scraper está habilitado."""
@@ -237,11 +408,24 @@ class ScraperRegistry:
                 self.logger.info(f"📡 Coletando de: {scraper.name}")
                 
                 if scraper.get_ofertas_func:
-                    # Verificar se é função assíncrona
-                    if inspect.iscoroutinefunction(scraper.get_ofertas_func):
-                        ofertas = await scraper.get_ofertas_func(periodo)
-                    else:
-                        ofertas = scraper.get_ofertas_func(periodo)
+                    # Verificar se estamos em modo CI ou se scraping não é permitido
+                    if self.ci_mode:
+                        self.logger.info(f"🔒 Modo CI - pulando {scraper.name}")
+                        continue
+                    
+                    if not self.allow_scraping:
+                        self.logger.info(f"⚠️ Scraping desabilitado - pulando {scraper.name}")
+                        continue
+                    
+                    # Aplicar rate limiting se necessário
+                    domain = self._get_domain_from_module(importlib.import_module(scraper.module_name))
+                    if domain:
+                        await self.rate_limiter.wait_if_needed(domain)
+                    
+                    # Executar com retry
+                    ofertas = await self.retry_handler.execute_with_retry(
+                        scraper.get_ofertas_func, periodo
+                    )
                     
                     if ofertas:
                         # Adicionar fonte às ofertas
@@ -281,13 +465,16 @@ class ScraperRegistry:
             'total_scrapers': total,
             'enabled_scrapers': enabled,
             'disabled_scrapers': disabled,
+            'ci_mode': self.ci_mode,
+            'allow_scraping': self.allow_scraping,
             'scrapers_list': [
                 {
                     'name': s.name,
                     'enabled': s.enabled,
                     'priority': s.priority,
                     'description': s.description,
-                    'error': s.error_message
+                    'error': s.error_message,
+                    'rate_limit': s.rate_limit
                 }
                 for s in self.scrapers.values()
             ]
