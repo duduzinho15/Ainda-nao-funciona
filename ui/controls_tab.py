@@ -12,6 +12,7 @@ def create_controls_tab(
     metrics_aggregator: MetricsAggregator,
     scrape_runner: Any = None,
     on_status_changed: Optional[Callable[[str], None]] = None,
+    page: Any = None,  # NOVO: página para acessar preferências
 ) -> Any:
     """Cria a aba de controles do sistema."""
     
@@ -25,6 +26,8 @@ def create_controls_tab(
             content=ft.Column(
                 controls=[
                     build_header(),
+                    ft.Divider(),
+                    build_system_toggle_section(),  # NOVO: Seção do toggle do sistema
                     ft.Divider(),
                     build_status_section(),
                     ft.Divider(),
@@ -56,6 +59,62 @@ def create_controls_tab(
                 ]
             ),
             padding=ft.padding.only(bottom=20),
+        )
+
+    def build_system_toggle_section() -> Any:
+        """Constrói a seção do toggle geral do sistema."""
+        # Obter preferência atual
+        system_enabled = True
+        if page and hasattr(page, 'get_preference'):
+            system_enabled = page.get_preference("system_enabled", True)
+        
+        def on_system_toggle(e):
+            """Callback para o toggle do sistema."""
+            enabled = e.control.value
+            if page and hasattr(page, 'set_preference'):
+                page.set_preference("system_enabled", enabled)
+            
+            # Atualizar o runner se disponível
+            if scrape_runner and hasattr(scrape_runner, 'set_system_enabled'):
+                scrape_runner.set_system_enabled(enabled)
+            
+            # Mostrar feedback visual
+            if page:
+                page.show_snack_bar(
+                    ft.SnackBar(
+                        content=ft.Text(
+                            f"Sistema de coleta {'ativado' if enabled else 'desativado'}"
+                        )
+                    )
+                )
+        
+        return ft.Container(
+            content=ft.Column(
+                [
+                    ft.Text("🔧 Sistema de Coleta", size=18, weight=ft.FontWeight.BOLD),
+                    ft.Row(
+                        [
+                            ft.Switch(
+                                key="system_toggle",  # Nova key (não interfere nos checks existentes)
+                                label="Sistema de coleta",
+                                value=system_enabled,
+                                on_change=on_system_toggle
+                            ),
+                            ft.Text(
+                                "Ativa/desativa todo o sistema de coleta de ofertas",
+                                size=12,
+                                color=ft.colors.ON_SURFACE_VARIANT,
+                            ),
+                        ],
+                        spacing=20,
+                        alignment=ft.MainAxisAlignment.START,
+                    ),
+                ],
+                spacing=15,
+            ),
+            padding=ft.padding.all(20),
+            border=ft.border.all(1, ft.colors.OUTLINE),
+            border_radius=8,
         )
 
     def build_status_section() -> Any:

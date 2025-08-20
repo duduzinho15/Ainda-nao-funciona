@@ -43,6 +43,7 @@ class ScrapeRunner:
         self._task: Optional[asyncio.Task] = None
         self._interval_s = 10.0
         self._start_time: Optional[datetime] = None
+        self._system_enabled: bool = True  # NOVO: Toggle geral do sistema
         
         # Cache global de ofertas e métricas
         self._cached_ofertas: List[Any] = []
@@ -184,6 +185,11 @@ class ScrapeRunner:
         try:
             self.logger.info(f"📡 Executando ciclo de coleta para período: {periodo}")
             
+            # Verificar se o sistema está habilitado
+            if not self._system_enabled:
+                self.logger.warning("⚠️ Coleta desabilitada pelo sistema. Pulando ciclo.")
+                return
+
             # Carregar ofertas via DataService
             ofertas = await self.data_service.load_ofertas(periodo, use_registry=True)
             
@@ -255,3 +261,22 @@ class ScrapeRunner:
             'preco_medio': self._cached_metrics.preco_medio,
             'ultima_atualizacao': self.status.last_run
         }
+
+    def set_system_enabled(self, enabled: bool) -> None:
+        """
+        Define se o sistema de coleta está habilitado.
+        
+        Args:
+            enabled: True para habilitar, False para desabilitar
+        """
+        self._system_enabled = enabled
+        self.logger.info(f"🔧 Sistema de coleta {'habilitado' if enabled else 'desabilitado'}")
+        
+        # Se desabilitado e rodando, parar
+        if not enabled and self.status.running:
+            self.logger.info("🛑 Parando coleta devido ao sistema desabilitado")
+            asyncio.create_task(self.stop_scraping())
+    
+    def is_system_enabled(self) -> bool:
+        """Verifica se o sistema de coleta está habilitado."""
+        return self._system_enabled

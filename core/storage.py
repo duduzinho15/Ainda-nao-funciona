@@ -35,6 +35,8 @@ class PreferencesStorage:
             'last_export_path': None,
             'ui_scale': 1.0,
             'language': 'pt_BR',
+            'system_enabled': True,  # NOVO: Toggle geral do sistema
+            'scrapers_overrides': {},  # NOVO: Overrides individuais por fonte
             'created_at': datetime.now().isoformat(),
             'updated_at': datetime.now().isoformat()
         }

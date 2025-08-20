@@ -442,7 +442,8 @@ def build_controls_tab(page: ft.Page):
         return create_controls_tab(
             metrics_aggregator=metrics_aggregator,
             scrape_runner=scrape_runner,
-            on_status_changed=lambda status: print(f"Status alterado: {status}")
+            on_status_changed=lambda status: print(f"Status alterado: {status}"),
+            page=page  # Passar a página para acessar as preferências
         )
     except ImportError as e:
         print(f"Erro ao importar controles: {e}")
@@ -749,6 +750,7 @@ async def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = SPACING["medium"]
     page.spacing = SPACING["large"]
+    # Removido scroll personalizado para usar scroll nativo do navegador
     
     # Carregar preferências do usuário
     if config_storage:
