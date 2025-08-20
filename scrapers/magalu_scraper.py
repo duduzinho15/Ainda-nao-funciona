@@ -1,5 +1,5 @@
 """
-Scraper do KaBuM para coleta de ofertas.
+Scraper do Magazine Luiza para coleta de ofertas.
 Usa HTML scraping para buscar ofertas em promoção.
 """
 
@@ -15,15 +15,15 @@ from bs4 import BeautifulSoup
 
 
 # Configurações
-name = "kabum_scraper"
-priority = 30
+name = "magalu_scraper"
+priority = 40
 rate_limit = 1.0  # 1 request por segundo
 retry_count = 3
 retry_delay = 2.0
 
 # URLs base
-BASE_URL = "https://www.kabum.com.br"
-DOMAIN = "www.kabum.com.br"
+BASE_URL = "https://www.magazineluiza.com.br"
+DOMAIN = "www.magazineluiza.com.br"
 
 # Headers para evitar bloqueios
 DEFAULT_HEADERS = {
@@ -45,16 +45,18 @@ OFFER_PAGES = [
     "/ofertas/mais-vendidos",
     "/ofertas/lancamentos",
     "/ofertas/black-friday",
-    "/ofertas/cyber-monday"
+    "/ofertas/cyber-monday",
+    "/ofertas/promocoes"
 ]
 
 # Categorias populares
 CATEGORIES = [
-    "/computadores",
+    "/eletronicos",
+    "/informatica",
     "/games",
-    "/smartphones",
-    "/perifericos",
-    "/eletronicos"
+    "/casa",
+    "/moda",
+    "/beleza"
 ]
 
 
@@ -69,7 +71,7 @@ def enabled() -> bool:
 
 async def get_ofertas(periodo: str) -> List[Dict[str, Any]]:
     """
-    Coleta ofertas do KaBuM via HTML scraping.
+    Coleta ofertas do Magazine Luiza via HTML scraping.
     
     Args:
         periodo: Período para coleta (24h, 7d, 30d, all)
@@ -181,8 +183,12 @@ def _parse_offer_page(html: str, page_path: str) -> List[Dict[str, Any]]:
     try:
         soup = BeautifulSoup(html, 'html.parser')
         
-        # Procurar por produtos em oferta
-        product_cards = soup.find_all('div', class_=re.compile(r'productCard|cardProduct|produto'))
+        # Procurar por produtos em oferta (Magalu usa diferentes classes)
+        product_cards = soup.find_all('div', class_=re.compile(r'productCard|cardProduct|produto|product-item'))
+        
+        # Se não encontrar, tentar outras abordagens
+        if not product_cards:
+            product_cards = soup.find_all('li', class_=re.compile(r'product|item|card'))
         
         for card in product_cards[:20]:  # Limitar a 20 produtos por página
             try:
@@ -207,7 +213,11 @@ def _parse_category_page(html: str, category_path: str) -> List[Dict[str, Any]]:
         soup = BeautifulSoup(html, 'html.parser')
         
         # Procurar por produtos da categoria
-        product_cards = soup.find_all('div', class_=re.compile(r'productCard|cardProduct|produto'))
+        product_cards = soup.find_all('div', class_=re.compile(r'productCard|cardProduct|produto|product-item'))
+        
+        # Se não encontrar, tentar outras abordagens
+        if not product_cards:
+            product_cards = soup.find_all('li', class_=re.compile(r'product|item|card'))
         
         for card in product_cards[:15]:  # Limitar a 15 produtos por categoria
             try:
@@ -265,7 +275,7 @@ def _extract_product_info(card, page_path: str) -> Optional[Dict[str, Any]]:
         oferta = {
             "titulo": title,
             "preco": price,
-            "loja": "KaBuM",
+            "loja": "Magazine Luiza",
             "url": product_url,
             "imagem_url": image_url,
             "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -316,7 +326,7 @@ REQUIRED_ENV_VARS = []
 # Teste local (se executado diretamente)
 if __name__ == "__main__":
     async def test():
-        print("🧪 Testando scraper do KaBuM...")
+        print("🧪 Testando scraper do Magazine Luiza...")
         
         if not enabled():
             print("⚠️ Scraper desabilitado")
