@@ -377,7 +377,7 @@ def build_logs_panel(page: ft.Page) -> ft.Container:
     """Painel de logs ao vivo"""
     logs_list = ft.ListView(
         spacing=SPACING["small"],
-        height=300,
+        height=200,  # Altura menor para evitar conflitos de scroll
         auto_scroll=True,
         key="logs_list"
     )
@@ -416,10 +416,7 @@ def build_logs_panel(page: ft.Page) -> ft.Container:
                         )
                     ]
                 ),
-                ft.Container(
-                    content=logs_list,
-                    expand=True
-                )
+                logs_list  # Remover Container extra com expand=True
             ],
             spacing=SPACING["medium"]
         ),
@@ -468,6 +465,7 @@ def build_tabs(page: ft.Page) -> ft.Tabs:
                         build_logs_panel(page)
                     ],
                     spacing=SPACING["large"]
+                    # Sem scroll no Column - apenas scroll da página
                 )
             ),
             ft.Tab(
@@ -750,7 +748,7 @@ async def main(page: ft.Page):
     page.theme_mode = ft.ThemeMode.DARK
     page.padding = SPACING["medium"]
     page.spacing = SPACING["large"]
-    # Removido scroll personalizado para usar scroll nativo do navegador
+    # Remover completamente o scroll da página para evitar comportamento infinito
     
     # Carregar preferências do usuário
     if config_storage:
@@ -763,11 +761,18 @@ async def main(page: ft.Page):
         default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
-    # Construir interface
-    page.add(
+    # Construir interface com scroll controlado
+    main_content = ft.Column([
         build_header(page),
         build_tabs(page)
+    ], 
+    tight=True,  # Evitar expansão desnecessária
+    spacing=SPACING["medium"],
+    scroll=ft.ScrollMode.AUTO,  # Scroll apenas nesta coluna
+    height=580  # Altura fixa para evitar scroll infinito
     )
+    
+    page.add(main_content)
     
     # Carregar dados iniciais
     await load_data_for_period(current_periodo, page)
