@@ -1,65 +1,55 @@
 """
-Sistema de normalização para deduplicar ofertas.
-Normaliza títulos e URLs para evitar duplicatas por pequenas diferenças.
+Funções de normalização e deduplicação de ofertas.
+Remove duplicatas baseadas em URL canônica e título normalizado.
 """
 
 import re
-from typing import Optional
-from urllib.parse import urlparse, parse_qs
+import unicodedata
+from typing import List, Dict, Any, Optional
+from urllib.parse import urlparse, parse_qs, urlunparse
 
 
-def normalize_title(title: str) -> str:
+def normalize_title(s: str) -> str:
     """
-    Normaliza o título de uma oferta para deduplicação.
-    Remove elementos irrelevantes mas preserva palavras que identificam o produto.
+    Normaliza o título de uma oferta para comparação.
     
     Args:
-        title: Título original da oferta
+        s: Título original
         
     Returns:
-        Título normalizado para comparação
+        Título normalizado (minúsculo, sem acentos, espaços normalizados)
     """
-    if not title:
+    if not s:
         return ""
     
-    # Converter para minúsculas
-    normalized = title.lower().strip()
+    # Converter para minúsculo
+    s = s.lower()
     
-    # Remover caracteres especiais e múltiplos espaços
-    normalized = re.sub(r'[^\w\s]', ' ', normalized)
-    normalized = re.sub(r'\s+', ' ', normalized)
+    # Remover acentos
+    s = unicodedata.normalize('NFD', s)
+    s = ''.join(c for c in s if not unicodedata.combining(c))
     
-    # Remover palavras comuns que não identificam o produto
-    stop_words = {
-        'com', 'de', 'da', 'do', 'das', 'dos', 'em', 'na', 'no', 'nas', 'nos',
-        'para', 'por', 'com', 'sem', 'sob', 'sobre', 'entre', 'atrás', 'antes',
-        'depois', 'durante', 'até', 'desde', 'a', 'o', 'e', 'ou', 'mas', 'se',
-        'que', 'qual', 'quem', 'onde', 'quando', 'como', 'porque', 'então',
-        'novo', 'nova', 'usado', 'usada', 'original', 'genuino', 'genuina',
-        'promocao', 'promoção', 'oferta', 'desconto', 'liquidação', 'liquidaçao',
-        'frete', 'gratis', 'grátis', 'envio', 'entrega', 'garantia', 'warranty',
-        'loja', 'marca', 'modelo', 'cor', 'tamanho', 'quantidade', 'unidade',
-        'kit', 'pack', 'conjunto', 'set', 'coleção', 'coleçao', 'edição', 'ediçao'
-    }
+    # Normalizar espaços (múltiplos espaços -> um espaço)
+    s = re.sub(r'\s+', ' ', s)
     
-    # Filtrar palavras que não são stop words
-    words = normalized.split()
-    filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
+    # Remover espaços no início e fim
+    s = s.strip()
     
-    return ' '.join(filtered_words)
+    # Remover caracteres especiais comuns
+    s = re.sub(r'[^\w\s\-]', '', s)
+    
+    return s
 
 
 def canonical_url(url: str) -> str:
     """
-    Normaliza URL para deduplicação.
-    Para Amazon: preserva apenas ASIN e tag de afiliado.
-    Para outras lojas: remove parâmetros irrelevantes.
+    Converte URL para forma canônica para comparação.
     
     Args:
-        url: URL original da oferta
+        url: URL original
         
     Returns:
-        URL canônica para comparação
+        URL canônica
     """
     if not url:
         return ""
@@ -67,105 +57,203 @@ def canonical_url(url: str) -> str:
     try:
         parsed = urlparse(url)
         
-        # Caso especial: Amazon
+        # Para Amazon: reduzir ao ASIN e manter tag de afiliado
         if 'amazon' in parsed.netloc.lower():
             return _canonicalize_amazon_url(parsed)
         
-        # Outras lojas: remover parâmetros irrelevantes
+        # Para outras lojas: remover parâmetros de tracking
         return _canonicalize_generic_url(parsed)
         
     except Exception:
-        # Se falhar o parsing, retorna a URL original
-        return url
+        # Se falhar o parsing, retornar URL original limpa
+        return url.strip()
 
 
-def _canonicalize_amazon_url(parsed_url) -> str:
-    """
-    Canonicaliza URL da Amazon preservando apenas ASIN e tag de afiliado.
-    """
-    path = parsed_url.path
+def _canonicalize_amazon_url(parsed) -> str:
+    """Canonicaliza URL da Amazon."""
+    # Extrair ASIN do caminho
+    asin_match = re.search(r'/([A-Z0-9]{10})', parsed.path)
+    if asin_match:
+        asin = asin_match.group(1)
+        
+        # Manter tag de afiliado se existir
+        affiliate_tag = None
+        if parsed.query:
+            query_params = parse_qs(parsed.query)
+            # Procurar por parâmetros de afiliado comuns
+            for key in ['tag', 'linkCode', 'ref']:
+                if key in query_params:
+                    affiliate_tag = query_params[key][0]
+                    break
+        
+        # Construir URL canônica
+        canonical_path = f"/dp/{asin}"
+        canonical_query = f"tag={affiliate_tag}" if affiliate_tag else ""
+        
+        return urlunparse((
+            parsed.scheme,
+            parsed.netloc,
+            canonical_path,
+            parsed.params,
+            canonical_query,
+            parsed.fragment
+        ))
     
-    # Extrair ASIN (padrão: /dp/XXXXXXXXXX ou /gp/product/XXXXXXXXXX)
-    asin_match = re.search(r'/(?:dp|gp/product)/([A-Z0-9]{10})', path)
-    if not asin_match:
-        return parsed_url.geturl()
-    
-    asin = asin_match.group(1)
-    
-    # Extrair tag de afiliado dos parâmetros
-    query_params = parse_qs(parsed_url.query)
-    tag = query_params.get('tag', [''])[0]
-    
-    # Construir URL canônica
-    canonical = f"https://{parsed_url.netloc}/dp/{asin}"
-    if tag:
-        canonical += f"?tag={tag}"
-    
-    return canonical
+    # Se não encontrar ASIN, retornar caminho principal
+    return urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        "",  # Sem query
+        ""   # Sem fragment
+    ))
 
 
-def _canonicalize_generic_url(parsed_url) -> str:
-    """
-    Canonicaliza URL genérica removendo parâmetros irrelevantes.
-    """
-    # Parâmetros que devem ser preservados (identificam o produto)
-    relevant_params = {
-        'id', 'product_id', 'produto', 'codigo', 'cod', 'ref', 'reference',
-        'sku', 'ean', 'gtin', 'mpn', 'model', 'variant', 'cor', 'tamanho'
-    }
+def _canonicalize_generic_url(parsed) -> str:
+    """Canonicaliza URL genérica removendo parâmetros de tracking."""
+    # Parâmetros de tracking comuns para remover
+    tracking_params = [
+        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+        'gclid', 'fbclid', 'msclkid', 'ref', 'source', 'campaign',
+        'affiliate', 'partner', 'tracking', 'click'
+    ]
     
-    # Filtrar parâmetros relevantes
-    query_params = parse_qs(parsed_url.query)
-    filtered_params = {}
-    
-    for key, values in query_params.items():
-        if key.lower() in relevant_params:
-            filtered_params[key] = values
-    
-    # Reconstruir query string
-    if filtered_params:
-        query_string = '&'.join([
-            f"{key}={value[0]}" for key, value in filtered_params.items()
-        ])
-        canonical = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}?{query_string}"
+    # Filtrar query parameters
+    if parsed.query:
+        query_params = parse_qs(parsed.query)
+        
+        # Remover parâmetros de tracking
+        filtered_params = {
+            k: v for k, v in query_params.items()
+            if not any(tracking in k.lower() for tracking in tracking_params)
+        }
+        
+        # Reconstruir query string
+        if filtered_params:
+            new_query = "&".join(f"{k}={v[0]}" for k, v in filtered_params.items())
+        else:
+            new_query = ""
     else:
-        canonical = f"{parsed_url.scheme}://{parsed_url.netloc}{parsed_url.path}"
+        new_query = ""
     
-    return canonical
+    return urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        parsed.path,
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
 
 
-def deduplicate_ofertas(ofertas: list, key_func: Optional[callable] = None) -> list:
+def deduplicate_ofertas(ofertas: List[Any]) -> List[Any]:
     """
-    Remove ofertas duplicadas baseado em uma chave de normalização.
+    Remove ofertas duplicadas baseadas em URL canônica e título normalizado.
     
     Args:
         ofertas: Lista de ofertas
-        key_func: Função para gerar chave de normalização (padrão: combina título e URL)
         
     Returns:
         Lista de ofertas sem duplicatas
     """
-    if not key_func:
-        def key_func(oferta):
-            title = normalize_title(oferta.get('titulo', ''))
-            url = canonical_url(oferta.get('url', ''))
-            return f"{title}|{url}"
+    if not ofertas:
+        return []
     
-    seen = set()
-    deduplicated = []
+    # Dicionário para rastrear ofertas únicas
+    unique_ofertas = {}
     
     for oferta in ofertas:
-        key = key_func(oferta)
-        if key not in seen:
-            seen.add(key)
-            deduplicated.append(oferta)
+        # Extrair informações para comparação
+        titulo = getattr(oferta, 'titulo', '') or getattr(oferta, 'title', '')
+        url = getattr(oferta, 'url', '') or getattr(oferta, 'preco', '')
+        
+        # Normalizar para comparação
+        titulo_normalizado = normalize_title(titulo)
+        url_canonica = canonical_url(url)
+        
+        # Criar chave única
+        if url_canonica:
+            key = url_canonica
+        else:
+            key = titulo_normalizado
+        
+        # Se já existe uma oferta com essa chave, decidir qual manter
+        if key in unique_ofertas:
+            existing = unique_ofertas[key]
+            
+            # Preferir a oferta com melhor preço ou mais completa
+            if _should_replace_existing(existing, oferta):
+                unique_ofertas[key] = oferta
+        else:
+            unique_ofertas[key] = oferta
     
-    return deduplicated
+    return list(unique_ofertas.values())
 
 
-def get_deduplication_stats(ofertas: list) -> dict:
+def _should_replace_existing(existing: Any, new: Any) -> bool:
     """
-    Retorna estatísticas de deduplicação.
+    Decide se uma nova oferta deve substituir uma existente.
+    
+    Args:
+        existing: Oferta existente
+        new: Nova oferta
+        
+    Returns:
+        True se deve substituir
+    """
+    # Extrair preços
+    existing_preco = getattr(existing, 'preco', 0) or 0
+    new_preco = getattr(new, 'preco', 0) or 0
+    
+    # Extrair timestamps
+    existing_time = getattr(existing, 'created_at', None)
+    new_time = getattr(new, 'created_at', None)
+    
+    # Preferir preço menor (melhor oferta)
+    if new_preco > 0 and existing_preco > 0:
+        if new_preco < existing_preco:
+            return True
+    
+    # Preferir oferta mais recente
+    if new_time and existing_time:
+        if new_time > existing_time:
+            return True
+    
+    # Preferir oferta com mais informações
+    existing_info = _count_oferta_info(existing)
+    new_info = _count_oferta_info(new)
+    
+    if new_info > existing_info:
+        return True
+    
+    return False
+
+
+def _count_oferta_info(oferta: Any) -> int:
+    """Conta quantas informações úteis uma oferta tem."""
+    info_count = 0
+    
+    # Campos básicos
+    if getattr(oferta, 'titulo', None) or getattr(oferta, 'title', None):
+        info_count += 1
+    if getattr(oferta, 'preco', None):
+        info_count += 1
+    if getattr(oferta, 'url', None):
+        info_count += 1
+    if getattr(oferta, 'imagem_url', None) or getattr(oferta, 'image_url', None):
+        info_count += 1
+    if getattr(oferta, 'loja', None) or getattr(oferta, 'store', None):
+        info_count += 1
+    if getattr(oferta, 'created_at', None):
+        info_count += 1
+    
+    return info_count
+
+
+def get_deduplication_stats(ofertas: List[Any]) -> Dict[str, Any]:
+    """
+    Retorna estatísticas sobre a deduplicação.
     
     Args:
         ofertas: Lista de ofertas
@@ -173,19 +261,95 @@ def get_deduplication_stats(ofertas: list) -> dict:
     Returns:
         Dicionário com estatísticas
     """
-    if not ofertas:
-        return {'total': 0, 'duplicatas': 0, 'unicas': 0, 'reducao_percentual': 0}
+    total = len(ofertas)
+    unicas = len(deduplicate_ofertas(ofertas))
+    duplicatas = total - unicas
     
-    total_original = len(ofertas)
-    ofertas_unicas = deduplicate_ofertas(ofertas)
-    total_unicas = len(ofertas_unicas)
-    duplicatas = total_original - total_unicas
-    
-    reducao_percentual = (duplicatas / total_original * 100) if total_original > 0 else 0
+    reducao_percentual = 0
+    if total > 0:
+        reducao_percentual = round((duplicatas / total) * 100, 1)
     
     return {
-        'total': total_original,
+        'total': total,
+        'unicas': unicas,
         'duplicatas': duplicatas,
-        'unicas': total_unicas,
-        'reducao_percentual': round(reducao_percentual, 2)
+        'reducao_percentual': reducao_percentual
     }
+
+
+def find_similar_ofertas(ofertas: List[Any], threshold: float = 0.8) -> List[List[Any]]:
+    """
+    Encontra grupos de ofertas similares baseadas no título.
+    
+    Args:
+        ofertas: Lista de ofertas
+        threshold: Limiar de similaridade (0.0 a 1.0)
+        
+    Returns:
+        Lista de grupos de ofertas similares
+    """
+    if not ofertas:
+        return []
+    
+    # Normalizar todos os títulos
+    normalized_titles = []
+    for oferta in ofertas:
+        titulo = getattr(oferta, 'titulo', '') or getattr(oferta, 'title', '')
+        normalized_titles.append((oferta, normalize_title(titulo)))
+    
+    # Agrupar por similaridade
+    groups = []
+    used = set()
+    
+    for i, (oferta1, titulo1) in enumerate(normalized_titles):
+        if i in used:
+            continue
+        
+        group = [oferta1]
+        used.add(i)
+        
+        for j, (oferta2, titulo2) in enumerate(normalized_titles[i+1:], i+1):
+            if j in used:
+                continue
+            
+            # Calcular similaridade
+            similarity = _calculate_similarity(titulo1, titulo2)
+            if similarity >= threshold:
+                group.append(oferta2)
+                used.add(j)
+        
+        if len(group) > 1:  # Só incluir grupos com mais de uma oferta
+            groups.append(group)
+    
+    return groups
+
+
+def _calculate_similarity(titulo1: str, titulo2: str) -> float:
+    """
+    Calcula similaridade entre dois títulos normalizados.
+    
+    Args:
+        titulo1: Primeiro título
+        titulo2: Segundo título
+        
+    Returns:
+        Similaridade (0.0 a 1.0)
+    """
+    if not titulo1 or not titulo2:
+        return 0.0
+    
+    # Dividir em palavras
+    words1 = set(titulo1.split())
+    words2 = set(titulo2.split())
+    
+    if not words1 or not words2:
+        return 0.0
+    
+    # Calcular Jaccard similarity
+    intersection = len(words1.intersection(words2))
+    union = len(words1.union(words2))
+    
+    if union == 0:
+        return 0.0
+    
+    return intersection / union
