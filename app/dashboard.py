@@ -7,6 +7,7 @@ import random
 import asyncio
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from typing import Any, Optional, Dict, List, Union
 
 # Adicionar diretório pai ao path para importar core
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -35,18 +36,20 @@ CARD_HEIGHT = 120
 
 # ---------- Importações core ----------
 try:
-    from core import DataService, config_storage, csv_exporter, live_log_reader, Periodo
+    from core import DataService, preferences_storage, csv_exporter, live_log_reader, MetricsAggregator
     from core.scrape_runner import ScrapeRunner
-    from core.metrics import MetricsCollector
     print("Módulos core carregados com sucesso")
 except ImportError as e:
     print(f"Módulos core não encontrados: {e}, usando mock data")
     DataService = None
-    config_storage = None
+    preferences_storage = None
     csv_exporter = None
     live_log_reader = None
     ScrapeRunner = None
-    MetricsCollector = None
+    MetricsAggregator = None
+
+# Compatibilidade
+config_storage = preferences_storage
 
 # ---------- Estado global ----------
 data_service = DataService() if DataService else None
@@ -57,9 +60,9 @@ current_metrics = None
 # Motor de coleta
 scrape_runner = None
 metrics_collector = None
-if ScrapeRunner and MetricsCollector and data_service:
+if ScrapeRunner and MetricsAggregator and data_service:
     try:
-        metrics_collector = MetricsCollector()
+        metrics_collector = MetricsAggregator()
         scrape_runner = ScrapeRunner(data_service, metrics_collector)
         print("✅ Motor de coleta inicializado")
     except Exception as e:
@@ -67,7 +70,7 @@ if ScrapeRunner and MetricsCollector and data_service:
         scrape_runner = None
 
 # ---------- Componentes UI ----------
-def build_header(page: ft.Page) -> ft.Container:
+def build_header(page: ft.Page) -> Any:
     """Header com título e ações"""
     return ft.Container(
         content=ft.Row(
@@ -98,7 +101,7 @@ def build_header(page: ft.Page) -> ft.Container:
         border_radius=RADIUS
     )
 
-def build_metric_card(title: str, value: str, icon: str, key: str = None) -> ft.Container:
+def build_metric_card(title: str, value: str, icon: Any, key: str = None) -> Any:
     """Card de métrica individual"""
     return ft.Container(
         key=key,
@@ -139,7 +142,7 @@ def build_metric_card(title: str, value: str, icon: str, key: str = None) -> ft.
         border=ft.border.all(1, ft.Colors.OUTLINE)
     )
 
-def build_metrics_row() -> ft.ResponsiveRow:
+def build_metrics_row() -> Any:
     """Linha responsiva com cards de métricas"""
     return ft.ResponsiveRow(
         controls=[
@@ -171,7 +174,7 @@ def build_metrics_row() -> ft.ResponsiveRow:
         spacing=SPACING["medium"]
     )
 
-def build_period_filters(page: ft.Page) -> ft.Container:
+def build_period_filters(page: ft.Page) -> Any:
     """Filtros de período"""
     def period_changed(e):
         global current_periodo
@@ -225,7 +228,7 @@ def build_period_filters(page: ft.Page) -> ft.Container:
         border_radius=RADIUS
     )
 
-def build_chart_panel() -> ft.Container:
+def build_chart_panel() -> Any:
     """Painel do gráfico com dados reais e ≥10 pontos"""
     if not current_metrics or not current_metrics.distribuicao_lojas:
         return ft.Container(
@@ -373,18 +376,22 @@ def _get_complement_chart_data(periodo: str, current_count: int) -> List[tuple]:
     # Retornar apenas os dados necessários
     return base_data[:needed]
 
-def build_logs_panel(page: ft.Page) -> ft.Container:
-    """Painel de logs ao vivo"""
+def build_logs_panel(page: ft.Page) -> Any:
+    """Painel de logs ao vivo com altura limitada"""
+    MAX_LINES = 500  # Limite máximo de linhas para evitar crescimento infinito
+    
     logs_list = ft.ListView(
         spacing=SPACING["small"],
-        height=200,  # Altura menor para evitar conflitos de scroll
+        expand=True,  # Ocupa o espaço disponível da aba
         auto_scroll=True,
         key="logs_list"
     )
     
-    # Carregar logs iniciais
+    # Carregar logs iniciais (limitados)
     if live_log_reader:
         initial_logs = live_log_reader.get_current_logs()
+        # Garantir que não exceda o limite
+        initial_logs = initial_logs[-MAX_LINES:] if len(initial_logs) > MAX_LINES else initial_logs
         for log_line in initial_logs:
             logs_list.controls.append(
                 ft.Text(
@@ -416,17 +423,113 @@ def build_logs_panel(page: ft.Page) -> ft.Container:
                         )
                     ]
                 ),
-                logs_list  # Remover Container extra com expand=True
+                logs_list
             ],
             spacing=SPACING["medium"]
         ),
+        expand=True,              # Ocupa o espaço disponível da aba
         padding=ft.padding.all(SPACING["large"]),
         bgcolor=ft.Colors.SURFACE,
         border_radius=RADIUS,
         border=ft.border.all(1, ft.Colors.OUTLINE)
     )
 
-def build_controls_tab(page: ft.Page):
+def build_config_tab(page: ft.Page) -> Any:
+    """Constrói a aba de configurações com toggles de controle"""
+    
+    # Toggles para controle de scroll e logs
+    switch_page_scroll = ft.Switch(
+        label="Bloquear rolagem da página", 
+        value=True,
+        tooltip="Desabilita o scroll da página para evitar conflitos"
+    )
+    
+    switch_logs_autoscroll = ft.Switch(
+        label="Auto-scroll dos logs", 
+        value=True,
+        tooltip="Habilita rolagem automática dos logs"
+    )
+    
+    # Toggles para scrapers/APIs individuais
+    scrapers = ["amazon", "kabum", "aliexpress", "shopee", "magalu", "mercadolivre"]
+    scraper_switches = {}
+    
+    for name in scrapers:
+        scraper_switches[name] = ft.Switch(
+            label=f"Habilitar {name.title()}", 
+            value=True,
+            tooltip=f"Ativa/desativa coleta de {name.title()}"
+        )
+    
+    def on_toggle_page_scroll(e):
+        """Controla o scroll da página"""
+        if switch_page_scroll.value:
+            page.scroll = None  # Bloquear scroll
+        else:
+            page.scroll = ft.ScrollMode.AUTO  # Permitir scroll
+        page.update()
+    
+    def on_toggle_logs_autoscroll(e):
+        """Controla o auto-scroll dos logs"""
+        logs_list = page.get_control("logs_list")
+        if logs_list:
+            logs_list.auto_scroll = switch_logs_autoscroll.value
+            logs_list.update()
+    
+    def apply_scraper_toggle(e):
+        """Aplica as configurações dos scrapers"""
+        enabled = [n for n, sw in scraper_switches.items() if sw.value]
+        # Aqui você pode implementar a lógica para aplicar as configurações
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text(f"Scrapers ativos: {', '.join(enabled)}")
+        )
+        page.snack_bar.open = True
+        page.update()
+    
+    # Conectar eventos
+    switch_page_scroll.on_change = on_toggle_page_scroll
+    switch_logs_autoscroll.on_change = on_toggle_logs_autoscroll
+    
+    return ft.Container(
+        content=ft.Column([
+            ft.Text("Configurações do Sistema", size=20, weight=ft.FontWeight.BOLD),
+            ft.Divider(),
+            
+            # Seção de Controles de Scroll
+            ft.Text("Controles de Rolagem", size=16, weight=ft.FontWeight.W_500),
+            switch_page_scroll,
+            switch_logs_autoscroll,
+            
+            ft.Divider(),
+            
+            # Seção de Scrapers
+            ft.Text("Fontes de Dados", size=16, weight=ft.FontWeight.W_500),
+            ft.Text("Habilite/desabilite as fontes de coleta:", size=12),
+            
+            # Grid de switches dos scrapers
+            ft.Row([
+                ft.Column([
+                    scraper_switches[name] for name in scrapers[:3]
+                ]),
+                ft.Column([
+                    scraper_switches[name] for name in scrapers[3:]
+                ])
+            ]),
+            
+            ft.ElevatedButton(
+                "Aplicar Configurações",
+                on_click=apply_scraper_toggle,
+                icon=ft.Icons.SAVE
+            )
+        ],
+        spacing=SPACING["medium"],
+        scroll=ft.ScrollMode.AUTO  # Scroll apenas nesta aba
+        ),
+        padding=ft.padding.all(SPACING["large"]),
+        expand=True
+    )
+
+def build_controls_tab(page: ft.Page) -> Any:
     """Constrói a aba de controles com motor de coleta"""
     try:
         from ui.controls_tab import create_controls_tab
@@ -449,7 +552,7 @@ def build_controls_tab(page: ft.Page):
             padding=ft.padding.all(SPACING["large"])
         )
 
-def build_tabs(page: ft.Page) -> ft.Tabs:
+def build_tabs(page: ft.Page) -> Any:
     """Abas do dashboard"""
     return ft.Tabs(
         key="tabs",
@@ -470,10 +573,7 @@ def build_tabs(page: ft.Page) -> ft.Tabs:
             ),
             ft.Tab(
                 text="Configurações",
-                content=ft.Container(
-                    content=ft.Text("Configurações em desenvolvimento..."),
-                    padding=ft.padding.all(SPACING["large"])
-                )
+                content=build_config_tab(page)
             ),
             ft.Tab(
                 text="Controles",
@@ -507,7 +607,7 @@ async def load_data_for_period(periodo: str, page: ft.Page):
         
         # Salvar preferência do usuário
         if config_storage:
-            config_storage.update_preference("last_selected_period", periodo)
+            config_storage.set_preference("last_selected_period", periodo)
         
     except Exception as e:
         print(f"Erro ao carregar dados: {e}")
@@ -518,9 +618,9 @@ async def load_data_for_period(periodo: str, page: ft.Page):
         
         # Mostrar erro na UI
         if page:
-            page.show_snack_bar(
-                ft.SnackBar(content=ft.Text(f"Erro ao carregar dados: {e}"))
-            )
+            page.snack_bar = ft.SnackBar(content=ft.Text(f"Erro ao carregar dados: {e}"))
+            page.snack_bar.open = True
+            page.update()
 
 def _get_mock_ofertas(periodo: str) -> list:
     """Gera ofertas mock determinísticas"""
@@ -656,22 +756,22 @@ async def export_csv_clicked(page: ft.Page):
             filepath = csv_exporter.export_ofertas(current_ofertas)
             
             # Mostrar notificação de sucesso
-            page.show_snack_bar(
-                ft.SnackBar(
-                    content=ft.Text(f"CSV exportado com sucesso: {Path(filepath).name}"),
-                    action="Abrir pasta",
-                    on_action=lambda e: open_export_folder()
-                )
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text(f"CSV exportado com sucesso: {Path(filepath).name}"),
+                action="Abrir pasta",
+                on_action=lambda e: open_export_folder()
             )
+            page.snack_bar.open = True
+            page.update()
         else:
-            page.show_snack_bar(
-                ft.SnackBar(content=ft.Text("Nenhum dado para exportar"))
-            )
+            page.snack_bar = ft.SnackBar(content=ft.Text("Nenhum dado para exportar"))
+            page.snack_bar.open = True
+            page.update()
     except Exception as e:
         print(f"Erro ao exportar CSV: {e}")
-        page.show_snack_bar(
-            ft.SnackBar(content=ft.Text(f"Erro ao exportar CSV: {e}"))
-        )
+        page.snack_bar = ft.SnackBar(content=ft.Text(f"Erro ao exportar CSV: {e}"))
+        page.snack_bar.open = True
+        page.update()
 
 def open_export_folder():
     """Abre a pasta de exportação"""
@@ -704,8 +804,13 @@ async def clear_logs(page: ft.Page):
         await update_logs_ui(page, ["Logs limpos..."])
 
 async def update_logs_ui(page: ft.Page, logs: list):
-    """Atualiza a UI dos logs"""
+    """Atualiza a UI dos logs com limite de linhas"""
+    MAX_LINES = 500  # Limite máximo para evitar crescimento infinito
+    
     try:
+        # Limitar logs às últimas MAX_LINES para evitar crescimento infinito
+        limited_logs = logs[-MAX_LINES:] if len(logs) > MAX_LINES else logs
+        
         # Encontrar lista de logs e atualizar
         for control in page.controls:
             if isinstance(control, ft.Column):
@@ -722,7 +827,7 @@ async def update_logs_ui(page: ft.Page, logs: list):
                                         for grandchild in logs_panel.content.controls:
                                             if hasattr(grandchild, 'key') and grandchild.key == "logs_list":
                                                 grandchild.controls.clear()
-                                                for log_line in logs:
+                                                for log_line in limited_logs:
                                                     grandchild.controls.append(
                                                         ft.Text(
                                                             log_line.strip(),
@@ -761,18 +866,18 @@ async def main(page: ft.Page):
         default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
-    # Construir interface com scroll controlado
-    main_content = ft.Column([
-        build_header(page),
-        build_tabs(page)
-    ], 
-    tight=True,  # Evitar expansão desnecessária
-    spacing=SPACING["medium"],
-    scroll=ft.ScrollMode.AUTO,  # Scroll apenas nesta coluna
-    height=580  # Altura fixa para evitar scroll infinito
+    # Construir interface com layout estável (sem scroll aninhado)
+    root = ft.Column([
+        build_header(page),  # altura fixa / automática
+        ft.Container(  # CONTEÚDO PRINCIPAL
+            expand=True,               # ocupa o resto da tela
+            content=build_tabs(page),
+        ),
+    ],
+    expand=True,
     )
     
-    page.add(main_content)
+    page.add(root)
     
     # Carregar dados iniciais
     await load_data_for_period(current_periodo, page)

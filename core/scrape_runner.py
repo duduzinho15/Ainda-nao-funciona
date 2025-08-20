@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from .data_service import DataService
-from .metrics import MetricsCollector
+from .metrics import MetricsAggregator
 
 
 @dataclass
@@ -36,7 +36,7 @@ class ScrapeRunner:
     - status() -> dict
     """
     
-    def __init__(self, data_service: DataService, metrics_collector: MetricsCollector):
+    def __init__(self, data_service: DataService, metrics_collector: MetricsAggregator):
         self.data_service = data_service
         self.metrics_collector = metrics_collector
         self.status = ScrapingStatus()
