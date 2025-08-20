@@ -296,3 +296,4 @@ class ScraperRegistry:
 
 # Instância global
 scraper_registry = ScraperRegistry()
+
