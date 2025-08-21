@@ -502,7 +502,7 @@ def build_config_tab(page: ft.Page) -> Any:
     switch_page_scroll.on_change = on_toggle_page_scroll
     switch_logs_autoscroll.on_change = on_toggle_logs_autoscroll
     
-    return ft.Column([
+    return [
         ft.Text("Configurações do Sistema", size=20, weight=ft.FontWeight.BOLD),
         ft.Divider(),
         
@@ -532,10 +532,7 @@ def build_config_tab(page: ft.Page) -> Any:
             on_click=apply_scraper_toggle,
             icon=ft.Icons.SAVE
         )
-    ],
-    spacing=SPACING["medium"],
-    scroll=ft.ScrollMode.AUTO  # Scroll apenas nesta aba
-    )
+    ]
 
 def build_controls_tab(page: ft.Page) -> Any:
     """Constrói a aba de controles com motor de coleta"""
