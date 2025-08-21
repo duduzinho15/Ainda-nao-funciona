@@ -502,43 +502,39 @@ def build_config_tab(page: ft.Page) -> Any:
     switch_page_scroll.on_change = on_toggle_page_scroll
     switch_logs_autoscroll.on_change = on_toggle_logs_autoscroll
     
-    return ft.Container(
-        content=ft.Column([
-            ft.Text("Configurações do Sistema", size=20, weight=ft.FontWeight.BOLD),
-            ft.Divider(),
-            
-            # Seção de Controles de Scroll
-            ft.Text("Controles de Rolagem", size=16, weight=ft.FontWeight.W_500),
-            switch_page_scroll,
-            switch_logs_autoscroll,
-            
-            ft.Divider(),
-            
-            # Seção de Scrapers
-            ft.Text("Fontes de Dados", size=16, weight=ft.FontWeight.W_500),
-            ft.Text("Habilite/desabilite as fontes de coleta:", size=12),
-            
-            # Grid de switches dos scrapers
-            ft.Row([
-                ft.Column([
-                    scraper_switches[name] for name in scrapers[:3]
-                ]),
-                ft.Column([
-                    scraper_switches[name] for name in scrapers[3:]
-                ])
+    return ft.Column([
+        ft.Text("Configurações do Sistema", size=20, weight=ft.FontWeight.BOLD),
+        ft.Divider(),
+        
+        # Seção de Controles de Scroll
+        ft.Text("Controles de Rolagem", size=16, weight=ft.FontWeight.W_500),
+        switch_page_scroll,
+        switch_logs_autoscroll,
+        
+        ft.Divider(),
+        
+        # Seção de Scrapers
+        ft.Text("Fontes de Dados", size=16, weight=ft.FontWeight.W_500),
+        ft.Text("Habilite/desabilite as fontes de coleta:", size=12),
+        
+        # Grid de switches dos scrapers
+        ft.Row([
+            ft.Column([
+                scraper_switches[name] for name in scrapers[:3]
             ]),
-            
-            ft.ElevatedButton(
-                "Aplicar Configurações",
-                on_click=apply_scraper_toggle,
-                icon=ft.Icons.SAVE
-            )
-        ],
-        spacing=SPACING["medium"],
-        scroll=ft.ScrollMode.AUTO  # Scroll apenas nesta aba
-        ),
-        padding=ft.padding.all(SPACING["large"]),
-        expand=True
+            ft.Column([
+                scraper_switches[name] for name in scrapers[3:]
+            ])
+        ]),
+        
+        ft.ElevatedButton(
+            "Aplicar Configurações",
+            on_click=apply_scraper_toggle,
+            icon=ft.Icons.SAVE
+        )
+    ],
+    spacing=SPACING["medium"],
+    scroll=ft.ScrollMode.AUTO  # Scroll apenas nesta aba
     )
 
 def build_controls_tab(page: ft.Page) -> Any:
@@ -547,15 +543,24 @@ def build_controls_tab(page: ft.Page) -> Any:
         from ui.controls_tab import create_controls_tab
         
         # Criar aba de controles usando o módulo UI
-        return create_controls_tab(page)
+        controls = create_controls_tab(page)
+        
+        # Se retornar um container, extrair os controles
+        if hasattr(controls, 'content') and hasattr(controls.content, 'controls'):
+            return controls.content.controls
+        elif hasattr(controls, 'controls'):
+            return controls.controls
+        else:
+            # Fallback: converter para lista se for um container simples
+            return [controls]
         
     except ImportError as e:
         print(f"Erro ao importar controles: {e}")
         # Fallback: aba simples com mensagem de erro
-        return ft.Container(
+        return [ft.Container(
             content=ft.Text("Erro ao carregar controles"),
             padding=ft.padding.all(SPACING["large"])
-        )
+        )]
 
 def build_tabs(page: ft.Page) -> Any:
     """Abas do dashboard com scroll controlado por aba"""
@@ -600,16 +605,22 @@ def build_tabs(page: ft.Page) -> Any:
                             ),
                             build_period_filters(page),
                             # Gráfico com altura fixa (evita empurrar tudo pra baixo)
-                            ft.Container(height=320, content=build_chart_panel()),
-                            # Logs com scroll interno
+                            ft.Container(
+                                height=320, 
+                                content=build_chart_panel(),
+                                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                            ),
+                            # Logs com scroll interno e altura fixa
                             ft.Container(
                                 height=200,  # Altura controlada para o painel de logs
                                 content=build_logs_panel(page),
                                 clip_behavior=ft.ClipBehavior.HARD_EDGE,
                             ),
                         ],
-                        spacing=SPACING["medium"]
+                        spacing=SPACING["medium"],
+                        scroll=ft.ScrollMode.AUTO,  # Scroll interno da coluna
                     ),
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
             ),
             ft.Tab(
@@ -619,25 +630,37 @@ def build_tabs(page: ft.Page) -> Any:
                         key="logs_lv",
                         auto_scroll=True,   # rola só aqui
                         spacing=6,
+                        height=400,  # Altura fixa para evitar crescimento
                     ),
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    height=450,  # Altura fixa do container
                 ),
             ),
             ft.Tab(
                 text="Configurações",
                 content=ft.Container(
-                    content=build_config_tab(page),
+                    content=ft.Column(
+                        controls=build_config_tab(page),
+                        scroll=ft.ScrollMode.AUTO,
+                        height=400,  # Altura fixa
+                    ),
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    height=450,  # Altura fixa do container
                 ),
             ),
             ft.Tab(
                 text="Controles",
                 content=ft.Container(
-                    content=build_controls_tab(page) if scrape_runner else ft.Container(
-                        content=ft.Text("Motor de coleta não disponível"),
-                        padding=ft.padding.all(SPACING["large"])
+                    content=ft.Column(
+                        controls=build_controls_tab(page) if scrape_runner else [ft.Container(
+                            content=ft.Text("Motor de coleta não disponível"),
+                            padding=ft.padding.all(SPACING["large"])
+                        )],
+                        scroll=ft.ScrollMode.AUTO,
+                        height=400,  # Altura fixa
                     ),
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                    height=450,  # Altura fixa do container
                 ),
             )
         ]
