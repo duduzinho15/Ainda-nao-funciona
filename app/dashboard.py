@@ -568,8 +568,36 @@ def build_tabs(page: ft.Page) -> Any:
                 content=ft.Container(
                     content=ft.Column(
                         controls=[
-                            # Cards sem expand (altura automática)
-                            build_metrics_row(),
+                            # Cards em Row simples (sem ResponsiveRow para evitar crescimento infinito)
+                            ft.Row(
+                                controls=[
+                                    build_metric_card(
+                                        "Ofertas",
+                                        str(current_metrics.total_ofertas if current_metrics else 0),
+                                        ft.Icons.SHOPPING_CART,
+                                        "card_ofertas"
+                                    ),
+                                    build_metric_card(
+                                        "Lojas Ativas",
+                                        str(current_metrics.lojas_ativas if current_metrics else 0),
+                                        ft.Icons.STORE,
+                                        "card_lojas"
+                                    ),
+                                    build_metric_card(
+                                        "Preço Médio",
+                                        current_metrics.preco_medio_formatado() if current_metrics else "R$ 0,00",
+                                        ft.Icons.ATTACH_MONEY,
+                                        "card_preco"
+                                    ),
+                                    build_metric_card(
+                                        "Período",
+                                        current_periodo.upper(),
+                                        ft.Icons.SCHEDULE,
+                                        "card_periodo"
+                                    )
+                                ],
+                                spacing=SPACING["medium"]
+                            ),
                             build_period_filters(page),
                             # Gráfico com altura fixa (evita empurrar tudo pra baixo)
                             ft.Container(height=320, content=build_chart_panel()),
@@ -637,7 +665,7 @@ async def load_data_for_period(periodo: str, page: ft.Page):
         
         # Salvar preferência do usuário
         if config_storage:
-            config_storage.set_preference("last_selected_period", periodo)
+            config_storage.set_preference("last_period", periodo)
         
     except Exception as e:
         print(f"Erro ao carregar dados: {e}")
@@ -770,7 +798,7 @@ def toggle_theme(page: ft.Page):
     
     # Salvar preferência
     if config_storage:
-        config_storage.update_preference("theme", theme_value)
+        config_storage.set_preference("theme", theme_value)
     
     page.update()
 
@@ -885,7 +913,7 @@ async def main(page: ft.Page):
     page.padding = 20
     page.spacing = SPACING["large"]
     
-    # Configurar scroll da página - SOLUÇÃO SIMPLES E FUNCIONAL
+    # Configurar scroll da página - SOLUÇÃO DEFINITIVA
     page.scroll = ft.ScrollMode.AUTO
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
@@ -898,7 +926,7 @@ async def main(page: ft.Page):
         elif theme_pref == "dark":
             page.theme_mode = ft.ThemeMode.DARK
         
-        default_period = config_storage.get_preference("last_selected_period", "7d")
+        default_period = config_storage.get_preference("last_period", "7d")
         current_periodo = default_period
     
     # Construir interface de forma simples e direta
