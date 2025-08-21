@@ -1,0 +1,58 @@
+{
+  "collaborative_filter": {
+    "user_ids": [],
+    "product_ids": [
+      1
+    ],
+    "rating_matrix": "[]",
+    "user_similarity": "[]",
+    "trained_at": "2025-08-21T07:11:44.936321"
+  },
+  "content_based_filter": {
+    "product_features": [
+      {
+        "id": 1,
+        "category": "Teste",
+        "store": "Loja Teste",
+        "brand": null,
+        "price_range": "medium",
+        "discount_level": "medium"
+      }
+    ],
+    "product_similarity": {
+      "1": {}
+    },
+    "trained_at": "2025-08-21T07:11:44.936337"
+  },
+  "user_profiles": {},
+  "product_embeddings": {
+    "1": {
+      "embedding": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0999,
+        0.23094688221709006
+      ],
+      "features": {
+        "id": 1,
+        "title": "Produto Teste",
+        "category": "Teste",
+        "store": "Loja Teste",
+        "brand": null,
+        "price": 99.9,
+        "original_price": 129.9
+      }
+    }
+  },
+  "trained_at": "2025-08-21T07:11:44.936351"
+}

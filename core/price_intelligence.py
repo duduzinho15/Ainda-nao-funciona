@@ -16,8 +16,13 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 # Importações locais
-from .database import get_session, Offer, PriceHistory
-from .price_parser import parse_price
+try:
+    from .database import get_session, Offer, PriceHistory
+    from .price_parser import parse_price
+except ImportError:
+    # Para teste direto
+    from database import get_session, Offer, PriceHistory
+    from price_parser import parse_price
 
 logger = logging.getLogger(__name__)
 
