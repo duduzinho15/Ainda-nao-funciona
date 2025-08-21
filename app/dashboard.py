@@ -412,7 +412,7 @@ def build_logs_panel(page: ft.Page) -> Any:
     
     return ft.Container(
         key="logs",
-        height=360,  # Altura fixa para evitar scroll infinito
+        height=200,  # Altura fixa para evitar scroll infinito
         content=ft.Column(
             controls=[
                 ft.Row(
@@ -433,6 +433,7 @@ def build_logs_panel(page: ft.Page) -> Any:
                     ]
                 ),
                 ft.Container(
+                    height=150,  # Altura fixa para a lista de logs
                     content=logs_list,
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 )
@@ -565,6 +566,7 @@ def build_tabs(page: ft.Page) -> Any:
             ft.Tab(
                 text="Dashboard",
                 content=ft.Container(
+                    height=600,  # Altura fixa para evitar crescimento infinito
                     content=ft.Column(
                         controls=[
                             # Cards sem expand (altura automática)
@@ -574,18 +576,19 @@ def build_tabs(page: ft.Page) -> Any:
                             ft.Container(height=320, content=build_chart_panel()),
                             # Logs com scroll interno
                             ft.Container(
-                                height=360,
+                                height=200,  # Altura reduzida para caber no container
                                 content=build_logs_panel(page)
                             ),
                         ],
                         spacing=SPACING["medium"]
                     ),
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
             ),
             ft.Tab(
                 text="Logs",
                 content=ft.Container(
-                    height=360,  # Altura fixa para evitar scroll infinito
+                    height=600,  # Altura fixa para evitar scroll infinito
                     content=ft.ListView(
                         key="logs_lv",
                         auto_scroll=True,   # rola só aqui
@@ -597,16 +600,20 @@ def build_tabs(page: ft.Page) -> Any:
             ft.Tab(
                 text="Configurações",
                 content=ft.Container(
-                    content=build_config_tab(page)
+                    height=600,  # Altura fixa
+                    content=build_config_tab(page),
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
             ),
             ft.Tab(
                 text="Controles",
                 content=ft.Container(
+                    height=600,  # Altura fixa
                     content=build_controls_tab(page) if scrape_runner else ft.Container(
                         content=ft.Text("Motor de coleta não disponível"),
                         padding=ft.padding.all(SPACING["large"])
-                    )
+                    ),
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
             )
         ]
@@ -882,7 +889,7 @@ async def main(page: ft.Page):
     page.padding = 20
     page.spacing = SPACING["large"]
     
-    # Configurar scroll da página - SOLUÇÃO SIMPLES E FUNCIONAL
+    # Configurar scroll da página - SOLUÇÃO ROBUSTA
     page.scroll = ft.ScrollMode.AUTO
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
@@ -898,13 +905,25 @@ async def main(page: ft.Page):
         default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
-    # Construir interface diretamente na página - SEM VIEWPORT COMPLEXO
+    # Construir interface com scroll controlado
     header = build_header(page)
-    tabs = build_tabs(page)
     
-    # Adicionar componentes diretamente na página
-    page.add(header)
-    page.add(tabs)
+    # Container principal com altura máxima e scroll interno
+    main_content = ft.Container(
+        content=ft.Column(
+            controls=[
+                header,
+                build_tabs(page)
+            ],
+            spacing=SPACING["large"]
+        ),
+        # Altura máxima para evitar crescimento infinito
+        height=page.height - 100,  # Deixar espaço para padding
+        clip_behavior=ft.ClipBehavior.HARD_EDGE,
+    )
+    
+    # Adicionar componentes na página
+    page.add(main_content)
     
     # Carregar dados iniciais
     await load_data_for_period(current_periodo, page)
