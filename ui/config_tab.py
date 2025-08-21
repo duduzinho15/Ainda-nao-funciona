@@ -3,15 +3,15 @@ Aba de configurações do dashboard Garimpeiro Geek.
 """
 
 import flet as ft
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 from core.settings import SystemConfig
-from core.storage import ConfigStorage
+from core.storage import PreferencesStorage
 
 
 def create_config_tab(
-    config_storage: ConfigStorage,
+    config_storage: PreferencesStorage,
     on_config_changed: Optional[Callable[[SystemConfig], None]] = None,
-) -> ft.Control:
+) -> Any:
     """Cria a aba de configurações do sistema."""
     
     # Estado (será implementado quando necessário)

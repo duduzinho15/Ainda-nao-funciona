@@ -150,6 +150,32 @@ def _acceptance_checks(idx: Dict[str, Any], nodes: List) -> Dict[str, bool]:
     else:
         checks["grafico_tem_10_pontos"] = False
     
+    # Novos checks para controles robustos
+    # Toggle global presente na aba de controles
+    controls_tab = None
+    for n in nodes:
+        if n.__class__.__name__ == "Tab" and getattr(n, "text", "") == "Controles":
+            controls_tab = n
+            break
+    
+    if controls_tab:
+        controls_nodes = _flatten(controls_tab)
+        # Verificar se há toggle global
+        master_switches = [n for n in controls_nodes if n.__class__.__name__ == "Switch" and "toggle_master" in str(getattr(n, "key", ""))]
+        checks["has_global_toggle_on_controls"] = len(master_switches) > 0
+        
+        # Verificar se há pelo menos 5 toggles de fonte
+        source_switches = [n for n in controls_nodes if n.__class__.__name__ == "Switch" and "toggle_src_" in str(getattr(n, "key", ""))]
+        checks["per_source_toggles_present"] = len(source_switches) >= 5
+        
+        # Verificar se há indicador de status do runner
+        status_texts = [n for n in controls_nodes if n.__class__.__name__ == "Text" and "Status:" in str(getattr(n, "value", ""))]
+        checks["runner_status_visible"] = len(status_texts) > 0
+    else:
+        checks["has_global_toggle_on_controls"] = False
+        checks["per_source_toggles_present"] = False
+        checks["runner_status_visible"] = False
+    
     return checks
 
 def _ascii_snapshot(page, nodes: List, idx: Dict[str, Any]) -> str:
@@ -224,6 +250,37 @@ def emit_junit_xml(summary: dict, path: str) -> None:
             fail.text = summary.get("snapshot", "")[:50000]  # snapshot parcial ajuda no debug
     ET.ElementTree(ts).write(path, encoding="utf-8", xml_declaration=True)
 
+def _normalize_snapshot_for_ci(snapshot: str) -> str:
+    """
+    Normaliza snapshot para CI removendo valores dinâmicos como timestamps.
+    Isso garante que snapshots sejam determinísticos entre execuções.
+    """
+    import re
+    
+    # Remover timestamps de "Última execução"
+    snapshot = re.sub(
+        r'Última execução: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',
+        'Última execução: <TIMESTAMP>',
+        snapshot
+    )
+    
+    # Remover timestamps ISO
+    snapshot = re.sub(
+        r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+',
+        '<TIMESTAMP>',
+        snapshot
+    )
+    
+    # Remover contadores de ticks específicos (manter estrutura)
+    snapshot = re.sub(
+        r'Ticks: \d+',
+        'Ticks: <N>',
+        snapshot
+    )
+    
+    return snapshot
+
+
 def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_snapshot.txt") -> Dict[str, Any]:
     nodes = []
     for root in getattr(page, "controls", []):
@@ -239,6 +296,9 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
 
     checks = _acceptance_checks(idx, nodes)
     ascii_view = _ascii_snapshot(page, nodes, idx)
+    
+    # Normalizar snapshot para CI (determinístico)
+    ascii_view_normalized = _normalize_snapshot_for_ci(ascii_view)
 
     # Para JSON, não usar rich para evitar problemas de encoding
     if HAVE_RICH and not json_summary:
@@ -258,7 +318,7 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
         stats.add_row("Top tipos", ", ".join(f"{k}({v})" for k,v in types.most_common(6)))
 
         rprint(Panel.fit(stats, title="Garimpeiro Geek – UI Reporter"))
-        rprint(Panel.fit(ascii_view, title="Snapshot visual (ASCII)"))
+        rprint(Panel.fit(ascii_view_normalized, title="Snapshot visual (ASCII)"))
         rprint(Panel(r, title="Árvore de controles"))
 
         chk = Table(title="Checks de aceite")
@@ -271,7 +331,7 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
         print(f"Flet: {flet_ver}")
         print(f"Tipos de controle: {dict(types.most_common(6))}")
         print("\n--- Snapshot visual ---")
-        print(ascii_view)
+        print(ascii_view_normalized)
         print("--- Checks ---")
         for k, v in checks.items():
             print(f"{k}: {'OK' if v else 'FALHOU'}")
@@ -279,7 +339,7 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
     if filepath:
         try:
             with open(filepath, "w", encoding="utf-8") as f:
-                f.write(ascii_view + "\n\n")
+                f.write(ascii_view_normalized + "\n\n")
                 f.write("CHECKS:\n")
                 for k, v in checks.items():
                     f.write(f"- {k}: {'OK' if v else 'FALHOU'}\n")
@@ -291,7 +351,7 @@ def dump_report(page, *, json_summary: bool = False, filepath: str | None = "ui_
         "control_types": dict(types),
         "checks": checks,
         "has_rich": HAVE_RICH,
-        "snapshot": ascii_view,
+        "snapshot": ascii_view_normalized,
         "output_file": filepath,
     }
     if json_summary:

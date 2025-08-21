@@ -1,0 +1,26 @@
+{
+  "global_enabled": true,
+  "sources": {
+    "amazon_scraper": true,
+    "magalu_scraper": true,
+    "shopee_scraper": true,
+    "aliexpress_scraper": true,
+    "promobit_scraper": true,
+    "pelando_scraper": true,
+    "meupc_scraper": true,
+    "buscape_scraper": true,
+    "casas_bahia_scraper": true,
+    "fast_shop_scraper": true,
+    "ricardo_eletro_scraper": true,
+    "ponto_frio_scraper": true,
+    "scrapers.submarino_scraper": true,
+    "scrapers.americanas_scraper": true,
+    "scrapers.kabum_scraper": true,
+    "scrapers.magalu_scraper": true,
+    "scrapers.aliexpress_scraper": true,
+    "scrapers.mercadolivre_scraper": true,
+    "providers.mercadolivre_api": true
+  },
+  "updated_at": "2025-08-20T19:38:53.790711",
+  "created_at": "2025-08-20T19:38:53.790493"
+}

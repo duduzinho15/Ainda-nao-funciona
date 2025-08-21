@@ -4,9 +4,11 @@ Aba de controles do dashboard com toggle mestre e toggles por fonte.
 
 from __future__ import annotations
 import flet as ft
+import os
 from core.storage import PreferencesStorage
 from core import scraper_registry as reg
 from core import scrape_runner as runner
+from core.scrapers_config import get_global_enabled, set_global_enabled, get_enabled_map, set_source_enabled, is_scraping_allowed
 
 
 def create_controls_tab(page: ft.Page) -> ft.Container:
@@ -16,26 +18,41 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
     # Garante runner e overrides carregados
     runner.init_runner(storage)
 
+    # Verificar permissões
+    allow_scraping = is_scraping_allowed()
+    is_ci = bool(os.getenv("GG_SEED")) and bool(os.getenv("GG_FREEZE_TIME"))
+    
     # Toggle mestre
     master_switch = ft.Switch(
         key="toggle_master",
         label="Sistema de coleta (ligar/desligar)",
-        value=runner.get_master_enabled(),
-        tooltip="Controla se o sistema de coleta está ativo"
+        value=get_global_enabled() and allow_scraping and not is_ci,
+        disabled=(not allow_scraping) or is_ci,
+        tooltip="Controla se o sistema de coleta está ativo" + 
+                (" - Bloqueado por ambiente" if not allow_scraping else "") +
+                (" - Modo CI" if is_ci else "")
     )
 
     def on_master_change(e: ft.ControlEvent):
         """Callback para mudança do toggle mestre."""
-        runner.set_master_enabled(master_switch.value)
-        if master_switch.value and not runner.is_running():
-            runner.start_scraping()
-        if not master_switch.value and runner.is_running():
-            runner.stop_scraping()
+        if not allow_scraping or is_ci:
+            return
+            
+        set_global_enabled(master_switch.value)
         
-        # Mostrar feedback
-        page.snack_bar = ft.SnackBar(
-            content=ft.Text("Sistema: " + ("Ligado" if master_switch.value else "Desligado"))
-        )
+        if master_switch.value and not runner.is_running():
+            # Iniciar scraping
+            page.run_task(runner.start_scraping("7d", 10.0))
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("🟢 Sistema iniciado - scraping ativo")
+            )
+        elif not master_switch.value and runner.is_running():
+            # Parar scraping
+            page.run_task(runner.stop_scraping())
+            page.snack_bar = ft.SnackBar(
+                content=ft.Text("🔴 Sistema parado - scraping inativo")
+            )
+        
         page.snack_bar.open = True
         page.update()
 
@@ -43,7 +60,7 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
 
     # Lista de fontes
     sources = reg.list_sources()
-    compliance_off = not reg.scraping_allowed()
+    compliance_off = not allow_scraping or is_ci
     tooltip = "Desativado em modo CI ou sem GG_ALLOW_SCRAPING=1" if compliance_off else None
 
     rows: list[ft.Control] = []
@@ -54,10 +71,11 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
         names.append(name)
         
         # Criar switch para cada fonte
+        enabled_map = get_enabled_map()
         sw = ft.Switch(
             key=f"toggle_src_{name}",
             label=f"{name} (prioridade: {s['priority']})",
-            value=s["enabled_effective"],
+            value=enabled_map.get(name, True) and allow_scraping and not is_ci,
             disabled=compliance_off,
             tooltip=tooltip,
         )
@@ -65,6 +83,9 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
         def _make_handler(src_name: str):
             """Cria handler para mudança de fonte específica."""
             def _h(e: ft.ControlEvent):
+                if not allow_scraping or is_ci:
+                    return
+                set_source_enabled(src_name, e.control.value)
                 reg.set_enabled(src_name, e.control.value, storage=storage)
                 page.snack_bar = ft.SnackBar(
                     content=ft.Text(f"Fonte '{src_name}': " + ("ativada" if e.control.value else "desativada"))
@@ -75,7 +96,20 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
 
         sw.on_change = _make_handler(name)
         
-        # Criar linha com switch e informações
+        # Botão de teste para a fonte
+        test_btn = ft.ElevatedButton(
+            "Testar",
+            key=f"test_btn_{name}",
+            on_click=lambda e, src_name=name: _test_source(e, src_name),
+            disabled=compliance_off,
+            tooltip=f"Testar fonte {name}",
+            style=ft.ButtonStyle(
+                color=ft.Colors.ON_PRIMARY,
+                bgcolor=ft.Colors.PRIMARY
+            )
+        )
+        
+        # Criar linha com switch, informações e botão de teste
         row = ft.Row([
             sw,
             ft.Container(
@@ -85,7 +119,8 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
                     color=ft.Colors.ON_SURFACE_VARIANT
                 ),
                 expand=True
-            )
+            ),
+            test_btn
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         
         rows.append(row)
@@ -93,6 +128,14 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
     # Ações em massa
     def bulk_set(val: bool):
         """Define todas as fontes de uma vez."""
+        if not allow_scraping or is_ci:
+            return
+            
+        # Atualizar configuração
+        for name in names:
+            set_source_enabled(name, val)
+        
+        # Atualizar registry
         reg.set_all_enabled(names, val, storage=storage)
         
         # Atualiza switches na tela
@@ -121,17 +164,86 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
         on_click=lambda e: bulk_set(False),
         tooltip="Desativa todas as fontes"
     )
+    
+    def _test_source(e, src_name: str):
+        """Testa uma fonte específica."""
+        if not allow_scraping or is_ci:
+            return
+            
+        # Mostrar loading
+        page.snack_bar = ft.SnackBar(
+            content=ft.Text(f"🧪 Testando fonte {src_name}...")
+        )
+        page.snack_bar.open = True
+        page.update()
+        
+        # Executar teste assíncrono
+        async def run_test():
+            try:
+                from core import scraper_registry as reg
+                result = reg.smoke_test_source(src_name, timeout=15.0)
+                
+                if result.get('success', False):
+                    items = result.get('items_found', 0)
+                    duration = result.get('duration', 0)
+                    message = f"✅ {src_name}: {items} itens em {duration:.1f}s"
+                    color = ft.Colors.GREEN
+                else:
+                    error = result.get('error', 'Erro desconhecido')
+                    message = f"❌ {src_name}: {error}"
+                    color = ft.Colors.RED
+                
+                # Mostrar resultado
+                page.snack_bar = ft.SnackBar(
+                    content=ft.Text(message, color=color)
+                )
+                page.snack_bar.open = True
+                page.update()
+                
+            except Exception as e:
+                page.snack_bar = ft.SnackBar(
+                    content=ft.Text(f"❌ Erro ao testar {src_name}: {e}")
+                )
+                page.snack_bar.open = True
+                page.update()
+        
+        page.run_task(run_test())
 
     # Status do sistema
+    def get_runner_status():
+        """Obtém status atual do runner."""
+        try:
+            status = runner.get_status()
+            return status
+        except:
+            return {"running": False, "last_run": None, "tick": 0}
+    
+    status_data = get_runner_status()
+    
+    # Status visual com cor
+    status_color = ft.Colors.GREEN if status_data.get("running", False) else ft.Colors.RED
     status_text = ft.Text(
-        f"Status: {runner.status().title()}",
+        f"Status: {'Running' if status_data.get('running', False) else 'Stopped'}",
         size=14,
         weight=ft.FontWeight.W_500,
-        color=ft.Colors.PRIMARY
+        color=status_color
+    )
+    
+    # Última execução
+    last_run_text = ft.Text(
+        f"Última execução: {status_data.get('last_run', 'Nunca')}",
+        size=12,
+        color=ft.Colors.ON_SURFACE_VARIANT
+    )
+    
+    # Contador de ticks
+    tick_text = ft.Text(
+        f"Ticks: {status_data.get('tick', 0)}",
+        size=12,
+        color=ft.Colors.ON_SURFACE_VARIANT
     )
 
     return ft.Container(
-        expand=True,
         content=ft.Column(
             expand=True,
             controls=[
@@ -144,6 +256,12 @@ def create_controls_tab(page: ft.Page) -> ft.Container:
                 ft.Row([
                     master_switch,
                     status_text
+                ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+                
+                # Informações de status
+                ft.Row([
+                    last_run_text,
+                    tick_text
                 ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                 
                 ft.Divider(),

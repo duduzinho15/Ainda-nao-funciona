@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  # Aplicação principal
+  garimpeiro-geek:
+    build: .
+    container_name: garimpeiro-geek-app
+    ports:
+      - "8080:8080"
+      - "8081:8081"  # Dashboard Flet
+    environment:
+      - DATABASE_URL=postgresql://garimpeiro:garimpeiro123@db:5432/garimpeiro_geek
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-default_secret_key}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - ADMIN_USER_ID=${ADMIN_USER_ID}
+      - GG_ALLOW_SCRAPING=1
+    volumes:
+      - ./.data:/app/.data
+      - ./logs:/app/logs
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Banco de dados PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: garimpeiro-geek-db
+    environment:
+      - POSTGRES_DB=garimpeiro_geek
+      - POSTGRES_USER=garimpeiro
+      - POSTGRES_PASSWORD=garimpeiro123
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Redis para cache e sessões
+  redis:
+    image: redis:7-alpine
+    container_name: garimpeiro-geek-redis
+    command: redis-server --appendonly yes --requirepass redis123
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Nginx para proxy reverso
+  nginx:
+    image: nginx:alpine
+    container_name: garimpeiro-geek-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./logs/nginx:/var/log/nginx
+    depends_on:
+      - garimpeiro-geek
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Monitoramento com Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: garimpeiro-geek-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Grafana para visualização
+  grafana:
+    image: grafana/grafana:latest
+    container_name: garimpeiro-geek-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+  # Backup automático
+  backup:
+    image: postgres:15-alpine
+    container_name: garimpeiro-geek-backup
+    environment:
+      - POSTGRES_DB=garimpeiro_geek
+      - POSTGRES_USER=garimpeiro
+      - POSTGRES_PASSWORD=garimpeiro123
+      - BACKUP_SCHEDULE=0 2 * * *  # 2 AM diariamente
+    volumes:
+      - ./scripts/backup.sh:/backup.sh
+      - ./backups:/backups
+    depends_on:
+      - db
+    command: sh -c "chmod +x /backup.sh && /backup.sh"
+    restart: unless-stopped
+    networks:
+      - garimpeiro-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  garimpeiro-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

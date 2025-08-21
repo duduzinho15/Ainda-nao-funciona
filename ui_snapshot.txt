@@ -26,3 +26,6 @@ CHECKS:
 - csv_botao_presente: OK
 - logs_rolagem_ativa: OK
 - grafico_tem_10_pontos: OK
+- has_global_toggle_on_controls: OK
+- per_source_toggles_present: OK
+- runner_status_visible: OK

@@ -43,7 +43,10 @@ class ScrapeRunner:
         self._task: Optional[asyncio.Task] = None
         self._interval_s = 10.0
         self._start_time: Optional[datetime] = None
-        self._system_enabled: bool = True  # NOVO: Toggle geral do sistema
+        self._system_enabled: bool = True  # Toggle geral do sistema
+        self._running: bool = False  # Estado interno para idempotência
+        self._tick_count: int = 0  # Contador de ticks
+        self._last_run_timestamp: Optional[str] = None  # Timestamp da última execução
         
         # Cache global de ofertas e métricas
         self._cached_ofertas: List[Any] = []
@@ -85,19 +88,20 @@ class ScrapeRunner:
     
     async def start_scraping(self, periodo: str, interval_s: float = 10.0) -> None:
         """
-        Inicia o motor de coleta.
+        Inicia o motor de coleta (idempotente).
         
         Args:
             periodo: Período para coleta (24h, 7d, 30d, all)
             interval_s: Intervalo entre coletas em segundos
         """
-        if self.status.running:
-            self.logger.warning("⚠️ Motor já está rodando")
+        if self._running:
+            self.logger.info("ℹ️ Motor já está rodando, ignorando start")
             return
         
         self.logger.info(f"🟢 Iniciando motor de coleta para período: {periodo}")
         
-        # Atualizar status
+        # Atualizar estado interno
+        self._running = True
         self.status.running = True
         self.status.last_error = None
         self._start_time = datetime.now(timezone.utc)
@@ -109,9 +113,9 @@ class ScrapeRunner:
         self.logger.info(f"✅ Motor iniciado com intervalo de {interval_s}s")
     
     async def stop_scraping(self) -> None:
-        """Para o motor de coleta."""
-        if not self.status.running:
-            self.logger.warning("⚠️ Motor não está rodando")
+        """Para o motor de coleta (idempotente)."""
+        if not self._running:
+            self.logger.info("ℹ️ Motor não está rodando, ignorando stop")
             return
         
         self.logger.info("🔴 Parando motor de coleta...")
@@ -120,12 +124,19 @@ class ScrapeRunner:
         if self._task and not self._task.done():
             self._task.cancel()
             try:
-                await self._task
+                # Aguardar cancelamento com timeout curto
+                await asyncio.wait_for(self._task, timeout=2.0)
+            except asyncio.TimeoutError:
+                self.logger.warning("⚠️ Timeout ao aguardar cancelamento da task")
             except asyncio.CancelledError:
                 pass
         
-        # Atualizar status
+        # Limpar estado interno
+        self._task = None
+        self._running = False
         self.status.running = False
+        
+        # Atualizar status
         if self._start_time:
             uptime = (datetime.now(timezone.utc) - self._start_time).total_seconds()
             self.status.uptime_seconds = uptime
@@ -134,18 +145,20 @@ class ScrapeRunner:
     
     def is_running(self) -> bool:
         """Verifica se o motor está rodando."""
-        return self.status.running
+        return self._running
     
     def get_status(self) -> Dict[str, Any]:
         """
         Retorna status atual do motor.
         
         Returns:
-            Dicionário com status: {running, last_run, total_ofertas, total_postadas}
+            Dicionário com status: {running, sources, tick, last_run, total_ofertas, total_postadas}
         """
         return {
-            'running': self.status.running,
-            'last_run': self.status.last_run,
+            'running': self._running,
+            'sources': len(self._cached_ofertas) if self._cached_ofertas else 0,
+            'tick': self._tick_count,
+            'last_run': self._last_run_timestamp,
             'total_ofertas': self.status.total_ofertas,
             'total_postadas': self.status.total_postadas,
             'last_error': self.status.last_error,
@@ -165,9 +178,12 @@ class ScrapeRunner:
         self.logger.info(f"🔄 Iniciando loop de coleta para período: {periodo}")
         
         try:
-            while self.status.running:
+            while self._running:
                 # Executar ciclo de coleta
                 await self._execute_scraping_cycle(periodo)
+                
+                # Incrementar contador de ticks
+                self._tick_count += 1
                 
                 # Aguardar próximo ciclo
                 await asyncio.sleep(self._interval_s)
@@ -178,6 +194,7 @@ class ScrapeRunner:
             error_msg = f"❌ Erro no loop de coleta: {e}"
             self.logger.error(error_msg)
             self.status.last_error = error_msg
+            self._running = False
             self.status.running = False
     
     async def _execute_scraping_cycle(self, periodo: str):
@@ -202,7 +219,8 @@ class ScrapeRunner:
                 await self._update_dashboard_metrics(ofertas, periodo)
                 
                 # Atualizar timestamp da última execução
-                self.status.last_run = datetime.now(timezone.utc).isoformat()
+                self._last_run_timestamp = datetime.now(timezone.utc).isoformat()
+                self.status.last_run = self._last_run_timestamp
                 
                 self.logger.info(f"✅ Ciclo concluído: {len(ofertas)} ofertas coletadas")
             else:
@@ -333,6 +351,17 @@ async def _loop():
             if not _MASTER_ENABLED:
                 await asyncio.sleep(_INTERVAL_SEC)
                 continue
+
+            # Verificar configuração global de scrapers
+            try:
+                from .scrapers_config import get_global_enabled
+                if not get_global_enabled():
+                    print("⚠️ Sistema desativado — pulando ciclo.")
+                    await asyncio.sleep(_INTERVAL_SEC)
+                    continue
+            except ImportError:
+                # Fallback se o módulo não estiver disponível
+                pass
 
             # Pega fontes habilitadas EFETIVAMENTE a cada ciclo
             from . import scraper_registry as reg

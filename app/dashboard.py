@@ -188,7 +188,7 @@ def build_period_filters(page: ft.Page) -> Any:
     def period_changed(e):
         global current_periodo
         current_periodo = e.control.data
-        asyncio.create_task(load_data_for_period(current_periodo, page))
+        page.run_task(load_data_for_period(current_periodo, page))
     
     return ft.Container(
         key="filters",
@@ -391,7 +391,6 @@ def build_logs_panel(page: ft.Page) -> Any:
     
     logs_list = ft.ListView(
         spacing=SPACING["small"],
-        expand=True,  # Ocupa o espaço disponível da aba
         auto_scroll=True,
         key="logs_list"
     )
@@ -413,6 +412,7 @@ def build_logs_panel(page: ft.Page) -> Any:
     
     return ft.Container(
         key="logs",
+        height=360,  # Altura fixa para evitar scroll infinito
         content=ft.Column(
             controls=[
                 ft.Row(
@@ -432,11 +432,14 @@ def build_logs_panel(page: ft.Page) -> Any:
                         )
                     ]
                 ),
-                logs_list
+                ft.Container(
+                    expand=True,
+                    content=logs_list,
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                )
             ],
             spacing=SPACING["medium"]
         ),
-        expand=True,              # Ocupa o espaço disponível da aba
         padding=ft.padding.all(SPACING["large"]),
         bgcolor=ft.Colors.SURFACE,
         border_radius=RADIUS,
@@ -585,12 +588,13 @@ def build_tabs(page: ft.Page) -> Any:
             ft.Tab(
                 text="Logs",
                 content=ft.Container(
-                    expand=True,
+                    height=360,  # Altura fixa para evitar scroll infinito
                     content=ft.ListView(
                         key="logs_lv",
-                        expand=True,
                         auto_scroll=True,   # rola só aqui
+                        spacing=6,
                     ),
+                    clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 ),
             ),
             ft.Tab(
@@ -883,8 +887,8 @@ async def main(page: ft.Page):
     page.padding = 0
     page.spacing = SPACING["large"]
     
-    # Desligue o scroll global da página
-    page.scroll = None
+    # Configurar scroll da página
+    page.scroll = ft.ScrollMode.AUTO
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
     

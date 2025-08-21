@@ -507,7 +507,12 @@ def init_overrides_from_storage(storage) -> None:
     """Inicializa overrides a partir do storage."""
     global _ENABLED_OVERRIDE
     try:
-        _ENABLED_OVERRIDE = storage.get_enabled_sources()
+        if hasattr(storage, 'get_enabled_sources'):
+            _ENABLED_OVERRIDE = storage.get_enabled_sources()
+        else:
+            # Fallback para nova configuração
+            from .scrapers_config import get_enabled_map
+            _ENABLED_OVERRIDE = get_enabled_map()
     except Exception:
         _ENABLED_OVERRIDE = {}
 
@@ -516,7 +521,12 @@ def set_enabled(name: str, enabled: bool, storage=None) -> None:
     global _ENABLED_OVERRIDE
     _ENABLED_OVERRIDE[name] = bool(enabled)
     if storage:
-        storage.set_source_enabled(name, bool(enabled))
+        if hasattr(storage, 'set_source_enabled'):
+            storage.set_source_enabled(name, bool(enabled))
+        else:
+            # Fallback para nova configuração
+            from .scrapers_config import set_source_enabled
+            set_source_enabled(name, bool(enabled))
 
 def set_all_enabled(names: list[str], enabled: bool, storage=None) -> None:
     """Define múltiplas fontes de uma vez."""
@@ -524,7 +534,13 @@ def set_all_enabled(names: list[str], enabled: bool, storage=None) -> None:
     for n in names:
         _ENABLED_OVERRIDE[n] = bool(enabled)
     if storage:
-        storage.set_sources_bulk(names, bool(enabled))
+        if hasattr(storage, 'set_sources_bulk'):
+            storage.set_sources_bulk(names, bool(enabled))
+        else:
+            # Fallback para nova configuração
+            from .scrapers_config import set_source_enabled
+            for name in names:
+                set_source_enabled(name, bool(enabled))
 
 def _effective_enabled(name: str, default_enabled: bool) -> bool:
     """Calcula se uma fonte está efetivamente habilitada."""
@@ -564,6 +580,16 @@ def list_sources() -> List[Dict[str, Any]]:
         })
     return items
 
+def get_enabled_map() -> Dict[str, bool]:
+    """Retorna mapa de fontes habilitadas para UI."""
+    enabled_map = {}
+    scrapers = scraper_registry.scrapers.values()
+    
+    for src in scrapers:
+        enabled_map[src.name] = _effective_enabled(src.name, src.enabled)
+    
+    return enabled_map
+
 def get_sources_for_run():
     """Retorna fontes efetivamente habilitadas para execução."""
     allowed = []
@@ -573,4 +599,111 @@ def get_sources_for_run():
         if _effective_enabled(src.name, src.enabled):
             allowed.append(src)
     return allowed
+
+
+def set_source_enabled(name: str, enabled: bool) -> bool:
+    """
+    Define se uma fonte específica está habilitada e persiste a configuração.
+    
+    Args:
+        name: Nome da fonte
+        enabled: Se deve estar habilitada
+        
+    Returns:
+        True se aplicado com sucesso, False caso contrário
+    """
+    try:
+        # Atualizar override local
+        _ENABLED_OVERRIDE[name] = bool(enabled)
+        
+        # Persistir via scrapers_config
+        from .scrapers_config import set_source_enabled as config_set
+        config_set(name, bool(enabled))
+        
+        # Log da mudança
+        status = "habilitada" if enabled else "desabilitada"
+        scraper_registry.logger.info(f"✅ Fonte {name} {status}")
+        
+        return True
+        
+    except Exception as e:
+        scraper_registry.logger.error(f"❌ Erro ao configurar fonte {name}: {e}")
+        return False
+
+
+def smoke_test_source(name: str, timeout: float = 10.0) -> Dict[str, Any]:
+    """
+    Executa teste rápido de uma fonte específica.
+    
+    Args:
+        name: Nome da fonte
+        timeout: Timeout em segundos
+        
+    Returns:
+        Dicionário com resultado do teste
+    """
+    try:
+        # Verificar se a fonte existe
+        if name not in scraper_registry.scrapers:
+            return {
+                'success': False,
+                'error': f'Fonte {name} não encontrada',
+                'duration': 0.0
+            }
+        
+        scraper = scraper_registry.scrapers[name]
+        if not scraper.get_ofertas_func:
+            return {
+                'success': False,
+                'error': f'Fonte {name} não tem função de coleta',
+                'duration': 0.0
+            }
+        
+        # Executar teste com timeout
+        import asyncio
+        import time
+        
+        start_time = time.time()
+        
+        async def _test():
+            try:
+                # Coletar máximo 3 itens para teste
+                ofertas = await scraper.get_ofertas_func("24h")
+                if ofertas and len(ofertas) > 0:
+                    return {
+                        'success': True,
+                        'items_found': min(len(ofertas), 3),
+                        'duration': time.time() - start_time
+                    }
+                else:
+                    return {
+                        'success': True,
+                        'items_found': 0,
+                        'duration': time.time() - start_time
+                    }
+            except Exception as e:
+                return {
+                    'success': False,
+                    'error': str(e),
+                    'duration': time.time() - start_time
+                }
+        
+        # Executar com timeout
+        loop = asyncio.get_event_loop()
+        result = asyncio.wait_for(_test(), timeout=timeout)
+        
+        return result
+        
+    except asyncio.TimeoutError:
+        return {
+            'success': False,
+            'error': f'Timeout após {timeout}s',
+            'duration': timeout
+        }
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'duration': 0.0
+        }
 
