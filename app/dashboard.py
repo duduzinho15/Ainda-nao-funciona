@@ -433,7 +433,6 @@ def build_logs_panel(page: ft.Page) -> Any:
                     ]
                 ),
                 ft.Container(
-                    expand=True,
                     content=logs_list,
                     clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 )
@@ -562,14 +561,11 @@ def build_tabs(page: ft.Page) -> Any:
     return ft.Tabs(
         key="tabs",
         selected_index=0,
-        expand=1,  # Tabs com expand=1
         tabs=[
             ft.Tab(
                 text="Dashboard",
                 content=ft.Container(
-                    expand=True,
                     content=ft.Column(
-                        expand=True,
                         controls=[
                             # Cards sem expand (altura automática)
                             build_metrics_row(),
@@ -578,10 +574,11 @@ def build_tabs(page: ft.Page) -> Any:
                             ft.Container(height=320, content=build_chart_panel()),
                             # Logs com scroll interno
                             ft.Container(
-                                expand=True,
+                                height=360,
                                 content=build_logs_panel(page)
                             ),
                         ],
+                        spacing=SPACING["medium"]
                     ),
                 ),
             ),
@@ -600,14 +597,12 @@ def build_tabs(page: ft.Page) -> Any:
             ft.Tab(
                 text="Configurações",
                 content=ft.Container(
-                    expand=True,
                     content=build_config_tab(page)
                 ),
             ),
             ft.Tab(
                 text="Controles",
                 content=ft.Container(
-                    expand=True,
                     content=build_controls_tab(page) if scrape_runner else ft.Container(
                         content=ft.Text("Motor de coleta não disponível"),
                         padding=ft.padding.all(SPACING["large"])
@@ -884,27 +879,13 @@ async def main(page: ft.Page):
     # Configurações da página
     page.title = "Garimpeiro Geek - Dashboard"
     page.theme_mode = ft.ThemeMode.DARK
-    page.padding = 0
+    page.padding = 20
     page.spacing = SPACING["large"]
     
-    # Configurar scroll da página
+    # Configurar scroll da página - SOLUÇÃO SIMPLES E FUNCIONAL
     page.scroll = ft.ScrollMode.AUTO
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.horizontal_alignment = ft.CrossAxisAlignment.STRETCH
-    
-    # Frame que segura TODO o conteúdo visível
-    viewport = ft.Container(
-        key="viewport",
-        expand=True,
-        clip_behavior=ft.ClipBehavior.ANTI_ALIAS,  # evita vazar crescimento
-    )
-    
-    def _bind_viewport_height(e=None):
-        # Mantém o frame com a altura EXATA da janela
-        viewport.height = page.height
-        viewport.update()
-    
-    page.on_resized = _bind_viewport_height
     
     # Carregar preferências do usuário
     if config_storage:
@@ -917,20 +898,13 @@ async def main(page: ft.Page):
         default_period = config_storage.get_preference("last_selected_period", "7d")
         current_periodo = default_period
     
-    # Construir interface dentro do viewport
-    header = build_header(page)  # altura automática
-    tabs = build_tabs(page)      # expand=1 (ver implementação)
+    # Construir interface diretamente na página - SEM VIEWPORT COMPLEXO
+    header = build_header(page)
+    tabs = build_tabs(page)
     
-    viewport.content = ft.Column(
-        expand=True,
-        controls=[
-            header,                         # NÃO usa expand
-            ft.Container(content=tabs, expand=True),  # área que cresce
-        ],
-    )
-    
-    page.add(viewport)
-    _bind_viewport_height()
+    # Adicionar componentes diretamente na página
+    page.add(header)
+    page.add(tabs)
     
     # Carregar dados iniciais
     await load_data_for_period(current_periodo, page)
