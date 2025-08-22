@@ -59,6 +59,9 @@ log/
 *.temp
 .tmp/
 .temp/
+.tmp.driveupload/
+tmp/
+temp/
 
 # Sistema
 .DS_Store
@@ -73,3 +76,6 @@ storage/
 # Arquivos de configuração local
 config_local.py
 settings_local.py
+
+# Arquivos do Google Drive
+*.driveupload
