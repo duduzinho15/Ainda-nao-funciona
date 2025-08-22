@@ -1,0 +1,55 @@
+# Configurações do Sistema Garimpeiro Geek
+# Copie este arquivo para .env e configure suas variáveis
+
+# Ambiente
+ENVIRONMENT=development
+DEBUG=true
+LOG_LEVEL=INFO
+
+# Telegram Bot
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+TELEGRAM_CHAT_ID=seu_chat_id_aqui
+TELEGRAM_WEBHOOK_URL=https://seu-dominio.com/webhook
+
+# Banco de Dados
+DATABASE_URL=sqlite:///garimpeiro_geek.db
+
+# APIs Externas (opcional)
+AMAZON_ACCESS_KEY=sua_chave_amazon
+AMAZON_SECRET_KEY=sua_chave_secreta_amazon
+AMAZON_ASSOCIATE_TAG=seu_tag_associado
+
+SHOPEE_API_KEY=sua_chave_shopee
+SHOPEE_API_SECRET=sua_chave_secreta_shopee
+
+ALIEXPRESS_APP_KEY=sua_chave_aliexpress
+ALIEXPRESS_APP_SECRET=sua_chave_secreta_aliexpress
+
+# Configurações de Scraping
+SCRAPING_TIMEOUT=30
+SCRAPING_MAX_RETRIES=3
+SCRAPING_DELAY=1
+
+# Configurações de Cache
+CACHE_TTL=3600
+CACHE_MAX_SIZE=1000
+
+# Configurações de Notificações
+NOTIFICATIONS_ENABLED=true
+NOTIFICATIONS_CHECK_INTERVAL=300
+NOTIFICATIONS_MAX_PER_HOUR=10
+
+# Configurações de Métricas
+METRICS_ENABLED=true
+METRICS_COLLECTION_INTERVAL=60
+METRICS_RETENTION_DAYS=30
+
+# Configurações de UI
+UI_THEME=dark
+UI_LANGUAGE=pt_BR
+UI_AUTO_REFRESH=true
+UI_REFRESH_INTERVAL=30
+
+# Configurações de Desenvolvimento
+HOT_RELOAD=false
+PROFILING=false
