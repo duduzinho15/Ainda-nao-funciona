@@ -12,11 +12,13 @@ from .database import Database
 from .metrics import MetricsCollector
 from .live_logs import LiveLogReader
 from .logging_setup import setup_logging
+from .affiliate_converter import AffiliateConverter
 
 __all__ = [
     "PreferencesStorage",
     "Database", 
     "MetricsCollector",
     "LiveLogReader",
-    "setup_logging"
+    "setup_logging",
+    "AffiliateConverter"
 ]

@@ -8,7 +8,7 @@ from pathlib import Path
 import sys
 
 # Adicionar diretório raiz ao path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from core.storage import PreferencesStorage
 from core.database import Database
@@ -76,13 +76,13 @@ def build_header(page: ft.Page) -> ft.Container:
                 ),
                 ft.Container(expand=True),
                 ft.IconButton(
-                    icon=ft.icons.DARK_MODE if page.theme_mode == ft.ThemeMode.LIGHT else ft.icons.LIGHT_MODE,
+                    icon=ft.Icons.DARK_MODE if page.theme_mode == ft.ThemeMode.LIGHT else ft.Icons.LIGHT_MODE,
                     tooltip="Alternar tema",
                     on_click=lambda e: toggle_theme(page)
                 ),
                 ft.FilledButton(
                     "Exportar CSV",
-                    icon=ft.icons.DOWNLOAD,
+                    icon=ft.Icons.DOWNLOAD,
                     key="csv_botao_presente",
                     on_click=lambda e: export_csv_clicked(page)
                 )
@@ -147,10 +147,10 @@ def build_metrics_row() -> ft.Row:
     """Constrói a linha de métricas"""
     return ft.Row(
         controls=[
-            build_metric_card("Ofertas", "0", ft.icons.SHOPPING_CART, "card_ofertas"),
-            build_metric_card("Lojas Ativas", "0", ft.icons.STORE, "card_lojas"),
-            build_metric_card("Preço Médio", "R$ 0,00", ft.icons.ATTACH_MONEY, "card_preco"),
-            build_metric_card("Período", "7D", ft.icons.SCHEDULE, "card_periodo")
+            build_metric_card("Ofertas", "0", ft.Icons.SHOPPING_CART, "card_ofertas"),
+            build_metric_card("Lojas Ativas", "0", ft.Icons.STORE, "card_lojas"),
+            build_metric_card("Preço Médio", "R$ 0,00", ft.Icons.ATTACH_MONEY, "card_preco"),
+            build_metric_card("Período", "7D", ft.Icons.SCHEDULE, "card_periodo")
         ],
         spacing=SPACING["medium"]
     )
@@ -162,12 +162,12 @@ def build_metric_card(title: str, value: str, icon: str, key: str) -> ft.Contain
         content=ft.Row(
             controls=[
                 ft.Container(
-                    content=ft.Icon(icon, size=32, color=ft.colors.BLUE_400),
+                    content=ft.Icon(icon, size=32, color=ft.Colors.BLUE_400),
                     padding=ft.padding.all(SPACING["small"])
                 ),
                 ft.Column(
                     controls=[
-                        ft.Text(title, size=14, color=ft.colors.GREY_400),
+                        ft.Text(title, size=14, color=ft.Colors.GREY_400),
                         ft.Text(value, size=20, weight=ft.FontWeight.BOLD)
                     ],
                     spacing=4
@@ -175,7 +175,7 @@ def build_metric_card(title: str, value: str, icon: str, key: str) -> ft.Contain
             ]
         ),
         padding=ft.padding.all(SPACING["medium"]),
-        border=ft.border.all(1, ft.colors.GREY_800),
+        border=ft.border.all(1, ft.Colors.GREY_800),
         border_radius=8,
         expand=True
     )
@@ -188,7 +188,7 @@ def build_period_filters(page: ft.Page) -> ft.Container:
             controls=[
                 ft.Row(
                     controls=[
-                        ft.Icon(ft.icons.FILTER_LIST),
+                        ft.Icon(ft.Icons.FILTER_LIST),
                         ft.Text("Filtros de Período", size=16, weight=ft.FontWeight.W_500)
                     ]
                 ),
@@ -232,7 +232,7 @@ def build_chart_panel() -> ft.Container:
             ]
         ),
         padding=ft.padding.all(SPACING["medium"]),
-        border=ft.border.all(1, ft.colors.GREY_800),
+        border=ft.border.all(1, ft.Colors.GREY_800),
         border_radius=8
     )
 
@@ -244,16 +244,16 @@ def build_logs_panel(page: ft.Page) -> ft.Container:
             controls=[
                 ft.Row(
                     controls=[
-                        ft.Icon(ft.icons.LIST_ALT),
+                        ft.Icon(ft.Icons.LIST_ALT),
                         ft.Text("Logs do Sistema", size=16, weight=ft.FontWeight.W_500),
                         ft.Container(expand=True),
                         ft.IconButton(
-                            icon=ft.icons.REFRESH,
+                            icon=ft.Icons.REFRESH,
                             tooltip="Atualizar logs",
                             on_click=lambda e: refresh_logs(page)
                         ),
                         ft.IconButton(
-                            icon=ft.icons.CLEAR,
+                            icon=ft.Icons.CLEAR,
                             tooltip="Limpar logs",
                             on_click=lambda e: clear_logs(page)
                         )
@@ -295,13 +295,44 @@ def build_controls_tab(page: ft.Page) -> list:
     return [
         ft.Text("Controles do Sistema", size=20, weight=ft.FontWeight.BOLD),
         ft.Divider(),
+        ft.Text("Sistema:", size=16),
+        ft.Switch(
+            label="Ativar Sistema Global",
+            value=True,
+            on_change=lambda e: toggle_global_system(page, e.control.value)
+        ),
+        ft.Divider(),
+        ft.Text("Fontes de Dados:", size=16),
+        ft.Column([
+            ft.Switch(
+                label="Amazon Scraper",
+                value=True,
+                on_change=lambda e: toggle_source_enabled("amazon", e.control.value)
+            ),
+            ft.Switch(
+                label="Shopee API",
+                value=True,
+                on_change=lambda e: toggle_source_enabled("shopee", e.control.value)
+            ),
+            ft.Switch(
+                label="Magalu Provider",
+                value=True,
+                on_change=lambda e: toggle_source_enabled("magalu", e.control.value)
+            ),
+            ft.Switch(
+                label="Kabum Source",
+                value=True,
+                on_change=lambda e: toggle_source_enabled("kabum", e.control.value)
+            )
+        ]),
+        ft.Divider(),
         ft.Text("Status:", size=16),
         ft.Text("Sistema funcionando normalmente"),
         ft.Divider(),
         ft.Text("Ações:", size=16),
         ft.ElevatedButton(
             "Atualizar Dados",
-            icon=ft.icons.REFRESH,
+            icon=ft.Icons.REFRESH,
             on_click=lambda e: refresh_data(page)
         )
     ]
@@ -349,6 +380,18 @@ def clear_logs(page: ft.Page):
     page.show_snack_bar(
         ft.SnackBar(content=ft.Text("Logs limpos"))
     )
+
+def toggle_global_system(page: ft.Page, enabled: bool):
+    """Alterna sistema global"""
+    status = "ativado" if enabled else "desativado"
+    page.show_snack_bar(
+        ft.SnackBar(content=ft.Text(f"Sistema global {status}"))
+    )
+
+def toggle_source_enabled(source: str, enabled: bool):
+    """Alterna fonte específica"""
+    status = "ativada" if enabled else "desativada"
+    print(f"💡 Fonte {source} {status}")
 
 def refresh_data(page: ft.Page):
     """Atualiza dados do sistema"""

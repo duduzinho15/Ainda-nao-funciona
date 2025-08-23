@@ -1,0 +1,101 @@
+# Configurações do Garimpeiro Geek
+# Copie este arquivo para .env e configure suas chaves
+
+# ==========================================
+# CONFIGURAÇÕES DO TELEGRAM
+# ==========================================
+# Token do seu bot Telegram (obtenha em @BotFather)
+TELEGRAM_BOT_TOKEN=seu_token_aqui
+
+# ID do chat onde o bot enviará notificações
+TELEGRAM_CHAT_ID=seu_chat_id_aqui
+
+# Nome do seu bot
+TELEGRAM_BOT_NAME=GarimpeiroGeekBot
+
+# ==========================================
+# CONFIGURAÇÕES DE SCRAPING
+# ==========================================
+# Delay entre requisições (em segundos)
+SCRAPER_DELAY=2.0
+
+# Timeout das requisições (em segundos)
+SCRAPER_TIMEOUT=30
+
+# User-Agent para as requisições
+SCRAPER_USER_AGENT=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+
+# ==========================================
+# CONFIGURAÇÕES DE API
+# ==========================================
+# Chave da API do Google Shopping (opcional)
+GOOGLE_SHOPPING_API_KEY=seu_api_key_aqui
+
+# Chave da API do Mercado Livre (opcional)
+MERCADO_LIVRE_API_KEY=seu_api_key_aqui
+
+# Chave da API da Amazon (opcional)
+AMAZON_API_KEY=seu_api_key_aqui
+
+# ==========================================
+# CONFIGURAÇÕES DE AFILIADOS
+# ==========================================
+# Tag de afiliado da Amazon
+AMAZON_AFFILIATE_TAG=garimpeirogeek-20
+
+# Tag de afiliado do Mercado Livre
+MERCADO_LIVRE_AFFILIATE_TAG=seu_tag_aqui
+
+# Tag de afiliado de outras lojas
+GENERIC_AFFILIATE_TAG=seu_tag_aqui
+
+# ==========================================
+# CONFIGURAÇÕES DO SISTEMA
+# ==========================================
+# Modo de debug (True/False)
+DEBUG_MODE=False
+
+# Nível de log (DEBUG, INFO, WARNING, ERROR)
+LOG_LEVEL=INFO
+
+# Diretório de dados
+DATA_DIR=.data
+
+# Diretório de logs
+LOG_DIR=logs
+
+# ==========================================
+# CONFIGURAÇÕES DO DASHBOARD
+# ==========================================
+# Porta do servidor web (se aplicável)
+DASHBOARD_PORT=8000
+
+# Host do servidor web
+DASHBOARD_HOST=localhost
+
+# Tema padrão (light/dark)
+DEFAULT_THEME=dark
+
+# ==========================================
+# CONFIGURAÇÕES DE NOTIFICAÇÕES
+# ==========================================
+# Intervalo de verificação de ofertas (em minutos)
+NOTIFICATION_INTERVAL=30
+
+# Notificar apenas ofertas com desconto maior que (%)
+MIN_DISCOUNT_PERCENT=10
+
+# Notificar apenas produtos com preço menor que (R$)
+MAX_PRICE_THRESHOLD=1000.00
+
+# ==========================================
+# CONFIGURAÇÕES DE BACKUP
+# ==========================================
+# Fazer backup automático (True/False)
+AUTO_BACKUP=True
+
+# Intervalo de backup (em horas)
+BACKUP_INTERVAL=24
+
+# Manter backups por (dias)
+BACKUP_RETENTION_DAYS=7

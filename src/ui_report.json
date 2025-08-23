@@ -1,0 +1,119 @@
+{
+  "timestamp": "2025-08-22T13:51:55.071583",
+  "summary": {
+    "passed": 5,
+    "failed": 12,
+    "skipped": 0,
+    "total": 17
+  },
+  "results": [
+    {
+      "name": "src_structure",
+      "status": "FAIL",
+      "description": "Estrutura src/ correta",
+      "duration": 0.0
+    },
+    {
+      "name": "init_files",
+      "status": "FAIL",
+      "description": "Arquivos __init__.py presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "core_modules",
+      "status": "FAIL",
+      "description": "Módulos core existem",
+      "duration": 0.0
+    },
+    {
+      "name": "scrapers_structure",
+      "status": "FAIL",
+      "description": "Estrutura scrapers correta",
+      "duration": 0.0
+    },
+    {
+      "name": "providers_structure",
+      "status": "FAIL",
+      "description": "Estrutura providers correta",
+      "duration": 0.0
+    },
+    {
+      "name": "dashboard_components",
+      "status": "FAIL",
+      "description": "Componentes dashboard presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "ui_keys_present",
+      "status": "FAIL",
+      "description": "Keys UI essenciais presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "dashboard_imports",
+      "status": "PASS",
+      "description": "Imports dashboard funcionam",
+      "duration": 1.551
+    },
+    {
+      "name": "database_connection",
+      "status": "PASS",
+      "description": "Conexão banco funciona",
+      "duration": 0.001
+    },
+    {
+      "name": "preferences_storage",
+      "status": "PASS",
+      "description": "Sistema preferências funciona",
+      "duration": 0.001
+    },
+    {
+      "name": "logs_directory",
+      "status": "PASS",
+      "description": "Diretório logs existe",
+      "duration": 0.0
+    },
+    {
+      "name": "exports_directory",
+      "status": "PASS",
+      "description": "Diretório exports existe",
+      "duration": 0.0
+    },
+    {
+      "name": "entry_points",
+      "status": "FAIL",
+      "description": "Pontos entrada existem",
+      "duration": 0.0
+    },
+    {
+      "name": "configuration_files",
+      "status": "FAIL",
+      "description": "Arquivos configuração existem",
+      "duration": 0.0
+    },
+    {
+      "name": "global_toggle_on_controls",
+      "status": "FAIL",
+      "description": "Toggle global presente",
+      "duration": 0.0
+    },
+    {
+      "name": "per_source_toggles_present",
+      "status": "FAIL",
+      "description": "Toggles por fonte presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "runner_status_visible",
+      "status": "FAIL",
+      "description": "Status runner visível",
+      "duration": 0.0
+    }
+  ],
+  "snapshot": {
+    "timestamp": "2025-08-22T13:51:55.071613",
+    "structure": {},
+    "components": {},
+    "metrics": {}
+  }
+}
