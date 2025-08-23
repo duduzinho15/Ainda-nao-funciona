@@ -11,9 +11,7 @@ import flet as ft
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from core.database import Database
-from core.live_logs import LiveLogReader
-from core.metrics import Metrics, MetricsCollector
+from core.metrics import Metrics
 from core.storage import PreferencesStorage
 
 # Configurações
@@ -40,9 +38,9 @@ def main(page: ft.Page):
 
     # Inicializar componentes
     config_storage = PreferencesStorage()
-    db = Database()
-    metrics_collector = MetricsCollector()
-    live_log_reader = LiveLogReader()
+    # db = Database()  # Removido - não utilizado
+    # metrics_collector = MetricsCollector()  # Removido - não utilizado
+    # live_log_reader = LiveLogReader()  # Removido - não utilizado
 
     # Configurar métricas iniciais
     current_metrics = Metrics(0, 0, 0.0)

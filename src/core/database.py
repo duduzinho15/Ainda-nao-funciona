@@ -101,9 +101,9 @@ class Database:
 
         cursor.execute(
             """
-            SELECT * FROM ofertas 
-            WHERE ativo = 1 
-            ORDER BY data_coleta DESC 
+            SELECT * FROM ofertas
+            WHERE ativo = 1
+            ORDER BY data_coleta DESC
             LIMIT ? OFFSET ?
         """,
             (limit, offset),
@@ -117,8 +117,8 @@ class Database:
 
         cursor.execute(
             """
-            SELECT * FROM ofertas 
-            WHERE loja = ? AND ativo = 1 
+            SELECT * FROM ofertas
+            WHERE loja = ? AND ativo = 1
             ORDER BY data_coleta DESC
         """,
             (loja,),
@@ -150,8 +150,8 @@ class Database:
         cursor = self.connection.cursor()
 
         cursor.execute("""
-            SELECT * FROM metricas 
-            ORDER BY data DESC 
+            SELECT * FROM metricas
+            ORDER BY data DESC
             LIMIT 1
         """)
 
@@ -178,8 +178,8 @@ class Database:
 
         cursor.execute(
             """
-            SELECT * FROM logs 
-            ORDER BY timestamp DESC 
+            SELECT * FROM logs
+            ORDER BY timestamp DESC
             LIMIT ?
         """,
             (limit,),
@@ -190,7 +190,12 @@ class Database:
     def close(self):
         """Fecha a conexão com o banco"""
         if self.connection:
-            self.connection.close()
+            try:
+                self.connection.commit()  # Commit final
+                self.connection.close()
+                self.connection = None
+            except Exception:
+                pass  # Ignorar erros no fechamento
 
     def __enter__(self):
         return self

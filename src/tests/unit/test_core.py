@@ -59,13 +59,25 @@ class TestDatabase:
 
     def setup_method(self):
         """Configuração antes de cada teste"""
-        self.temp_db = tempfile.NamedTemporaryFile(delete=False)
+        self.temp_db = tempfile.NamedTemporaryFile(delete=False, suffix=".sqlite")
         self.db = Database(self.temp_db.name)
 
     def teardown_method(self):
         """Limpeza após cada teste"""
-        self.db.close()
-        Path(self.temp_db.name).unlink()
+        try:
+            if hasattr(self, 'db') and self.db:
+                self.db.close()
+        except Exception:
+            pass
+
+        try:
+            if hasattr(self, 'temp_db') and self.temp_db:
+                # Aguardar um pouco para garantir que o arquivo seja liberado
+                import time
+                time.sleep(0.1)
+                Path(self.temp_db.name).unlink(missing_ok=True)
+        except Exception:
+            pass
 
     def test_database_initialization(self):
         """Testa inicialização do banco"""

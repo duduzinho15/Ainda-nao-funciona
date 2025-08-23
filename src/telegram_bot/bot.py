@@ -6,14 +6,12 @@ import logging
 from typing import Any, Dict, Optional
 
 try:
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+    from telegram import Update
     from telegram.ext import (
         Application,
         CallbackQueryHandler,
         CommandHandler,
         ContextTypes,
-        MessageHandler,
-        filters,
     )
 
     TELEGRAM_AVAILABLE = True

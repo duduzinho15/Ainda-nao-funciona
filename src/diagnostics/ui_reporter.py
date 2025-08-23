@@ -15,7 +15,6 @@ from typing import Any, Dict
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.core.database import Database
 from src.core.logging_setup import setup_logging
 from src.core.storage import PreferencesStorage
 
@@ -191,16 +190,16 @@ class UIReporter:
             )
 
             return result.returncode == 0
-        except:
+        except Exception:
             return False
 
     def check_database_connection(self) -> bool:
         """Verifica se a conexão com o banco funciona"""
         try:
-            db = Database()
+            # db = Database()  # Removido - não utilizado
             # Teste simples de conexão
             return True
-        except:
+        except Exception:
             return False
 
     def check_preferences_storage(self) -> bool:
@@ -211,7 +210,7 @@ class UIReporter:
             storage.set_preference("test_key", "test_value")
             value = storage.get_preference("test_key")
             return value == "test_value"
-        except:
+        except Exception:
             return False
 
     def check_logs_directory(self) -> bool:

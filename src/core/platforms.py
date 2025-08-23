@@ -1,5 +1,23 @@
 """
 Configuração centralizada das plataformas ativas com afiliação válida
+
+⚠️ IMPORTANTE: Este arquivo define TODAS as plataformas permitidas no pipeline.
+   Scrapers arquivados (americanas, submarino, casas_bahia, fast_shop, ricardo_eletro)
+   NÃO devem aparecer em nenhuma lista, cron ou agendador.
+
+📋 PLATAFORMAS ATIVAS (com afiliação):
+   - Awin: Comfy, Trocafy, LG, KaBuM!, Ninja, Samsung
+   - Mercado Livre: shortlink + etiqueta garimpeirogeek
+   - Magazine Luiza: vitrine Magazine Você
+   - Amazon: tag garimpeirogee-20
+   - Shopee: shortlink via painel + cache
+   - AliExpress: shortlink via portal + cache
+
+🚫 PLATAFORMAS ARQUIVADAS (sem afiliação):
+   - Americanas/Submarino: mesmo grupo, sem afiliação
+   - Casas Bahia: sem programa de afiliados
+   - Fast Shop: sem programa de afiliados
+   - Ricardo Eletro: sem programa de afiliados
 """
 
 from dataclasses import dataclass
@@ -45,6 +63,9 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "type": "deeplink",
             "format": "https://www.awin1.com/cread.php?awinmid={mid}&awinaffid={affid}&ued={url}",
             "stores": ["comfy", "trocafy", "lg", "kabum", "ninja", "samsung"],
+            "attribution": "Lastclick Awin, 30 dias cookie",
+            "payout": "CPA variável por loja (ex: Comfy 2.80%)",
+            "rules": "Permitido: cupons, cashback, loyalty, email marketing, influenciadores"
         },
     ),
     "mercadolivre": PlatformConfig(
@@ -58,6 +79,9 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "type": "shortlink",
             "format": "https://mercadolivre.com/sec/{code}",
             "tag": "garimpeirogeek",
+            "attribution": "Lastclick, cookie de sessão",
+            "payout": "Comissão por venda realizada",
+            "rules": "Permitido: marketing digital, redes sociais, blogs"
         },
     ),
     "magalu": PlatformConfig(
@@ -84,6 +108,9 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "type": "tag",
             "format": "https://amzn.to/{code}",
             "tag": "garimpeirogee-20",
+            "attribution": "Lastclick, 24h cookie",
+            "payout": "4% sobre produtos elegíveis",
+            "rules": "Permitido: marketing digital, redes sociais, blogs, email"
         },
     ),
     "shopee": PlatformConfig(

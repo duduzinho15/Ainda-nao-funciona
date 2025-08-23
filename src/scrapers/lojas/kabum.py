@@ -1,13 +1,4 @@
-# shim temporário — será removido depois
-import warnings
+# Import do scraper KaBuM! funcional
+from src.scrapers.lojas.kabum_scraper import KabumScraper, kabum_scraper
 
-warnings.warn(
-    "Use 'src.scrapers.kabum.kabum_scraper' instead of 'kabum_scraper'",
-    DeprecationWarning,
-)
-
-try:
-    from src.scrapers.kabum.kabum_scraper import *
-except ImportError:
-    # Fallback para compatibilidade
-    pass
+__all__ = ["KabumScraper", "kabum_scraper"]
