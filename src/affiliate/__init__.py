@@ -1,5 +1,5 @@
 """
-src package for Garimpeiro Geek
+providers package for Garimpeiro Geek
 Sistema de Recomendações de Ofertas via Telegram
 """
 

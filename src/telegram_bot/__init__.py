@@ -10,9 +10,4 @@ from .bot import TelegramBot
 from .message_builder import MessageBuilder
 from .notification_manager import NotificationManager
 
-__all__ = [
-    "TelegramBot",
-    "MessageBuilder",
-    "NotificationManager"
-]
-
+__all__ = ["TelegramBot", "MessageBuilder", "NotificationManager"]
