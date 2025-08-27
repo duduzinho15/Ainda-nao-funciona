@@ -1,118 +1,134 @@
 # Makefile para Garimpeiro Geek
 # Sistema de Recomendações de Ofertas Telegram
 
-.PHONY: help test-affiliates test-e2e test-all dashboard bot-start bot-stop bot-status clean install
+.PHONY: help install test lint format clean docker-build docker-run docker-stop
 
-# Variáveis
-PYTHON = python
-PYTEST = pytest
-DASHBOARD_SCRIPT = apps/flet_dashboard/main.py
-BOT_SCRIPT = scripts/start_bot.py
-
-# Ajuda
+# Default target
 help:
-	@echo "🚀 Garimpeiro Geek - Sistema de Recomendações de Ofertas"
+	@echo "🚀 Garimpeiro Geek - Comandos disponíveis:"
 	@echo ""
-	@echo "Comandos disponíveis:"
-	@echo "  test-affiliates  - Executa testes unitários de afiliados"
-	@echo "  test-e2e         - Executa testes E2E"
-	@echo "  test-all         - Executa todos os testes"
-	@echo "  dashboard        - Inicia o dashboard Flet"
-	@echo "  bot-start        - Inicia o bot do Telegram"
-	@echo "  bot-stop         - Para o bot do Telegram"
-	@echo "  bot-status       - Mostra status do bot"
-	@echo "  install          - Instala dependências"
-	@echo "  clean            - Limpa arquivos temporários"
-	@echo "  help             - Mostra esta ajuda"
+	@echo "📦 Desenvolvimento:"
+	@echo "  install          - Instalar dependências"
+	@echo "  test             - Executar todos os testes"
+	@echo "  test-unit        - Executar testes unitários"
+	@echo "  test-e2e         - Executar testes de integração"
+	@echo "  lint             - Executar linting (ruff)"
+	@echo "  format           - Formatar código (black + ruff)"
+	@echo "  type-check       - Verificar tipos (mypy)"
+	@echo ""
+	@echo "🐳 Docker:"
+	@echo "  docker-build     - Construir imagens Docker"
+	@echo "  docker-run       - Executar serviços com Docker Compose"
+	@echo "  docker-stop      - Parar serviços Docker"
+	@echo "  docker-logs      - Ver logs dos serviços"
+	@echo "  docker-clean     - Limpar containers e volumes"
+	@echo ""
+	@echo "🔧 Utilitários:"
+	@echo "  clean            - Limpar arquivos temporários"
+	@echo "  docs             - Gerar documentação"
+	@echo "  release          - Criar nova release"
 
-# Testes de afiliados
-test-affiliates:
-	@echo "🧪 Executando testes unitários de afiliados..."
-	$(PYTEST) -q tests/unit
-
-# Testes E2E
-test-e2e:
-	@echo "🔗 Executando testes E2E..."
-	$(PYTEST) -q tests/e2e
-
-# Todos os testes
-test-all:
-	@echo "📊 Executando todos os testes..."
-	$(PYTEST) -q
-
-# Dashboard Flet
-dashboard:
-	@echo "📱 Iniciando dashboard Flet..."
-	$(PYTHON) $(DASHBOARD_SCRIPT)
-
-# Bot do Telegram
-bot-start:
-	@echo "🤖 Iniciando bot do Telegram..."
-	$(PYTHON) $(BOT_SCRIPT)
-
-bot-stop:
-	@echo "🛑 Parando bot do Telegram..."
-	@echo "💡 Use Ctrl+C no terminal onde o bot está rodando"
-
-bot-status:
-	@echo "📊 Status do bot do Telegram..."
-	@echo "💡 Verifique os logs em logs/bot.log"
-
-# Instalar dependências
+# Desenvolvimento
 install:
 	@echo "📦 Instalando dependências..."
 	pip install -r requirements.txt
-	pip install pytest pytest-asyncio pytest-html aioresponses python-telegram-bot
+	pip install -e .
 
-# Limpar arquivos temporários
+test:
+	@echo "🧪 Executando todos os testes..."
+	pytest tests/ -v --cov=src --cov-report=html
+
+test-unit:
+	@echo "🧪 Executando testes unitários..."
+	pytest tests/unit/ -v
+
+test-e2e:
+	@echo "🧪 Executando testes de integração..."
+	pytest tests/e2e/ -v
+
+lint:
+	@echo "🔍 Executando linting..."
+	ruff check src/ tests/
+
+format:
+	@echo "🎨 Formatando código..."
+	black src/ tests/
+	ruff check --fix src/ tests/
+
+type-check:
+	@echo "🔍 Verificando tipos..."
+	mypy src/
+
+# Docker
+docker-build:
+	@echo "🐳 Construindo imagens Docker..."
+	docker-compose build
+
+docker-run:
+	@echo "🐳 Iniciando serviços..."
+	docker-compose up -d
+
+docker-stop:
+	@echo "🐳 Parando serviços..."
+	docker-compose down
+
+docker-logs:
+	@echo "📋 Mostrando logs dos serviços..."
+	docker-compose logs -f
+
+docker-clean:
+	@echo "🧹 Limpando Docker..."
+	docker-compose down -v --remove-orphans
+	docker system prune -f
+
+# Utilitários
 clean:
 	@echo "🧹 Limpando arquivos temporários..."
 	find . -type f -name "*.pyc" -delete
 	find . -type d -name "__pycache__" -delete
-	find . -type f -name "*.log" -delete
-	find . -type f -name "*.db" -delete
-	find . -type f -name "*.sqlite" -delete
-	find . -type f -name "report.html" -delete
-	@echo "✅ Limpeza concluída!"
+	find . -type d -name "*.egg-info" -exec rm -rf {} +
+	find . -type d -name ".pytest_cache" -exec rm -rf {} +
+	find . -type d -name ".mypy_cache" -exec rm -rf {} +
+	find . -type d -name ".coverage" -delete
+	find . -type d -name "htmlcov" -exec rm -rf {} +
+	rm -rf build/ dist/ *.egg-info/
 
-# Comandos de desenvolvimento
-dev-setup:
-	@echo "🔧 Configurando ambiente de desenvolvimento..."
-	@echo "1. Configure o token do bot em src/core/config.py"
-	@echo "2. Configure o ID do canal"
-	@echo "3. Configure os IDs dos administradores"
-	@echo "4. Execute: make install"
-	@echo "5. Execute: make bot-start"
+docs:
+	@echo "📚 Gerando documentação..."
+	# Adicionar comandos para gerar documentação se necessário
+
+release:
+	@echo "🚀 Criando nova release..."
+	@read -p "Digite a versão (ex: 1.0.0): " version; \
+	git tag -a v$$version -m "Release v$$version"; \
+	git push origin v$$version
+
+# Comandos de desenvolvimento rápido
+dev: install
+	@echo "🚀 Ambiente de desenvolvimento configurado!"
+
+quick-test: lint type-check test-unit
+	@echo "✅ Verificações rápidas concluídas!"
 
 # Comandos de produção
-prod-deploy:
-	@echo "🚀 Deploy em produção..."
-	@echo "1. Configure variáveis de ambiente"
-	@echo "2. Execute: make test-all"
-	@echo "3. Execute: make bot-start"
-	@echo "4. Monitore logs em logs/bot.log"
+prod: docker-build docker-run
+	@echo "🚀 Sistema de produção iniciado!"
 
-# Comandos de teste
-quick-test:
-	@echo "⚡ Teste rápido do sistema..."
-	$(PYTEST) -q tests/unit/test_aff_awin.py::test_awin_deeplink_lg_product tests/unit/test_aff_ml.py::test_ml_shortlinks_validos tests/unit/test_aff_shopee.py::test_shopee_category_bloqueada
+# Comandos de monitoramento
+monitor:
+	@echo "📊 Monitorando sistema..."
+	docker-compose ps
+	docker-compose logs --tail=50
 
-test-metrics:
-	@echo "📊 Testando métricas..."
-	$(PYTHON) -c "from src.affiliate.shopee import get_metrics; from src.affiliate.mercadolivre import get_metrics; from src.affiliate.magazineluiza import get_metrics; print('Shopee:', get_metrics()); print('ML:', get_metrics()); print('Magalu:', get_metrics())"
+# Comandos de backup
+backup:
+	@echo "💾 Criando backup..."
+	docker exec garimpeiro_redis redis-cli BGSAVE
+	@echo "✅ Backup do Redis criado!"
 
-validate-examples:
-	@echo "🔍 Validando exemplos de afiliados..."
-	$(PYTEST) -q tests/e2e/test_affiliates_e2e.py::test_e2e_cobertura_completa_awin tests/e2e/test_affiliates_e2e.py::test_e2e_cobertura_completa_shopee tests/e2e/test_affiliates_e2e.py::test_e2e_cobertura_completa_ml
-
-status:
-	@echo "📋 Status do sistema..."
-	@echo "✅ Validadores implementados"
-	@echo "✅ PostingManager funcionando"
-	@echo "✅ Testes passando"
-	@echo "✅ Bot do Telegram implementado"
-	@echo "🚀 Sistema pronto para produção!"
-
-# Padrão
-all: test-all dashboard
+# Comandos de manutenção
+maintenance:
+	@echo "🔧 Executando manutenção..."
+	docker-compose exec redis redis-cli FLUSHDB
+	@echo "✅ Cache limpo!"
 
