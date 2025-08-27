@@ -92,9 +92,11 @@ class BaseScraper(ABC):
             "last_run": self.last_run.isoformat() if self.last_run else None,
             "success_count": self.success_count,
             "error_count": self.error_count,
-            "success_rate": self.success_count / (self.success_count + self.error_count)
-            if (self.success_count + self.error_count) > 0
-            else 0,
+            "success_rate": (
+                self.success_count / (self.success_count + self.error_count)
+                if (self.success_count + self.error_count) > 0
+                else 0
+            ),
         }
 
     def enable(self):

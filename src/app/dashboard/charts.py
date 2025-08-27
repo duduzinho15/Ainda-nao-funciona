@@ -12,7 +12,7 @@ import flet as ft
 class ChartSystem:
     """Sistema de gráficos para o dashboard"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.colors = [
             ft.colors.BLUE_400,
             ft.colors.GREEN_400,
@@ -100,7 +100,7 @@ class ChartSystem:
         )
 
 
-def main():
+def main() -> None:
     """Função principal"""
     print("📊 Sistema de Gráficos para Dashboard")
     print("✅ Módulo criado com sucesso!")

@@ -65,15 +65,16 @@ class TestDatabase:
     def teardown_method(self):
         """Limpeza após cada teste"""
         try:
-            if hasattr(self, 'db') and self.db:
+            if hasattr(self, "db") and self.db:
                 self.db.close()
         except Exception:
             pass
 
         try:
-            if hasattr(self, 'temp_db') and self.temp_db:
+            if hasattr(self, "temp_db") and self.temp_db:
                 # Aguardar um pouco para garantir que o arquivo seja liberado
                 import time
+
                 time.sleep(0.1)
                 Path(self.temp_db.name).unlink(missing_ok=True)
         except Exception:

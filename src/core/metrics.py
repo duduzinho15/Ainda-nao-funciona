@@ -17,6 +17,7 @@ class Metrics:
         self.lojas_ativas = lojas_ativas
         self.preco_medio = preco_medio
         self.timestamp = datetime.now()
+        self.events = {}  # Dicionário para armazenar contadores de eventos
 
     def preco_medio_formatado(self) -> str:
         """Retorna o preço médio formatado como moeda"""
@@ -33,6 +34,24 @@ class Metrics:
 
     def __str__(self) -> str:
         return f"Ofertas: {self.total_ofertas}, Lojas: {self.lojas_ativas}, Preço: {self.preco_medio_formatado()}"
+
+    def record_event(self, category: str, event_name: str, data: Dict[str, Any] = None):
+        """Registra um evento nas métricas"""
+        if category not in self.events:
+            self.events[category] = {}
+
+        if event_name not in self.events[category]:
+            self.events[category][event_name] = 0
+
+        self.events[category][event_name] += 1
+
+    def get_event_count(self, category: str, event_name: str) -> int:
+        """Retorna a contagem de um evento específico"""
+        return self.events.get(category, {}).get(event_name, 0)
+
+    def get_events_summary(self) -> Dict[str, Dict[str, int]]:
+        """Retorna resumo de todos os eventos"""
+        return self.events.copy()
 
 
 class MetricsCollector:

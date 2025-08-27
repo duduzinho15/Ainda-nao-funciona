@@ -6,6 +6,9 @@ asyncio-mqtt>=0.16.0
 # Database
 sqlite3
 
+# Cache
+redis>=5.0.0
+
 # Telegram Bot
 python-telegram-bot>=20.7
 

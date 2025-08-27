@@ -19,6 +19,24 @@ except ImportError:
     TELEGRAM_AVAILABLE = False
     logging.warning("python-telegram-bot não disponível. Bot Telegram desabilitado.")
 
+    # Criar classes dummy para evitar erros de importação
+    class Update:
+        pass
+
+    class Application:
+        pass
+
+    class CallbackQueryHandler:
+        pass
+
+    class CommandHandler:
+        pass
+
+    class ContextTypes:
+        class DEFAULT_TYPE:
+            pass
+
+
 from .message_builder import MessageBuilder
 from .notification_manager import NotificationManager
 

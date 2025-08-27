@@ -30,7 +30,8 @@ class Database:
         cursor = self.connection.cursor()
 
         # Tabela de ofertas
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS ofertas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 titulo TEXT NOT NULL,
@@ -44,10 +45,12 @@ class Database:
                 data_coleta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 ativo BOOLEAN DEFAULT 1
             )
-        """)
+        """
+        )
 
         # Tabela de métricas
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS metricas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -56,10 +59,12 @@ class Database:
                 preco_medio REAL DEFAULT 0.0,
                 desconto_medio REAL DEFAULT 0.0
             )
-        """)
+        """
+        )
 
         # Tabela de logs
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -67,7 +72,8 @@ class Database:
                 mensagem TEXT NOT NULL,
                 origem TEXT
             )
-        """)
+        """
+        )
 
         self.connection.commit()
 
@@ -149,11 +155,13 @@ class Database:
         """Obtém a métrica mais recente"""
         cursor = self.connection.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT * FROM metricas
             ORDER BY data DESC
             LIMIT 1
-        """)
+        """
+        )
 
         row = cursor.fetchone()
         return dict(row) if row else None

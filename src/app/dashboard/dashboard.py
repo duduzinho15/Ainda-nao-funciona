@@ -11,8 +11,8 @@ import flet as ft
 # Adicionar diretório raiz ao path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from core.metrics import Metrics
-from core.storage import PreferencesStorage
+from src.core.metrics import Metrics
+from src.core.storage import PreferencesStorage
 
 # Configurações
 SPACING = {"small": 8, "medium": 16, "large": 24, "xlarge": 32}
@@ -67,9 +67,11 @@ def build_header(page: ft.Page) -> ft.Container:
                 ),
                 ft.Container(expand=True),
                 ft.IconButton(
-                    icon=ft.Icons.DARK_MODE
-                    if page.theme_mode == ft.ThemeMode.LIGHT
-                    else ft.Icons.LIGHT_MODE,
+                    icon=(
+                        ft.Icons.DARK_MODE
+                        if page.theme_mode == ft.ThemeMode.LIGHT
+                        else ft.Icons.LIGHT_MODE
+                    ),
                     tooltip="Alternar tema",
                     on_click=lambda e: toggle_theme(page),
                 ),

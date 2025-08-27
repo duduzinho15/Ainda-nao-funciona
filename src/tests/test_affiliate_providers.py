@@ -5,8 +5,8 @@ Testes para provedores de afiliados
 import unittest
 from decimal import Decimal
 
-from affiliate.rakuten import RakutenAffiliateBuilder, build_rakuten_link
-from core.models import Offer
+from src.affiliate.rakuten import RakutenAffiliateBuilder, build_rakuten_link
+from src.core.models import Offer
 
 
 class TestOfferModel(unittest.TestCase):
@@ -128,7 +128,7 @@ class TestAmazonAffiliate(unittest.TestCase):
     def test_amazon_affiliate_conversion(self):
         """Testa conversão de links Amazon"""
         # Teste simples sem mock
-        from core.affiliate_converter import AffiliateConverter
+        from src.core.affiliate_converter import AffiliateConverter
 
         converter = AffiliateConverter()
         result = converter.convert_to_affiliate("https://amazon.com.br/produto")
@@ -152,7 +152,7 @@ class TestAwinAffiliate(unittest.TestCase):
     def test_awin_affiliate_conversion(self):
         """Testa conversão de links Awin"""
         # Teste simples sem mock
-        from core.affiliate_converter import AffiliateConverter
+        from src.core.affiliate_converter import AffiliateConverter
 
         converter = AffiliateConverter()
         result = converter.convert_to_affiliate("https://amazon.com.br/produto")

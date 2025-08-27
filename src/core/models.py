@@ -39,6 +39,21 @@ class Offer:
     # Dados adicionais específicos da loja
     store_data: Dict[str, Any] = field(default_factory=dict)
 
+    # Campos específicos da Amazon
+    asin: Optional[str] = None  # Amazon Standard Identification Number
+
+    # Campos de cupom e promoção
+    coupon_code: Optional[str] = None  # Código do cupom
+    coupon_discount: Optional[float] = None  # Desconto do cupom em %
+    coupon_valid_until: Optional[str] = None  # Data de validade do cupom
+
+    # Campos de estoque
+    stock_quantity: Optional[int] = None  # Quantidade em estoque
+
+    # Campos de validação
+    is_complete: bool = True  # Se a oferta está completa para publicação
+    incomplete_reason: Optional[str] = None  # Motivo da incompletude
+
     # Validação
     def __post_init__(self):
         """Valida os dados da oferta após inicialização"""
@@ -90,9 +105,9 @@ class Offer:
         return {
             "title": self.title,
             "price": float(self.price),
-            "original_price": float(self.original_price)
-            if self.original_price
-            else None,
+            "original_price": (
+                float(self.original_price) if self.original_price else None
+            ),
             "discount_percentage": self.discount_percentage,
             "url": self.url,
             "affiliate_url": self.affiliate_url,
@@ -105,6 +120,9 @@ class Offer:
             "scraped_at": self.scraped_at.isoformat(),
             "source": self.source,
             "store_data": self.store_data,
+            "asin": self.asin,
+            "is_complete": self.is_complete,
+            "incomplete_reason": self.incomplete_reason,
             "has_discount": self.has_discount,
             "price_formatted": self.price_formatted,
             "original_price_formatted": self.original_price_formatted,

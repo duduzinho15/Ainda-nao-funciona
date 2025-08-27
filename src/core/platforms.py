@@ -20,9 +20,12 @@ Configuração centralizada das plataformas ativas com afiliação válida
    - Ricardo Eletro: sem programa de afiliados
 """
 
+import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class PlatformType(Enum):
@@ -65,7 +68,7 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "stores": ["comfy", "trocafy", "lg", "kabum", "ninja", "samsung"],
             "attribution": "Lastclick Awin, 30 dias cookie",
             "payout": "CPA variável por loja (ex: Comfy 2.80%)",
-            "rules": "Permitido: cupons, cashback, loyalty, email marketing, influenciadores"
+            "rules": "Permitido: cupons, cashback, loyalty, email marketing, influenciadores",
         },
     ),
     "mercadolivre": PlatformConfig(
@@ -81,7 +84,7 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "tag": "garimpeirogeek",
             "attribution": "Lastclick, cookie de sessão",
             "payout": "Comissão por venda realizada",
-            "rules": "Permitido: marketing digital, redes sociais, blogs"
+            "rules": "Permitido: marketing digital, redes sociais, blogs",
         },
     ),
     "magalu": PlatformConfig(
@@ -110,7 +113,7 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
             "tag": "garimpeirogee-20",
             "attribution": "Lastclick, 24h cookie",
             "payout": "4% sobre produtos elegíveis",
-            "rules": "Permitido: marketing digital, redes sociais, blogs, email"
+            "rules": "Permitido: marketing digital, redes sociais, blogs, email",
         },
     ),
     "shopee": PlatformConfig(
@@ -144,14 +147,16 @@ PLATAFORMAS_ATIVAS: Dict[str, PlatformConfig] = {
     "rakuten": PlatformConfig(
         name="Rakuten (LinkSynergy)",
         type=PlatformType.RAKUTEN,
-        active=False,  # Placeholder - não ativo ainda
-        affiliate_enabled=False,
+        active=False,  # Controlado por RAKUTEN_ENABLED
+        affiliate_enabled=False,  # Controlado por RAKUTEN_ENABLED
         scraper_enabled=False,
-        description="Placeholder para futura integração Rakuten",
+        description="Integração Rakuten com feature flag (desabilitado por padrão)",
         affiliate_info={
             "type": "deeplink",
             "format": "https://click.linksynergy.com/deeplink?id={id}&mid={mid}&murl={url}&u1={subid}",
-            "status": "pending_approval",
+            "status": "feature_flag_controlled",
+            "feature_flag": "RAKUTEN_ENABLED",
+            "tokens_required": ["RAKUTEN_WEBSERVICE_TOKEN", "RAKUTEN_SECURITY_TOKEN"],
         },
     ),
 }
@@ -190,6 +195,94 @@ def is_platform_active(platform_name: str) -> bool:
 def get_platform_config(platform_name: str) -> Optional[PlatformConfig]:
     """Retorna configuração de uma plataforma"""
     return PLATAFORMAS_ATIVAS.get(platform_name)
+
+
+# Configurações Awin específicas
+AWIN_CONFIG = {
+    "comfy": ("23377", "2370719"),  # Comfy BR - AFFID 2370719
+    "trocafy": ("51277", "2370719"),  # Trocafy - AFFID 2370719
+    "lg": ("33061", "2370719"),  # LG Brasil - AFFID 2370719
+    "kabum": ("17729", "2370719"),  # KaBuM! - AFFID 2370719
+    "ninja": ("106765", "2370719"),  # Ninja - AFFID 2370719
+    "samsung": ("25539", "2510157"),  # Samsung - AFFID 2510157
+}
+
+
+def get_awin_config(loja: str) -> Optional[tuple[str, str]]:
+    """
+    Retorna configuração Awin para uma loja específica
+
+    Args:
+        loja: Nome da loja (ex: 'comfy', 'kabum', 'lg')
+
+    Returns:
+        Tupla (MID, AFFID) ou None se não configurada
+    """
+    return AWIN_CONFIG.get(loja.lower())
+
+
+def get_awin_stores() -> list[str]:
+    """Retorna lista de lojas configuradas no Awin"""
+    return list(AWIN_CONFIG.keys())
+
+
+def validate_awin_config() -> bool:
+    """
+    Valida se todas as lojas Awin ativas possuem MID e AFFID configurados
+
+    Returns:
+        True se todas as configurações estão válidas
+    """
+    try:
+        # Verificar se todas as lojas Awin têm configuração
+        for loja in AWIN_CONFIG:
+            if not get_awin_config(loja):
+                return False
+
+        return True
+
+    except Exception as e:
+        logger.error(f"Erro ao validar configuração Awin: {e}")
+        return False
+
+
+def validate_rakuten_config() -> bool:
+    """
+    Valida se a configuração Rakuten está correta
+
+    Returns:
+        True se a configuração está válida
+    """
+    from src.core.settings import Settings
+
+    try:
+        # Se Rakuten não está habilitado, não precisa validar
+        if not Settings.RAKUTEN_ENABLED:
+            return True
+
+        # Verificar se tokens obrigatórios estão configurados
+        if not Settings.RAKUTEN_WEBSERVICE_TOKEN:
+            logger.warning("RAKUTEN_WEBSERVICE_TOKEN não configurado")
+            return False
+
+        if not Settings.RAKUTEN_SECURITY_TOKEN:
+            logger.warning("RAKUTEN_SECURITY_TOKEN não configurado")
+            return False
+
+        # Verificar saúde do cliente
+        from src.affiliate.rakuten import get_rakuten_client
+
+        client = get_rakuten_client()
+
+        if client and client.healthcheck():
+            return True
+        else:
+            logger.warning("Cliente Rakuten não está saudável")
+            return False
+
+    except Exception as e:
+        logger.error(f"Erro ao validar configuração Rakuten: {e}")
+        return False
 
 
 # Listas de conveniência

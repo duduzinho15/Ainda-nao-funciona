@@ -161,12 +161,14 @@ class BaseAPI(ABC):
             "has_api_key": bool(self.api_key),
             "request_count": self.request_count,
             "error_count": self.error_count,
-            "success_rate": (self.request_count - self.error_count) / self.request_count
-            if self.request_count > 0
-            else 0,
-            "last_request": self.last_request.isoformat()
-            if self.last_request
-            else None,
+            "success_rate": (
+                (self.request_count - self.error_count) / self.request_count
+                if self.request_count > 0
+                else 0
+            ),
+            "last_request": (
+                self.last_request.isoformat() if self.last_request else None
+            ),
             "is_connected": bool(self.session),
         }
 

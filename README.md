@@ -12,6 +12,49 @@
 - **🔄 Backup Automático**: Sistema robusto de backup e recuperação
 - **🧪 Testes Automatizados**: Qualidade garantida com testes unitários
 
+## 🔗 Afiliações Ativas
+
+### **Awin** (Comfy, Trocafy, LG, KaBuM!, Samsung, Ninja)
+- Deeplinks com validação rígida de MIDs e AFFIDs
+- MIDs configuráveis por loja
+- AFFIDs parametrizáveis via .env
+
+### **Amazon** (ASIN-first)
+- Normalização automática com tag `garimpeirogee-20`
+- Extração ASIN: URL → HTML → Playwright (fallback)
+- Bloqueio de ofertas sem ASIN válido
+
+### **Mercado Livre**
+- Etiqueta `garimpeirogeek` obrigatória
+- Shortlinks `mercadolivre.com/sec/*`
+- Links sociais com parâmetros validados
+
+### **Shopee** (Shortlink via painel + cache)
+- Geração via painel/portal Shopee
+- Cache local em `aff_cache.sqlite`
+- Validação de formato `s.shopee.com.br/*`
+
+### **AliExpress** (Shortlink via painel + cache)
+- Geração via painel/portal AliExpress
+- Tracking ID configurável (`telegram`)
+- Cache local com validação de formato
+
+### **Magazine Luiza**
+- Vitrine `magazinegarimpeirogeek` obrigatória
+- Conversão automática de domínios
+- Validação de estrutura de URLs
+
+### **Rakuten Advertising** (Habilitável)
+- Feature flag `RAKUTEN_ENABLED=false` por padrão
+- Tokens configuráveis para Hype Games e Nuuvem
+- Placeholder ready para futura implementação
+
+## 📚 Guia do Projeto + Regras do Cursor
+
+- **[Especificação Funcional & Técnica](docs/ESPECIFICACAO_GARIMPEIRO_GEEK.md)** - Regras completas do projeto
+- **[Padrões de Afiliados](docs/affiliate_examples.md)** - Exemplos e validações de links
+- **[Regras Awin](docs/awin_rules.md)** - Políticas e configurações Awin
+
 ## 🏗️ Arquitetura do Sistema
 
 ```
@@ -77,7 +120,7 @@ garimpeiro-geek/
 ## 🛠️ Instalação
 
 ### Pré-requisitos
-- Python 3.8+
+- Python 3.11+
 - Git
 - Conexão com internet
 
@@ -97,7 +140,88 @@ python install.py
 git clone <seu-repositorio>
 cd garimpeiro-geek
 
-# 2. Crie ambiente virtual
+# 2. Instale as dependências
+pip install -r requirements.txt
+
+# 3. Configure as variáveis de ambiente
+cp .env.example .env
+# Edite o arquivo .env com suas configurações
+```
+
+## 🚀 Como Executar
+
+### Dashboard Flet
+```bash
+# Executar dashboard
+python apps/flet_dashboard/main.py
+
+# Ou usar o Makefile (se disponível)
+make dashboard
+```
+
+### APIs Oficiais
+```bash
+# Verificar configuração das APIs
+make test-apis-config
+
+# Executar demonstração das APIs
+make demo-apis
+
+# Executar testes das APIs
+make test-apis
+
+# Smoke tests das APIs
+make test-apis-smoke
+```
+
+### Sistema Principal
+```bash
+# Executar sistema principal
+python start.py
+
+# Ou usar o Makefile (se disponível)
+make start
+```
+
+### Testes
+```bash
+# Executar todos os testes
+pytest
+
+# Executar testes específicos
+pytest tests/unit/
+pytest tests/test_affiliate_examples.py
+
+# Ou usar o Makefile (se disponível)
+make test
+make test-affiliates
+```
+
+## 🔧 Variáveis de Ambiente Fundamentais
+
+### Telegram
+- `TELEGRAM_BOT_TOKEN`: Token do bot Telegram
+- `TELEGRAM_CHAT_ID`: ID do chat para notificações
+
+### Afiliados
+- `AWIN_AFFIDS`: AFFIDs permitidos (2370719,2510157)
+- `AMAZON_AFFILIATE_TAG`: Tag Amazon (garimpeirogee-20)
+- `MERCADO_LIVRE_AFFILIATE_TAG`: Etiqueta ML (garimpeirogeek)
+- `ALIEXPRESS_TRACKING_ID`: Tracking ID (telegram)
+
+### APIs Oficiais
+- `ALI_APP_KEY` / `ALI_APP_SECRET`: AliExpress Open Platform
+- `RKTN_CLIENT_ID` / `RKTN_CLIENT_SECRET`: Rakuten Advertising
+- `SHOPEE_APP_ID` / `SHOPEE_SECRET`: Shopee Affiliate Open API
+- `AWIN_PUBLISHER_ID` / `AWIN_ACCESS_TOKEN`: Awin Publisher API
+
+### Sistema
+- `DEBUG_MODE`: Modo debug (True/False)
+- `LOG_LEVEL`: Nível de log (DEBUG, INFO, WARNING, ERROR)
+cp config/env.example .env
+# Edite o arquivo .env com suas credenciais
+
+# 3. Crie ambiente virtual
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # ou
@@ -373,8 +497,56 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 
 **⭐ Se este projeto te ajudou, considere dar uma estrela no GitHub!**
 
+## 📚 Documentação
+
+- [**Guia do Projeto + Regras do Cursor**](docs/ESPECIFICACAO_GARIMPEIRO_GEEK.md) - Especificação completa e regras para desenvolvimento
+- [**Relatório da Estrutura Final**](docs/RELATORIO_ESTRUTURA_FINAL.md) - Documentação detalhada da reorganização
+- [**Configurações de Afiliados**](config/Regras%20de%20alguma%20afiliações%20na%20Awin.txt) - Regras e configurações Awin
+- [**Informações de Geração de Links**](config/Informações%20base%20de%20geração%20de%20link.txt) - Exemplos de links de afiliados
+
+## 🔗 Afiliações Ativas
+
+### **Awin (Deeplinks)**
+- **Comfy BR** - MID: 23377, AFFID: 2370719
+- **Trocafy** - MID: 51277, AFFID: 2370719  
+- **LG Brasil** - MID: 33061, AFFID: 2370719
+- **KaBuM!** - MID: 17729, AFFID: 2370719
+- **Ninja** - MID: 106765, AFFID: 2370719
+- **Samsung** - MID: 25539, AFFID: 2510157
+
+### **Outras Plataformas**
+- **Mercado Livre** - Shortlinks + etiqueta `garimpeirogeek`
+- **Magazine Luiza** - Vitrine `magazinegarimpeirogeek`
+- **Amazon** - Tag `garimpeirogee-20` + normalização ASIN
+- **Shopee** - Shortlinks via painel + cache
+- **AliExpress** - Shortlinks via portal + cache (tracking: "telegram")
+- **Rakuten** - Feature flag controlado (desabilitado por padrão)
+
+## ⚙️ Configuração
+
+### Variáveis de Ambiente
+O sistema usa um arquivo `.env` para configurações sensíveis:
+
+```bash
+# Copie o arquivo de exemplo
+cp config/env.example .env
+
+# Configure suas credenciais
+nano .env  # ou use seu editor preferido
+```
+
+### Configurações Obrigatórias
+- **Telegram**: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`
+- **Amazon**: `AFFILIATE_AMAZON_TAG=garimpeirogee-20`
+- **Rakuten**: `RAKUTEN_ENABLED=false` (padrão), tokens opcionais
+
+### Configurações Opcionais
+- **Logging**: `LOG_LEVEL`, `LOG_FILE`
+- **Scraping**: `SCRAPING_TIMEOUT`, `SCRAPING_DELAY`
+- **Cache**: `CACHE_TTL`, `RATE_LIMIT_REQUESTS`
+
 **🔗 Links Úteis:**
-- [Documentação Completa](link-para-docs)
+- [Documentação Completa](docs/ESPECIFICACAO_GARIMPEIRO_GEEK.md)
 - [Changelog](link-para-changelog)
 - [Contribuir](link-para-contribuir)
 - [Licença](link-para-licenca)

@@ -4,15 +4,24 @@ Converte URLs de produtos em links de afiliado
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+from .affiliate_cache import AffiliateCache
+from .affiliate_validator import AffiliateValidator, ValidationResult
 
 
 class AffiliateConverter:
     """Converte URLs de produtos em links de afiliado"""
 
-    def __init__(self):
+    def __init__(self, cache_url: str = "redis://localhost:6379"):
         self.logger = logging.getLogger("affiliate_converter")
+
+        # Sistema de cache
+        self.cache = AffiliateCache(cache_url)
+
+        # Sistema de validação
+        self.validator = AffiliateValidator()
 
         # Configurações de afiliados por loja
         self.affiliate_configs = {
@@ -90,7 +99,7 @@ class AffiliateConverter:
             self.logger.error(f"Erro ao identificar loja da URL {url}: {e}")
             return None
 
-    def convert_to_affiliate(self, url: str, store: Optional[str] = None) -> str:
+    async def convert_to_affiliate(self, url: str, store: Optional[str] = None) -> str:
         """
         Converte uma URL em link de afiliado
 
@@ -113,6 +122,12 @@ class AffiliateConverter:
             self.logger.info(f"Conversão de afiliado desabilitada para {store}")
             return url
 
+        # Verificar cache primeiro
+        cached_result = await self.cache.get(store, url)
+        if cached_result:
+            self.logger.debug(f"Cache hit para {store}: {url[:50]}...")
+            return cached_result["affiliate_url"]
+
         try:
             parsed = urlparse(url)
             query_params = parse_qs(parsed.query)
@@ -133,6 +148,9 @@ class AffiliateConverter:
                 )
             )
 
+            # Armazenar no cache
+            await self.cache.set(store, url, new_url, metadata={"store": store})
+
             self.logger.info(f"URL convertida para afiliado: {store} -> {new_url}")
             return new_url
 
@@ -140,7 +158,7 @@ class AffiliateConverter:
             self.logger.error(f"Erro ao converter URL para afiliado: {e}")
             return url
 
-    def convert_offers_batch(self, offers: list) -> list:
+    async def convert_offers_batch(self, offers: list) -> list:
         """
         Converte um lote de ofertas para links de afiliado
 
@@ -155,7 +173,7 @@ class AffiliateConverter:
         for offer in offers:
             if "url" in offer and offer["url"]:
                 original_url = offer["url"]
-                affiliate_url = self.convert_to_affiliate(original_url)
+                affiliate_url = await self.convert_to_affiliate(original_url)
 
                 # Criar cópia da oferta com URL convertida
                 converted_offer = offer.copy()
@@ -207,7 +225,63 @@ class AffiliateConverter:
 
         return stats
 
-    def test_conversion(self, url: str) -> Dict[str, Any]:
+    async def validate_conversion(
+        self, original_url: str, affiliate_url: str
+    ) -> ValidationResult:
+        """
+        Valida uma conversão específica
+
+        Args:
+            original_url: URL original
+            affiliate_url: URL de afiliado
+
+        Returns:
+            Resultado da validação
+        """
+        return self.validator.validate_conversion(original_url, affiliate_url)
+
+    async def validate_batch(
+        self, conversions: List[Dict[str, str]]
+    ) -> List[ValidationResult]:
+        """
+        Valida um lote de conversões
+
+        Args:
+            conversions: Lista de conversões para validar
+
+        Returns:
+            Lista de resultados de validação
+        """
+        return self.validator.validate_batch(conversions)
+
+    async def get_cache_stats(self) -> Dict[str, Any]:
+        """Retorna estatísticas do cache"""
+        return await self.cache.get_stats()
+
+    async def clear_cache(self, platform: Optional[str] = None) -> int:
+        """
+        Limpa cache
+
+        Args:
+            platform: Plataforma específica ou None para limpar tudo
+
+        Returns:
+            Número de itens removidos
+        """
+        if platform:
+            return await self.cache.clear_platform(platform)
+        else:
+            return await self.cache.clear_all()
+
+    async def connect_cache(self) -> bool:
+        """Conecta ao sistema de cache"""
+        return await self.cache.connect()
+
+    async def disconnect_cache(self):
+        """Desconecta do sistema de cache"""
+        await self.cache.disconnect()
+
+    async def test_conversion(self, url: str) -> Dict[str, Any]:
         """
         Testa a conversão de uma URL específica
 
@@ -219,7 +293,12 @@ class AffiliateConverter:
         """
         store = self.identify_store(url)
         original_url = url
-        affiliate_url = self.convert_to_affiliate(url, store)
+        affiliate_url = await self.convert_to_affiliate(url, store)
+
+        # Validar conversão
+        validation_result = self.validator.validate_conversion(
+            original_url, affiliate_url, store
+        )
 
         return {
             "original_url": original_url,
@@ -227,4 +306,10 @@ class AffiliateConverter:
             "store": store,
             "converted": original_url != affiliate_url,
             "config": self.affiliate_configs.get(store, {}) if store else None,
+            "validation": {
+                "status": validation_result.status.value,
+                "message": validation_result.message,
+                "score": validation_result.score,
+                "details": validation_result.details,
+            },
         }

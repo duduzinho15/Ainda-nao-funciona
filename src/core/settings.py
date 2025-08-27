@@ -30,7 +30,7 @@ class Settings:
     # Configurações de logging
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FILE: str = os.getenv("LOG_FILE", "src/logs/garimpeiro_geek.log")
-    LOG_MAX_SIZE: int = int(os.getenv("LOG_MAX_SIZE", "10MB"))
+    LOG_MAX_SIZE: str = os.getenv("LOG_MAX_SIZE", "10MB")  # String para permitir "10MB"
     LOG_BACKUP_COUNT: int = int(os.getenv("LOG_BACKUP_COUNT", "5"))
 
     # Configurações de scraping
@@ -40,11 +40,46 @@ class Settings:
     SCRAPING_MAX_CONCURRENT: int = int(os.getenv("SCRAPING_MAX_CONCURRENT", "5"))
 
     # Configurações de afiliados
-    AFFILIATE_AMAZON_TAG: str = os.getenv("AFFILIATE_AMAZON_TAG", "garimpeirogeek-20")
+    AFFILIATE_AMAZON_TAG: str = os.getenv("AFFILIATE_AMAZON_TAG", "garimpeirogee-20")
     AFFILIATE_MAGALU_TAG: str = os.getenv("AFFILIATE_MAGALU_TAG", "")
     AFFILIATE_AWIN_PUBLISHER_ID: str = os.getenv("AFFILIATE_AWIN_PUBLISHER_ID", "")
     AFFILIATE_RAKUTEN_ID: str = os.getenv("AFFILIATE_RAKUTEN_ID", "")
     AFFILIATE_RAKUTEN_MERCHANT_ID: str = os.getenv("AFFILIATE_RAKUTEN_MERCHANT_ID", "")
+
+    # Configurações Rakuten (desabilitado por padrão)
+    RAKUTEN_ENABLED: bool = os.getenv("RAKUTEN_ENABLED", "false").lower() == "true"
+    RAKUTEN_WEBSERVICE_TOKEN: str = os.getenv("RAKUTEN_WEBSERVICE_TOKEN", "")
+    RAKUTEN_SECURITY_TOKEN: str = os.getenv("RAKUTEN_SECURITY_TOKEN", "")
+    RAKUTEN_SID: str = os.getenv("RAKUTEN_SID", "")
+
+    # Configurações das APIs oficiais
+    # AliExpress Open Platform
+    ALI_APP_KEY: str = os.getenv("ALI_APP_KEY", "")
+    ALI_APP_SECRET: str = os.getenv("ALI_APP_SECRET", "")
+    ALI_ACCESS_TOKEN: str = os.getenv("ALI_ACCESS_TOKEN", "")
+    ALI_REFRESH_TOKEN: str = os.getenv("ALI_REFRESH_TOKEN", "")
+
+    # Rakuten Advertising
+    RKTN_CLIENT_ID: str = os.getenv("RKTN_CLIENT_ID", "")
+    RKTN_CLIENT_SECRET: str = os.getenv("RKTN_CLIENT_SECRET", "")
+    RKTN_ACCESS_TOKEN: str = os.getenv("RKTN_ACCESS_TOKEN", "")
+
+    # Shopee Affiliate Open API
+    SHOPEE_APP_ID: str = os.getenv("SHOPEE_APP_ID", "")
+    SHOPEE_SECRET: str = os.getenv("SHOPEE_SECRET", "")
+    SHOPEE_ACCESS_TOKEN: str = os.getenv("SHOPEE_ACCESS_TOKEN", "")
+
+    # Awin Publisher API
+    AWIN_PUBLISHER_ID: str = os.getenv("AWIN_PUBLISHER_ID", "")
+    AWIN_ACCESS_TOKEN: str = os.getenv("AWIN_ACCESS_TOKEN", "")
+
+    # Flags de controle das APIs
+    USE_API_ALIEXPRESS: bool = (
+        os.getenv("USE_API_ALIEXPRESS", "false").lower() == "true"
+    )
+    USE_API_RAKUTEN: bool = os.getenv("USE_API_RAKUTEN", "false").lower() == "true"
+    USE_API_SHOPEE: bool = os.getenv("USE_API_SHOPEE", "false").lower() == "true"
+    USE_API_AWIN: bool = os.getenv("USE_API_AWIN", "false").lower() == "true"
 
     # Configurações de notificações
     NOTIFICATIONS_ENABLED: bool = (
@@ -93,6 +128,51 @@ class Settings:
         return {
             "url": cls.DATABASE_URL,
             "path": cls.DATABASE_PATH,
+        }
+
+    @classmethod
+    def get_api_config(cls) -> Dict[str, Any]:
+        """Retorna configurações das APIs oficiais"""
+        return {
+            "aliexpress": {
+                "enabled": cls.USE_API_ALIEXPRESS,
+                "app_key": cls.ALI_APP_KEY,
+                "app_secret": cls.ALI_APP_SECRET,
+                "access_token": cls.ALI_ACCESS_TOKEN,
+                "refresh_token": cls.ALI_REFRESH_TOKEN,
+            },
+            "rakuten": {
+                "enabled": cls.USE_API_RAKUTEN,
+                "client_id": cls.RKTN_CLIENT_ID,
+                "client_secret": cls.RKTN_CLIENT_SECRET,
+                "access_token": cls.RKTN_ACCESS_TOKEN,
+            },
+            "shopee": {
+                "enabled": cls.USE_API_SHOPEE,
+                "app_id": cls.SHOPEE_APP_ID,
+                "secret": cls.SHOPEE_SECRET,
+                "access_token": cls.SHOPEE_ACCESS_TOKEN,
+            },
+            "awin": {
+                "enabled": cls.USE_API_AWIN,
+                "publisher_id": cls.AWIN_PUBLISHER_ID,
+                "access_token": cls.AWIN_ACCESS_TOKEN,
+            },
+        }
+
+    @classmethod
+    def get_available_apis(cls) -> Dict[str, bool]:
+        """Retorna APIs disponíveis baseado nas configurações"""
+        api_config = cls.get_api_config()
+        return {
+            name: config["enabled"]
+            and bool(
+                config.get("app_key")
+                or config.get("client_id")
+                or config.get("app_id")
+                or config.get("publisher_id")
+            )
+            for name, config in api_config.items()
         }
 
     @classmethod

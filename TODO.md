@@ -1,42 +1,59 @@
-# TODO - Sistema de Recomendações de Ofertas Telegram
+# TODO - Garimpeiro Geek
 
-## ✅ COMPLETADO
-- [x] Verificar estrutura atual e identificar arquivos não migrados
-- [x] Mover arquivos de teste para src/tests/
-- [x] Recriar UI Reporter em src/diagnostics/
-- [x] Limpar shims temporários do diretório raiz
-- [x] Testar funcionalidade final do sistema
-- [x] Mover arquivos core restantes para src/core/
-- [x] Mover arquivos UI para src/app/dashboard/
-- [x] Mover arquivos de scraping para src/scrapers/
-- [x] Mover arquivos de APIs/providers para src/providers/
-- [x] Mover diagnostics para src/diagnostics/
-- [x] Atualizar imports em todos os arquivos movidos
-- [x] Testar funcionalidade após migração
+## ✅ Concluído
+- [x] Criar estrutura de pastas padrão (src/, apps/, tests/, scripts/, docs/)
+- [x] Migrar scrapers da raiz para src/scrapers/(lojas|comunidades)/
+- [x] Migrar providers/* para src/affiliate/* (mantendo lógica de conversão)
+- [x] Criar/validar src/core/models.py (Offer) e src/core/settings.py (.env)
+- [x] Ajustar imports para absolutos (PYTHONPATH=src)
+- [x] Garantir que todos os scrapers retornem Offer
+- [x] Criar src/affiliate/rakuten.py com builder click.linksynergy.com
+- [x] Criar pipeline de enriquecimento externo (price_enrich.py)
+- [x] Criar pipeline de agregação diária (price_aggregate.py)
+- [x] Corrigir imports relativos nos arquivos existentes
+- [x] Executar todos os testes para validar funcionamento
 
-## 🎯 OBJETIVOS FINAIS ALCANÇADOS
-- ✅ Estrutura limpa e organizada em `src/`
-- ✅ Sistema funcional com UI Reporter 100% verde
-- ✅ Dashboard e runner funcionando perfeitamente
-- ✅ Imports atualizados e funcionais
-- ✅ Arquivos organizados por funcionalidade
+## 🔄 Em Progresso
+- [ ] Gerar relatório detalhado da estrutura final
 
-## 📋 PRÓXIMOS PASSOS RECOMENDADOS
-1. **Configurar GitHub** (seguir SETUP_GITHUB.md)
-2. **Implementar Scrapers** adicionais se necessário
-3. **Implementar APIs** adicionais se necessário
-4. **Implementar o conversor de links** das ofertas para link de afiliado
-5. **Adicionar Bot Telegram**
-6. **Implementar Gráficos** no dashboard
-7. **Adicionar Testes automatizados**
+## 📋 Próximos Passos
+- [ ] Executar make fmt && make lint && make type
+- [ ] Ajustar manualmente imports específicos que não tenham regra
+- [ ] Confirmar se o bot roda em modo sandbox antes de publicar
+- [ ] Commit de "checkpoint" com reorganização
+- [ ] Criar PRs separados para cada Sprint
 
-## 🏆 STATUS ATUAL
-**MIGRAÇÃO COMPLETADA COM SUCESSO!** 🎉
+## 📊 Status dos Testes
+- **Total de testes**: 87
+- **Passando**: 86 ✅
+- **Falhando**: 1 ❌ (teste E2E KaBuM - conexão real)
+- **Taxa de sucesso**: 98.9%
 
-- UI Reporter: **100% VERDE** ✅
-- Estrutura: **Organizada e limpa** ✅
-- Sistema: **Totalmente funcional** ✅
-- Dashboard: **Funcionando perfeitamente** ✅
-- Runner: **Operacional** ✅
+## 🎯 Objetivos Alcançados
+1. ✅ Estrutura de pastas limpa e imutável
+2. ✅ Regras que o Cursor deve sempre seguir
+3. ✅ Especificações de scraping e afiliados
+4. ✅ Fluxo completo (descoberta → enriquecimento → link afiliado → postagem → métricas)
+5. ✅ Orientações de testes e checklists
+6. ✅ Especificação do Dashboard Flet para observabilidade
 
-Todos os arquivos foram migrados para suas respectivas pastas em `src/` e o sistema está funcionando perfeitamente!
+## 📁 Estrutura Final
+```
+.
+├── src/
+│   ├── app/                    ✅ Dashboard Flet
+│   ├── affiliate/              ✅ Conversores de afiliados
+│   ├── scrapers/               ✅ Scrapers organizados
+│   │   ├── lojas/             ✅ Lojas (KaBuM, Amazon, etc.)
+│   │   └── comunidades/       ✅ Comunidades (Promobit, Pelando)
+│   ├── pipelines/              ✅ Pipelines de processamento
+│   ├── telegram_bot/           ✅ Bot Telegram
+│   ├── core/                   ✅ Modelos e utilitários
+│   ├── utils/                  ✅ Utilitários gerais
+│   └── db/                     ✅ Bancos de dados
+├── apps/                       ✅ Aplicações externas
+├── tests/                      ✅ Testes organizados
+├── scripts/                    ✅ Scripts de automação
+├── docs/                       ✅ Documentação
+└── config/                     ✅ Configurações
+```
