@@ -7,6 +7,7 @@ import asyncio
 import sys
 from pathlib import Path
 from datetime import datetime
+from decimal import Decimal
 
 # Adicionar src ao path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
@@ -29,13 +30,12 @@ async def test_message_formatter():
         # Criar oferta de teste
         test_offer = Offer(
             title="Smartphone Samsung Galaxy S23",
-            current_price=2999.99,
-            original_price=3999.99,
-            discount_percentage=25,
-            affiliate_url="https://amazon.com.br/smartphone-s23",
-            platform="amazon",
-            category="Smartphones",
+            price=Decimal("2999.99"),
+            original_price=Decimal("3999.99"),
+            url="https://amazon.com.br/smartphone-s23",
             store="Amazon",
+            category="Smartphones",
+            affiliate_url="https://amazon.com.br/smartphone-s23",
             coupon_code="SAMSUNG25",
             coupon_discount=25,
             stock_quantity=10
@@ -71,7 +71,7 @@ async def test_post_scheduler():
         assert len(jobs) > 0, "Nenhum job configurado"
         
         # Verificar job de postagem
-        posting_job = post_scheduler.get_job_status("telegram_posting")
+        posting_job = post_scheduler.get_job_status("post_queue")
         assert posting_job is not None, "Job de postagem não encontrado"
         
         # Verificar estatísticas
@@ -128,8 +128,11 @@ async def test_promobit_scraper():
     print("\n🧪 Testando Promobit Scraper...")
     
     try:
+        # Criar instância do scraper
+        scraper = PromobitScraper()
+        
         # Testar coleta de ofertas
-        offers = await promobit_scraper.scrape_offers(max_offers=5)
+        offers = await scraper.scrape_offers(max_offers=5)
         
         # Verificar se retornou ofertas
         assert len(offers) > 0, "Nenhuma oferta coletada"
@@ -138,10 +141,10 @@ async def test_promobit_scraper():
         for offer in offers:
             assert offer.title, "Título da oferta ausente"
             assert offer.affiliate_url, "URL de afiliado ausente"
-            assert offer.current_price > 0, "Preço inválido"
+            assert offer.price > 0, "Preço inválido"
         
         # Verificar estatísticas
-        stats = promobit_scraper.get_stats()
+        stats = scraper.get_stats()
         assert "total_scraped" in stats
         
         print("  ✅ Promobit Scraper funcionando corretamente")
@@ -159,9 +162,12 @@ async def test_zoom_scraper():
     print("\n🧪 Testando Zoom Scraper...")
     
     try:
+        # Criar instância do scraper
+        scraper = ZoomScraper()
+        
         # Testar coleta de histórico
         test_url = "https://exemplo.com/produto-teste"
-        history = await zoom_scraper.collect_price_history(test_url)
+        history = await scraper.collect_price_history(test_url)
         
         # Verificar se retornou histórico
         assert history is not None, "Histórico não coletado"
@@ -169,12 +175,12 @@ async def test_zoom_scraper():
         assert len(history.price_history) > 0, "Histórico de preços vazio"
         
         # Testar análise de tendências
-        analysis = await zoom_scraper.analyze_price_trends(history)
+        analysis = await scraper.analyze_price_trends(history)
         assert "trend" in analysis
         assert "confidence" in analysis
         
         # Verificar estatísticas
-        stats = zoom_scraper.get_stats()
+        stats = scraper.get_stats()
         assert "total_products" in stats
         
         print("  ✅ Zoom Scraper funcionando corretamente")

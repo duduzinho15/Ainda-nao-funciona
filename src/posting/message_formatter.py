@@ -39,7 +39,7 @@ class MessageFormatter:
                 emoji="📦",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -49,7 +49,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "mercadolivre": MessageTemplate(
@@ -57,7 +57,7 @@ class MessageFormatter:
                 emoji="🛒",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -67,7 +67,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "shopee": MessageTemplate(
@@ -75,7 +75,7 @@ class MessageFormatter:
                 emoji="🛍️",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -85,7 +85,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "magazineluiza": MessageTemplate(
@@ -93,7 +93,7 @@ class MessageFormatter:
                 emoji="🏪",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -103,7 +103,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "aliexpress": MessageTemplate(
@@ -111,7 +111,7 @@ class MessageFormatter:
                 emoji="🌏",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -121,7 +121,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "awin": MessageTemplate(
@@ -129,7 +129,7 @@ class MessageFormatter:
                 emoji="🔗",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -139,7 +139,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             ),
             "rakuten": MessageTemplate(
@@ -147,7 +147,7 @@ class MessageFormatter:
                 emoji="🎯",
                 format_string=(
                     "{emoji} **{title}**\n\n"
-                    "💰 **Preço Atual**: R$ {current_price}\n"
+                    "💰 **Preço Atual**: R$ {price}\n"
                     "💸 **Preço Original**: R$ {original_price}\n"
                     "🎯 **Desconto**: {discount_percentage}%\n"
                     "{coupon_info}"
@@ -157,7 +157,7 @@ class MessageFormatter:
                     "🔗 **Link**: {affiliate_url}\n"
                     "{urgency_badge}"
                 ),
-                required_fields=["title", "current_price", "affiliate_url"],
+                required_fields=["title", "price", "affiliate_url"],
                 optional_fields=["original_price", "discount_percentage", "store", "category", "coupon_code", "stock_quantity"]
             )
         }
@@ -212,7 +212,7 @@ class MessageFormatter:
         
         # Determinar plataforma
         if not platform:
-            platform = offer.platform or "generic"
+            platform = "generic"
         
         # Obter template
         template = self.templates.get(platform.lower(), self.templates["amazon"])
@@ -234,11 +234,11 @@ class MessageFormatter:
         emoji = template.emoji
         
         # Formatação de preços
-        current_price = self._format_price(offer.current_price)
+        current_price = self._format_price(offer.price)
         original_price = self._format_price(offer.original_price) if offer.original_price else None
         
         # Cálculo de desconto
-        discount_percentage = self._calculate_discount(offer.current_price, offer.original_price)
+        discount_percentage = self._calculate_discount(offer.price, offer.original_price)
         
         # Informações de cupom
         coupon_info = self._format_coupon_info(offer)
@@ -259,7 +259,7 @@ class MessageFormatter:
         return {
             "emoji": emoji,
             "title": offer.title or "Produto sem título",
-            "current_price": current_price,
+            "price": current_price,
             "original_price": original_price or "N/A",
             "discount_percentage": discount_percentage,
             "coupon_info": coupon_info,
@@ -277,15 +277,15 @@ class MessageFormatter:
         
         return f"{float(price):.2f}".replace(".", ",")
     
-    def _calculate_discount(self, current_price: Optional[Decimal], original_price: Optional[Decimal]) -> str:
+    def _calculate_discount(self, price: Optional[Decimal], original_price: Optional[Decimal]) -> str:
         """Calcula percentual de desconto."""
-        if not current_price or not original_price:
+        if not price or not original_price:
             return "0"
         
-        if original_price <= current_price:
+        if original_price <= price:
             return "0"
         
-        discount = ((original_price - current_price) / original_price) * 100
+        discount = ((original_price - price) / original_price) * 100
         return f"{discount:.0f}"
     
     def _format_coupon_info(self, offer: Offer) -> str:
@@ -396,7 +396,7 @@ class MessageFormatter:
             test_data = {
                 "emoji": "📦",
                 "title": "Produto Teste",
-                "current_price": "99.99",
+                "price": "99.99",
                 "original_price": "199.99",
                 "discount_percentage": "50",
                 "coupon_info": "",

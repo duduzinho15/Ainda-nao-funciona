@@ -8,12 +8,13 @@ import logging
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 from datetime import datetime
+from decimal import Decimal
 import re
 import json
 
-from ...core.models import Offer
-from ...core.affiliate_validator import AffiliateValidator
-from ...utils.anti_bot import get_random_user_agent
+from src.core.models import Offer
+from src.core.affiliate_validator import AffiliateValidator
+from src.utils.anti_bot import AntiBotUtils
 
 
 @dataclass
@@ -190,15 +191,13 @@ class PromobitScraper:
             # Criar oferta
             offer = Offer(
                 title=promobit_offer.title,
-                current_price=promobit_offer.price,
-                original_price=promobit_offer.original_price,
-                discount_percentage=discount_percentage,
-                affiliate_url=promobit_offer.url,
-                platform="promobit",
-                category=promobit_offer.category,
+                price=Decimal(str(promobit_offer.price)),
+                original_price=Decimal(str(promobit_offer.original_price)) if promobit_offer.original_price else None,
+                url=promobit_offer.url,
                 store=promobit_offer.store,
-                image_url=promobit_offer.image_url,
-                posted_at=promobit_offer.posted_at
+                category=promobit_offer.category,
+                affiliate_url=promobit_offer.url,
+                image_url=promobit_offer.image_url
             )
             
             return offer
@@ -229,7 +228,7 @@ class PromobitScraper:
                 return False
             
             # Validar preço
-            if offer.current_price <= 0:
+            if offer.price <= 0:
                 return False
             
             # Adicionar ao cache de processadas

@@ -75,6 +75,10 @@ class AntiBotUtils:
 
         return headers
 
+    def get_random_user_agent(self) -> str:
+        """Retorna um User-Agent aleatório"""
+        return random.choice(self.USER_AGENTS)
+
     async def make_request(
         self,
         url: str,

@@ -199,6 +199,83 @@ class AffiliateValidator:
             score=total_score,
         )
 
+    def validate_url(self, url: str) -> ValidationResult:
+        """
+        Valida uma URL de afiliado
+        
+        Args:
+            url: URL a ser validada
+            
+        Returns:
+            ValidationResult com status e detalhes
+        """
+        try:
+            platform = self.identify_platform(url)
+            
+            if not platform:
+                return ValidationResult(
+                    status=ValidationStatus.INVALID,
+                    message="Plataforma não identificada",
+                    details={"error": "platform_not_found"},
+                    score=0.0,
+                )
+            
+            # Validar formato da URL
+            url_format_score = self._validate_url_format(url, platform)
+            
+            # Validar parâmetros obrigatórios
+            params_score = self._validate_required_params(url, platform)
+            
+            # Validar domínio
+            domain_score = self._validate_domain(url, platform)
+            
+            # Validar qualidade do shortlink
+            shortlink_score = self._validate_shortlink_quality(url, platform)
+            
+            # Calcular pontuação total
+            total_score = (
+                url_format_score * self.scoring_criteria["url_format"]
+                + params_score * self.scoring_criteria["required_params"]
+                + domain_score * self.scoring_criteria["domain_validation"]
+                + shortlink_score * self.scoring_criteria["shortlink_quality"]
+            )
+            
+            # Determinar status baseado na pontuação
+            if total_score >= 0.9:
+                status = ValidationStatus.VALID
+                message = "URL válida"
+            elif total_score >= 0.7:
+                status = ValidationStatus.WARNING
+                message = "URL com avisos menores"
+            elif total_score >= 0.5:
+                status = ValidationStatus.WARNING
+                message = "URL com problemas significativos"
+            else:
+                status = ValidationStatus.INVALID
+                message = "URL inválida"
+            
+            return ValidationResult(
+                status=status,
+                message=message,
+                details={
+                    "platform": platform,
+                    "url_format_score": url_format_score,
+                    "params_score": params_score,
+                    "domain_score": domain_score,
+                    "shortlink_score": shortlink_score,
+                    "total_score": total_score,
+                },
+                score=total_score,
+            )
+            
+        except Exception as e:
+            return ValidationResult(
+                status=ValidationStatus.ERROR,
+                message=f"Erro na validação: {str(e)}",
+                details={"error": str(e)},
+                score=0.0,
+            )
+
     def _validate_url_format(self, url: str, platform: str) -> float:
         """Valida formato da URL"""
         try:
