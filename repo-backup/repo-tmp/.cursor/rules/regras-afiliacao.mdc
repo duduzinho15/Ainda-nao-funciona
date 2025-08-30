@@ -1,0 +1,11 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+
+- **SEMPRE** validar todos os links de afiliado antes da publicação.
+- **NUNCA** publicar ofertas sem um link de afiliado válido e funcional.
+- **PRIORIZAR** o uso de APIs oficiais das plataformas de afiliação em vez de técnicas de scraping.
+- **RESPEITAR** rigorosamente os exemplos e padrões oficiais de links fornecidos por redes como Awin, Amazon, etc.
+- **BLOQUEAR** automaticamente qualquer URL de afiliado considerada inválida ou fora do padrão.

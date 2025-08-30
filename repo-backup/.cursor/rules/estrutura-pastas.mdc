@@ -1,0 +1,17 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+// Regra: Nunca criar arquivos fora da estrutura definida abaixo:
+//
+// - src/affiliate/         → conversores de afiliados
+// - src/scrapers/          → apenas lojas com afiliação ativa
+// - src/core/              → núcleo do sistema
+// - src/pipelines/         → ingestão e processamento
+// - src/posting/           → validação e formatação
+// - src/telegram_bot/      → integração Telegram
+// - apps/flet_dashboard/   → dashboard Flet
+//
+// Qualquer novo arquivo ou módulo deve obrigatoriamente respeitar essa estrutura de pastas.
+// Não é permitido criar arquivos ou diretórios fora desses caminhos.
