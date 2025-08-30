@@ -1,34 +1,35 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg-info/
-.eggs/
+﻿# Ambientes e caches
 .venv/
 venv/
-.env
-.env.*
+__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
 
-# Logs/temps
-*.log
+# Temporários do Google Drive
+.tmp.drivedownload/
+.tmp.driveupload/
+
+# Logs, backups e artefatos locais
 logs/
-*.tmp
-*.temp
+backups/
+exports/
+repo-backup/
 
-# Node/Front
+# Bancos e caches de dados (descomente se NÃO quiser versionar)
+*.db
+*.sqlite
+
+# SO / IDE
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/
+
+# Node/Build (se usar)
 node_modules/
 dist/
 build/
 
-# IDEs
-.vscode/
-.idea/
-*.iml
-
-# SO
-Thumbs.db
-.DS_Store
-
-# Outros
-*.bak
+# Git
+.gitattributes
