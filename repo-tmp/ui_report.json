@@ -1,0 +1,162 @@
+{
+  "timestamp": "2025-08-22T13:52:46.420272",
+  "summary": {
+    "passed": 17,
+    "failed": 0,
+    "skipped": 0,
+    "total": 17
+  },
+  "results": [
+    {
+      "name": "src_structure",
+      "status": "PASS",
+      "description": "Estrutura src/ correta",
+      "duration": 0.0
+    },
+    {
+      "name": "init_files",
+      "status": "PASS",
+      "description": "Arquivos __init__.py presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "core_modules",
+      "status": "PASS",
+      "description": "Módulos core existem",
+      "duration": 0.0
+    },
+    {
+      "name": "scrapers_structure",
+      "status": "PASS",
+      "description": "Estrutura scrapers correta",
+      "duration": 0.0
+    },
+    {
+      "name": "providers_structure",
+      "status": "PASS",
+      "description": "Estrutura providers correta",
+      "duration": 0.0
+    },
+    {
+      "name": "dashboard_components",
+      "status": "PASS",
+      "description": "Componentes dashboard presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "ui_keys_present",
+      "status": "PASS",
+      "description": "Keys UI essenciais presentes",
+      "duration": 0.0
+    },
+    {
+      "name": "dashboard_imports",
+      "status": "PASS",
+      "description": "Imports dashboard funcionam",
+      "duration": 1.575
+    },
+    {
+      "name": "database_connection",
+      "status": "PASS",
+      "description": "Conexão banco funciona",
+      "duration": 0.001
+    },
+    {
+      "name": "preferences_storage",
+      "status": "PASS",
+      "description": "Sistema preferências funciona",
+      "duration": 0.001
+    },
+    {
+      "name": "logs_directory",
+      "status": "PASS",
+      "description": "Diretório logs existe",
+      "duration": 0.0
+    },
+    {
+      "name": "exports_directory",
+      "status": "PASS",
+      "description": "Diretório exports existe",
+      "duration": 0.0
+    },
+    {
+      "name": "entry_points",
+      "status": "PASS",
+      "description": "Pontos entrada existem",
+      "duration": 0.0
+    },
+    {
+      "name": "configuration_files",
+      "status": "PASS",
+      "description": "Arquivos configuração existem",
+      "duration": 0.0
+    },
+    {
+      "name": "global_toggle_on_controls",
+      "status": "PASS",
+      "description": "Toggle global presente",
+      "duration": 0.0
+    },
+    {
+      "name": "per_source_toggles_present",
+      "status": "PASS",
+      "description": "Toggles por fonte presentes",
+      "duration": 0.001
+    },
+    {
+      "name": "runner_status_visible",
+      "status": "PASS",
+      "description": "Status runner visível",
+      "duration": 0.0
+    }
+  ],
+  "snapshot": {
+    "timestamp": "2025-08-22T13:52:46.420296",
+    "structure": {
+      "src/core": [
+        "affiliate_converter.py",
+        "database.py",
+        "live_logs.py",
+        "logging_setup.py",
+        "metrics.py",
+        "storage.py",
+        "__init__.py"
+      ],
+      "src/app": [
+        "__init__.py",
+        "__init__.py",
+        "dashboard.py",
+        "__init__.py"
+      ],
+      "src/scrapers": [
+        "base_scraper.py",
+        "__init__.py",
+        "aliexpress_scraper.py",
+        "amazon_scraper.py",
+        "americanas_scraper.py",
+        "casas_bahia_scraper.py",
+        "fast_shop_scraper.py",
+        "kabum_scraper.py",
+        "magalu_scraper.py",
+        "meupc_scraper.py",
+        "promobit_scraper.py",
+        "ricardo_eletro_scraper.py",
+        "shopee_scraper.py",
+        "submarino_scraper.py"
+      ],
+      "src/providers": [
+        "base_api.py",
+        "__init__.py",
+        "aliexpress_api.py",
+        "mercadolivre_api.py",
+        "shopee_api.py"
+      ]
+    },
+    "components": {
+      "dashboard_size": 12726,
+      "has_tabs": true,
+      "has_metrics": true
+    },
+    "metrics": {}
+  }
+}

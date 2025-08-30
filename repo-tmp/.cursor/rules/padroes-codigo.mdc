@@ -1,0 +1,22 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+// Padrões de Código - Garimpeiro Geek
+
+- **SEMPRE** utilizar type hints em todas as funções, métodos e variáveis públicas.
+- **SEMPRE** documentar funções, classes e módulos com docstrings claras e objetivas.
+- **SEMPRE** implementar tratamento de erros robusto, utilizando exceções específicas e logs detalhados.
+- **SEMPRE** seguir padrões async/await para operações I/O-bound e concorrentes.
+- **SEMPRE** implementar testes unitários e E2E para todas as funcionalidades críticas.
+- **SEMPRE** manter o código limpo, modular e reutilizável, evitando duplicidade.
+- **SEMPRE** seguir convenções de nomenclatura PEP8 e manter identação consistente.
+- **SEMPRE** revisar e validar código (code review) antes de mergear em branches principais.
+- **SEMPRE** utilizar variáveis de ambiente (.env) para credenciais e configurações sensíveis.
+- **NUNCA** commitar credenciais, segredos ou dados sensíveis no repositório.
+- **NUNCA** deixar prints ou logs sensíveis em produção.
+- **NUNCA** ignorar warnings críticos do linter ou do sistema de build.
+- **PRIORIZAR** a clareza e legibilidade do código em detrimento de otimizações prematuras.
+- **PRIORIZAR** a utilização de bibliotecas e APIs oficiais sempre que possível.
+
