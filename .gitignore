@@ -1,4 +1,4 @@
-Ôªø# Ambientes e caches
+# Ambientes e caches
 .venv/
 venv/
 __pycache__/
@@ -6,7 +6,7 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# Tempor√°rios do Google Drive
+# Tempor·rios do Google Drive
 .tmp.drivedownload/
 .tmp.driveupload/
 
@@ -16,7 +16,7 @@ backups/
 exports/
 repo-backup/
 
-# Bancos e caches de dados (descomente se N√ÉO quiser versionar)
+# Bancos e caches de dados (descomente se N√O quiser versionar)
 *.db
 *.sqlite
 
@@ -32,4 +32,3 @@ dist/
 build/
 
 # Git
-.gitattributes
