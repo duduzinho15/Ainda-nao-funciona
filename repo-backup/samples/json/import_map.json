@@ -1,0 +1,11 @@
+{
+  "apis\\base_api.py": "src/providers/base_api.py",
+  "app\\dashboard.py": "src/app/dashboard/dashboard.py",
+  "core\\affiliate_converter.py": "src/core/affiliate_converter.py",
+  "core\\database.py": "src/core/database.py",
+  "core\\live_logs.py": "src/core/live_logs.py",
+  "core\\logging_setup.py": "src/core/logging_setup.py",
+  "core\\metrics.py": "src/core/metrics.py",
+  "core\\storage.py": "src/core/storage.py",
+  "scrapers\\base_scraper.py": "src/scrapers/base_scraper.py"
+}

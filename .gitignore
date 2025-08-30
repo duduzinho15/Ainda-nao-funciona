@@ -1,315 +1,34 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Flask stuff:
-instance/
-.webassets-cache
-
-# Scrapy stuff:
-.scrapy
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-.pybuilder/
-target/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# pipenv
-Pipfile.lock
-
-# poetry
-poetry.lock
-
-# pdm
-.pdm.toml
-
-# PEP 582
-__pypackages__/
-
-# Celery stuff
-celerybeat-schedule
-celerybeat.pid
-
-# SageMath parsed files
-*.sage.py
-
-# Environments
-.env
-.venv
-env/
+# Ambientes e caches
+.venv/
 venv/
-ENV/
-env.bak/
-venv.bak/
-
-# Spyder project settings
-.spyderproject
-.spyproject
-
-# Rope project settings
-.ropeproject
-
-# mkdocs documentation
-/site
-
-# mypy
+__pycache__/
 .mypy_cache/
-.dmypy.json
-dmypy.json
+.ruff_cache/
+.pytest_cache/
 
-# Pyre type checker
-.pyre/
-
-# pytype static type analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# PyCharm
-.idea/
-
-# VS Code
-.vscode/
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
-# Vim
-*.swp
-*.swo
-*~
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-Icon
-._*
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-# Windows
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-*.tmp
-*.temp
-Desktop.ini
-$RECYCLE.BIN/
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-*.lnk
-
-# Linux
-*~
-.fuse_hidden*
-.directory
-.Trash-*
-.nfs*
-
-# Garimpeiro Geek specific
-# Dados não versionados
-/data/
-/logs/
-/exports/
-/backups/
-/samples/
-
-# Configurações locais
-.env.local
-.env.production
-.env.staging
-
-# Banco de dados
-*.db
-*.db-shm
-*.db-wal
-*.sqlite
-*.sqlite3
-
-# Cache e arquivos temporários
-.cache/
-.tmp/
-tmp/
-temp/
-
-# Arquivos de upload do Google Drive
+# Tempor�rios do Google Drive
+.tmp.drivedownload/
 .tmp.driveupload/
-*.driveupload
 
-# Arquivos de backup automático
-backup_*.zip
+# Logs, backups e artefatos locais
+logs/
+backups/
+exports/
+repo-backup/
 
-# Métricas e relatórios
-.data/metrics/
-metrics_*.json
+# Bancos e caches de dados (descomente se N�O quiser versionar)
+*.db
+*.sqlite
 
-# Arquivos de teste
-test_results/
-test_output/
-.pytest_cache/
-
-# Arquivos de desenvolvimento
-*.bak
-*.orig
-*.rej
-*.swp
-*.swo
-
-# Arquivos de IDE específicos
+# SO / IDE
+Thumbs.db
+.DS_Store
 .vscode/
 .idea/
-*.sublime-*
-.atom/
-.brackets.json
 
-# Arquivos de sistema
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Arquivos de log específicos
-*.log
-logs/
-log/
-
-# Arquivos de configuração local
-config.local.py
-settings.local.py
-
-# Arquivos de ambiente
-.env.*
-!.env.example
-
-# Arquivos de backup
-*.backup
-*.old
-*.tmp
-
-# Arquivos de cache
-cache/
-.cache/
-
-# Arquivos temporários
-temp/
-tmp/
-*.tmp
-*.temp
-
-# Arquivos de build
-build/
+# Node/Build (se usar)
+node_modules/
 dist/
-*.egg-info/
+build/
 
-# Arquivos de teste
-.coverage
-.pytest_cache/
-.tox/
-htmlcov/
-
-# Arquivos de documentação
-docs/_build/
-site/
-
-# Arquivos de deploy
-deployment/
-docker-compose.override.yml
-
-# Arquivos de backup do sistema
-system_backup/
-backup_*/
+# Git
